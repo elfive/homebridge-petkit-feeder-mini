@@ -87,17 +87,18 @@ you can find X-Session data from the request header area and deviceId in respons
 ### example of config.json file
 
 ```json
-"accessories": [
-    {
-        "accessory": "petkit_feeder_mini",
-        "autoDeviceInfo": true,
-        "name": "feeder",
-        "deviceId": "123456",
-        "x_session": "20021d3687054548b4c691144e074341VCUyccVSDe2Pz2U7tb0E",
-        "fix_amount": 3,
-        "more_control": true
+"accessories": [{
+    "accessory": "petkit_feeder_mini",
+    "autoDeviceInfo": true,
+    "name": "喂食器",
+    "deviceId": "356367",
+    "location": "asia",
+    "headers": {
+        "X-Session": "xxxxxx",
+        "X-Timezone": 8
     }
-]
+    "more_control": true
+}]
 ```
 
 
