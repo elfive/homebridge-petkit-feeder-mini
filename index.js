@@ -16,6 +16,7 @@ const global_urls = Object.freeze({
         'dailyfeeds': 'http://api.petkit.cn/6/feedermini/dailyfeeds?deviceId={}&days={}',
         'restoreDailyFeeds': 'http://api.petkit.cn/6/feedermini/restore_dailyfeed?deviceId={}&day={}&id=s{}',
         'disableDailyFeeds': 'http://api.petkit.cn/6/feedermini/remove_dailyfeed?deviceId={}&day={}&id=s{}',
+        'owndevices': 'http://api.petkit.cn/6/discovery/device_roster',
     },
     'asia':{
         'deviceState': 'http://api.petktasia.com/latest/feedermini/devicestate?id={}',
@@ -25,6 +26,7 @@ const global_urls = Object.freeze({
         'dailyfeeds': 'http://api.petktasia.com/latest/feedermini/dailyfeeds?deviceId={}&days={}',
         'restoreDailyFeeds': 'http://api.petktasia.com/latest/feedermini/restore_dailyfeed?deviceId={}&day={}&id=s{}',
         'disableDailyFeeds': 'http://api.petktasia.com/latest/feedermini/remove_dailyfeed?deviceId={}&day={}&id=s{}',
+        'owndevices': 'http://api.petktasia.com/latest/discovery/device_roster',
     }
 });
 
@@ -86,8 +88,14 @@ function petkit_feeder_mini_plugin(log, config, api) {
 
     // handle feed settings
     // meal, same as petkit app unit. one share stands for 5g or 1/20 cup, ten meal most;
-    this.fix_amount = this.config['fix_amount'] || 3;
-    this.variable_amount = 0;
+    this.mealAmount = 3;
+    if (this.config['mealAmount'] > max_amount) {
+        this.log('mealAmount should not greater than ' + max_amount + ', use ' + max_amount + ' instead');
+        this.mealAmount = max_amount;
+    } else if (this.config['mealAmount'] < min_amount) {
+        this.log('mealAmount should not less than ' + min_amount + ', use ' + min_amount + ' instead');
+        this.mealAmount = min_amount;
+    }
 
     // handle device connection info
     this.deviceId = this.config['deviceId'];
@@ -106,29 +114,26 @@ function petkit_feeder_mini_plugin(log, config, api) {
             this.log('unable to retrieve device infomation from server.');
         }
     }
-    this.timezone = this.config['timezone'] || deviceDetail['timezone'] || 8.0;
+    this.timezone = this.config['timezone'] || deviceDetail['timezone'] || 8;
     this.name = this.config['name'] || deviceDetail['name'] || 'PetkitFeederMini';
     this.serialNumber = this.config['sn'] || deviceDetail['sn'] || 'PetkitFeederMini';
     this.firmware = this.config['firmware'] || deviceDetail['firmware'] || '1.0.0';
 
     this.log('Plugin Petkit Feeder Mini Loaded');
 
-    this.fix_amount_service = new Service.Switch('ExtraMeal-' + this.fix_amount);
-    this.fix_amount_service.getCharacteristic(Characteristic.On)
-        .on('get', this.getFixAmountStatus.bind(this))
-        .on('set', this.setFixAmountStatus.bind(this));
-    this.service.push(this.fix_amount_service);
+    this.drop_meal_service = new Service.Switch('DropMeal');
+    this.drop_meal_service.getCharacteristic(Characteristic.On)
+        .on('get', this.getDropMealStatus.bind(this))
+        .on('set', this.setDropMealStatus.bind(this));
+    this.service.push(this.drop_meal_service);
 
-    if (this.config['more_control']) {
-        this.variable_amount_service = new Service.Fan('ExtraMeal');
-            this.variable_amount_service.getCharacteristic(Characteristic.On)
-            .on('get', this.getVariableAmountStatus.bind(this))
-            .on('set', this.setVariableAmountStatus.bind(this));
-        this.variable_amount_service.getCharacteristic(Characteristic.RotationSpeed)
-            .on('get', this.getVariableAmount.bind(this))
-            .on('set', this.setVariableAmount.bind(this));
-        this.service.push(this.variable_amount_service);
-    }
+    this.meal_amount_service = new Service.Fan('MealAmount');
+    this.meal_amount_service.getCharacteristic(Characteristic.On)
+        .on('get', this.getMealAmountStatus.bind(this));
+    this.meal_amount_service.getCharacteristic(Characteristic.RotationSpeed)
+        .on('get', this.getMealAmount.bind(this))
+        .on('set', this.setMealAmount.bind(this));
+    this.service.push(this.meal_amount_service);
 
     this.info_service = new Service.AccessoryInformation();
     this.info_service
@@ -266,6 +271,48 @@ petkit_feeder_mini_plugin.prototype = {
         if (jsonObj.result.food) {}
     },
 
+    praseGetDeviceResult: function(jsonStr) {
+        const jsonObj = JSON.parse(jsonStr);
+        if (!jsonObj) {
+            this.log('JSON.parse error with:' + jsonStr);
+            return false;
+        }
+
+        if (!jsonObj.hasOwnProperty('result')) {
+            this.log('JSON.parse error with:' + jsonStr);
+            return false;
+        }
+
+        if (!jsonObj.result.hasOwnProperty('devices')) {
+            this.log('JSON.parse error with:' + jsonStr);
+            return false;
+        }
+
+        if (!jsonObj.result.hasOwnProperty('devices')) {
+            this.log('JSON.parse error with:' + jsonStr);
+            return false;
+        }
+
+        if (jsonObj.result.devices.length == 0) {
+            this.log('seems you do\'nt owned a device.');
+            return false;
+        }
+
+        var devices = [];
+        jsonObj.result.devices.foreach(function(item, index) {
+            if (item.type === 'FeederMini' && !item.data) {
+                devices.push(item.data);
+            }
+        });
+
+        if (devices.length == 0) {
+            this.log('seems you do\'nt owned a Petkit feeder mini, this plugin only works for Petkit feeder mini, sorry.');
+            return false;
+        }
+
+        return devices;
+    },
+
     // date：20200920、time: 68400
     confirmSaveFeedSuccess: function(date, time) {
         const jsonStr = this.getDailyFeedsInfo(date);
@@ -341,12 +388,16 @@ petkit_feeder_mini_plugin.prototype = {
         return this.post(format(this.urls.removeDailyFeed, this.deviceId, date, time), callback);
     },
 
-    getFixAmountStatus: function(callback) {
+    getDevices: function(callback = null) {
+        return this.post(this.urls.owndevices, callback);
+    },
+
+    getDropMealStatus: function(callback) {
         const currentValue = 0;
         callback(null, currentValue);
     },
 
-    setFixAmountStatus: function(value, callback) {
+    setDropMealStatus: function(value, callback) {
         const fix_amount = this.fix_amount;
         const that = this;
         // date, time, amount, callback
@@ -364,50 +415,17 @@ petkit_feeder_mini_plugin.prototype = {
         });
     },
 
-    getVariableAmountStatus: function(callback) {
-        const currentValue = 0;
+    getMealAmountStatus: function(callback) {
+        const currentValue = 1;
         callback(null, currentValue);
     },
 
-    setVariableAmountStatus: function(value, callback) {
-        this.variable_amount = this.convertFanSpeedToAmount(value);
-        const that = this;
-        // date, time, amount, callback
-        this.saveDailyFeed(dayjs(new Date()).format('YYYYMMDD'), -1, this.variable_amount, function(data) {
-            if (!data) {
-                callback('failed to commuciate with server.');
-            } else {
-                const result = that.praseSaveDailyFeedResult(data);
-                if (!result) {
-                    callback(result);
-                } else {
-                    callback(null);
-                }
-            }
-        });
+    getMealAmount: function(callback) {
+        callback(null, this.convertAmountToFanSpeed(this.mealAmount));
     },
 
-    getVariableAmount: function(callback) {
-        const currentValue = 0;
-        callback(null, currentValue);
-    },
-
-    setVariableAmount: function(value, callback) {
-        this.variable_amount = this.convertFanSpeedToAmount(value);
-        const that = this;
-        // date, time, amount, callback
-        this.saveDailyFeed(dayjs(new Date()).format('YYYYMMDD'), -1, this.variable_amount, function(data) {
-            if (!data) {
-                callback('failed to commuciate with server.');
-            } else {
-                const result = that.praseSaveDailyFeedResult(data);
-                if (!result) {
-                    callback(result);
-                } else {
-                    callback(null);
-                }
-            }
-        });
+    setMealAmount: function(value, callback) {
+        this.mealAmount = this.convertFanSpeedToAmount(value);
     },
 
     convertFanSpeedToAmount: function(fanSpeed) {
