@@ -56,22 +56,31 @@ you can find X-Session data from the request header area and deviceId in respons
 
 ## 3) Edit homebridge config.json
 
-### config.json field explain
+### config.json field
 
 |  field   name  |  type  | required |       default        |    range    | description                                                  |
 | :------------: | :----: | :------: | :------------------: | :---------: | ------------------------------------------------------------ |
-|      name      | string |   yes    |  'PetkitFeederMini'  |     ---     | device name shows in   HomeKit. If autoDeviceInfo is set to true, it will overwrited with the name in your Petkit app. we don't need it, but homebridge need it. |
-|    location    | string |   yes    |         'cn'         | 'cn','asia' | China user:'cn';<br/>Asia user: 'asia';<br/>other location because lack of infomation, not support yet. |
-|   X-Session    | string |   yes    |         ---          |     ---     | tell server who you are.       This changes everytime you login Petkit app. |
+|      name      | string |   yes    |  'PetkitFeederMini'  |     ---     | device name shows in HomeKit. If autoDeviceInfo is set to true, it will overwrited with the name in your Petkit app. we don't need it, but homebridge need it. |
+|    location    | string |   yes    |         'cn'         | 'cn','asia' | China user:'cn';<br>Asia user: 'asia';<br>other location because lack of infomation, not support yet. |
+|    headers     | array  |   yes    |         ---          |     ---     | http request headers.see more detail below(headers field)    |
 |    deviceId    | string |   yes    |         ---          |     ---     | your Petkit feeder mini Id, which is buildin your device, will never change. |
-|   fix_amount   |  int   |    no    |          3           |   1 to 10   | In homekit this shows as a switch, every time you click this switch it will drop fix_amount meal.      A meal stands for about 5g or 1/20 cup of food. |
+|   fix_amount   |  int   |    no    |          3           |   1 to 10   | In homekit this shows as a switch, every time you click this switch it will drop fix_amount meal.A meal stands for about 5g or 1/20 cup of food. |
 | autoDeviceInfo |  bool  |    no    |        false         | true/false  | homebridge supports retrieve   device info from Petkit server. Set this value to true, it can retrieve device information, and shows it in homekit app. This information contains:timezone, name, sn, firmware |
-|    timezone    |  int   |    no    |         8.0          |  -12 to 12  | your local timezone offset, UTC   time. If autoDeviceInfo is set to true, it will overwrited with the ns of your device timezone,      which is set in your Petkit app. |
 |       sn       | string |    no    |  'PetkitFeederMini'  |     ---     | serial number shows in homekit app. If autoDeviceInfo is set to true, it will overwrited with the ns of your device. |
 |    firmware    | string |    no    |       '1.0.0'        |     ---     | firmware version shows in homekit app. If autoDeviceInfo is set to true, it will overwrited with the firmware version of your device. |
 |  manufacturer  | string |    no    |       'Petkit'       |     ---     | the manufacturer of your device.                             |
 |     model      | string |    no    | 'Petkit feeder mini' |     ---     | the model of your device..                                   |
 |  more_control  |  bool  |    no    |        false         | true/false  | if this value is set to   true, it will shows a fan in Homekit, which has a fan speed control, the fan speed is mapped to the meal amount, from 1 to 10. so you are able to control the amount for your pet |
+
+
+
+### headers field
+
+| field   name  |  type  | required | default  |   range   | description                                                  |
+| :-----------: | :----: | :------: | :------: | :-------: | ------------------------------------------------------------ |
+|   X-Session   | string |   yes    |   ---    |    ---    | tell server who you are. This changes everytime you login Petkit app. |
+| X-Api-Version | string |  prefer  | '7.18.1' |    ---    | for China mainland users, this field is not necessary, but for users outside China mainland, this field is required, but if not provided, then the default value will be used. |
+|  X-Timezone   |  int   |    no    |   8.0    | -12 to 12 | your local timezone offset, UTC   time. If autoDeviceInfo is set to true, it will overwrited with the ns of your device timezone,      which is set in your Petkit app. |
 
 
 

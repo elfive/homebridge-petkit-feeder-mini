@@ -51,16 +51,38 @@ function petkit_feeder_mini_plugin(log, config, api) {
         return;
     }
 
-    if (!this.config['x_session']) {
-        this.log.error('missing field in config.json file: x_session');
-        return;
-    }
-
     if (!this.config['location'] || !global_urls[this.config['location']]) {
         this.log.error('wrong value in config.json file: location');
         return;
     }
     this.urls = global_urls[this.config['location']];
+
+    if (!this.config['headers']) {
+        this.log.error('missing field in config.json file: headers');
+        return;
+    }
+    this.headers = this.config['headers'];
+    switch(this.config['location']) {
+        case 'cn':
+            if (!this.headers['X-Session']) {
+                this.log.error('missing field in config.json file: headers.X-Session');
+                return;
+            }
+            break;
+        case 'asia':
+            if (!this.headers['X-Session']) {
+                this.log.error('missing field in config.json file: headers.X-Session');
+                return;
+            }
+            if (!this.headers['X-Api-Version']) {
+                this.headers['X-Api-Version'] = '7.18.1';
+                this.log('missing field in config.json file: headers.X-Api-Version, using "' + this.headers['X-Api-Version'] + '" instead.');
+            }
+            break;
+        default:
+        this.log.error('wrong value in config.json file: location');
+        return;
+    }
 
     // handle feed settings
     // meal, same as petkit app unit. one share stands for 5g or 1/20 cup, ten meal most;
@@ -69,7 +91,6 @@ function petkit_feeder_mini_plugin(log, config, api) {
 
     // handle device connection info
     this.deviceId = this.config['deviceId'];
-    this.x_session = this.config['x_session'];
     this.userAgent = this.config['userAgent'] || 'PetKit/7.19.1 (iPhone; iOS 14.0; Scale/3.00)';
 
     this.manufacturer = this.config['manufacturer'] || 'Petkit';
@@ -160,22 +181,18 @@ petkit_feeder_mini_plugin.prototype = {
 
     post: function(url, callback = null) {
         this.log(url);
-        const options = Object.freeze({
+        const options = {
           url: url,
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'User-Agent': this.userAgent,
-            'X-Session': this.x_session,
-            'X-Timezone': this.timezone,
-            // 'Accept-Language': 'zh-Hans-US;q=1, en-US;q=0.9'
-          }
-        });
+          headers: this.headers
+        };
         if (callback) {
+            const that = this;
             request(options, function(error, response, data) {
                 if (!error && response.statusCode == 200) {
                     callback(data);
                 } else {
+                    that.log.error(response.statusCode + ': ' + error);
                     callback(false);
                 }
             });
@@ -184,6 +201,7 @@ petkit_feeder_mini_plugin.prototype = {
             if (response.status == 200) {
                 return response.data.toString();
             }
+            this.log.error(response.statusCode + ': ' + error);
             return false;
         }
     },
@@ -404,11 +422,11 @@ petkit_feeder_mini_plugin.prototype = {
     },
 
     convertAmountToFanSpeed: function(amount) {
-    	var fanSpeed = 0;
-    	if (amount == min_amount) {
-        	fanSpeed = 0;
+        var fanSpeed = 0;
+        if (amount == min_amount) {
+            fanSpeed = 0;
         } else {
-        	fanSpeed = (100 / (min_amount + max_amount - 1)) * amount;
+            fanSpeed = (100 / (min_amount + max_amount - 1)) * amount;
         }
         this.log('convert amount: ' + amount + ' to fanSpeed: ' + fanSpeed);
         return fanSpeed;
