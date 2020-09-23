@@ -398,10 +398,10 @@ petkit_feeder_mini_plugin.prototype = {
     },
 
     setDropMealStatus: function(value, callback) {
-        const fix_amount = this.fix_amount;
+        const amout = this.mealAmount;
         const that = this;
         // date, time, amount, callback
-        this.saveDailyFeed(dayjs(new Date()).format('YYYYMMDD'), -1, fix_amount, function(data) {
+        this.saveDailyFeed(dayjs(new Date()).format('YYYYMMDD'), -1, amout, function(data) {
             if (!data) {
                 callback('failed to commuciate with server.');
             } else {
