@@ -47,12 +47,6 @@ function petkit_feeder_mini_plugin(log, config, api) {
 
     this.log('begin to initialize petkit_feeder_mini_plugin');
 
-    // handle device settings, setting below should captured via 
-    if (!this.config['deviceId']) {
-        this.log.error('missing field in config.json file: deviceId');
-        return;
-    }
-
     if (!this.config['location'] || !global_urls[this.config['location']]) {
         this.log.error('wrong value in config.json file: location');
         return;
@@ -86,6 +80,33 @@ function petkit_feeder_mini_plugin(log, config, api) {
         return;
     }
 
+    // handle device connection info
+    this.userAgent = this.config['userAgent'] || 'PetKit/7.19.1 (iPhone; iOS 14.0; Scale/3.00)';
+
+    // make sure deviceId is correct or get the deviceId
+    this.deviceId = this.config['deviceId'];
+    const devices = this.praseGetDeviceResult(this.getDevices());
+    if (devices) {
+        if (devices.length === 1) {
+            this.log.debug(JSON.stringify(devices[0]));
+            if (!this.deviceId) {
+                this.log('found you just ownd one feeder mini with deviceId: '+ devices[0].id);
+                this.deviceId = devices[0].id;
+            } else if (devices[0].id != this.deviceId) {
+                this.log.warn('seems that you does not ownd a feeder mini with deviceId: '+ this.deviceId);
+                this.log.warn('use '+ devices[0].id + ' instead ' + this.deviceId);
+                his.deviceId = devices[0].id;
+            }
+        } else {
+            const devicesIds = devices.map(function(device){
+                return {'id': device.id, 'name': device.name};
+            });
+            this.log.error('seems that you does not ownd more than one feeder mini');
+            this.log.error('do you mean one of this: '+ JSON.stringify(devicesIds));
+            return;
+        }
+    }
+
     // handle feed settings
     // meal, same as petkit app unit. one share stands for 5g or 1/20 cup, ten meal most;
     this.mealAmount = 3;
@@ -96,10 +117,6 @@ function petkit_feeder_mini_plugin(log, config, api) {
         this.log('mealAmount should not less than ' + min_amount + ', use ' + min_amount + ' instead');
         this.mealAmount = min_amount;
     }
-
-    // handle device connection info
-    this.deviceId = this.config['deviceId'];
-    this.userAgent = this.config['userAgent'] || 'PetKit/7.19.1 (iPhone; iOS 14.0; Scale/3.00)';
 
     this.manufacturer = this.config['manufacturer'] || 'Petkit';
     this.model = this.config['model'] || 'Petkit feeder mini';
@@ -132,7 +149,13 @@ function petkit_feeder_mini_plugin(log, config, api) {
         .on('get', this.getMealAmountStatus.bind(this));
     this.meal_amount_service.getCharacteristic(Characteristic.RotationSpeed)
         .on('get', this.getMealAmount.bind(this))
-        .on('set', this.setMealAmount.bind(this));
+        .on('set', this.setMealAmount.bind(this))
+        .setProps({
+            minValue: 0,
+            // minValue: min_amount,
+            maxValue: max_amount,
+            minStep: 1
+        });
     this.service.push(this.meal_amount_service);
 
     this.info_service = new Service.AccessoryInformation();
@@ -288,25 +311,20 @@ petkit_feeder_mini_plugin.prototype = {
             return false;
         }
 
-        if (!jsonObj.result.hasOwnProperty('devices')) {
-            this.log('JSON.parse error with:' + jsonStr);
-            return false;
-        }
-
         if (jsonObj.result.devices.length == 0) {
-            this.log('seems you do\'nt owned a device.');
+            this.log('seems you\'re not owned a device.');
             return false;
         }
 
         var devices = [];
-        jsonObj.result.devices.foreach(function(item, index) {
-            if (item.type === 'FeederMini' && !item.data) {
+        jsonObj.result.devices.forEach(function(item, index) {
+            if (item.type == 'FeederMini' && item.data) {
                 devices.push(item.data);
             }
-        });
+        }.bind(this));
 
         if (devices.length == 0) {
-            this.log('seems you do\'nt owned a Petkit feeder mini, this plugin only works for Petkit feeder mini, sorry.');
+            this.log('seems you nots owned a Petkit feeder mini, this plugin only works for Petkit feeder mini, sorry.');
             return false;
         }
 
@@ -398,14 +416,21 @@ petkit_feeder_mini_plugin.prototype = {
     },
 
     setDropMealStatus: function(value, callback) {
-        const that = this;
-        // date, time, amount, callback
-        const data = this.saveDailyFeed(dayjs(new Date()).format('YYYYMMDD'), -1, this.mealAmount);
-        if (!data) {
-            callback('failed to commuciate with server.');
-        } else {
-            const result = that.praseSaveDailyFeedResult(data);
-            that.log('food drop result: ' + result);
+        if (value || this.mealAmount) {
+            this.log('drop food:' + this.mealAmount + 'meal(s)');
+            const that = this;
+            // date, time, amount, callback
+            // const data = this.saveDailyFeed(dayjs(new Date()).format('YYYYMMDD'), -1, this.mealAmount);
+            const data = this.saveDailyFeed(dayjs(new Date()).format('YYYYMMDD'), -1, 0);
+            if (!data) {
+                callback('failed to commuciate with server.');
+            } else {
+                const result = that.praseSaveDailyFeedResult(data);
+                that.log('food drop result: ' + result);
+            }
+            setTimeout(function() {
+                this.drop_meal_service.setCharacteristic(Characteristic.On, false);
+            }.bind(this), 200);
         }
         callback(null);
     },
@@ -416,33 +441,12 @@ petkit_feeder_mini_plugin.prototype = {
     },
 
     getMealAmount: function(callback) {
-        callback(null, this.convertAmountToFanSpeed(this.mealAmount));
+        callback(null, this.mealAmount);
     },
 
     setMealAmount: function(value, callback) {
-        this.mealAmount = this.convertFanSpeedToAmount(value);
+        this.mealAmount = value;
+        this.log('set meal amount to ' + value);
         callback(null);
-    },
-
-    convertFanSpeedToAmount: function(fanSpeed) {
-        var amount = 0;
-        if (fanSpeed == 100) {
-            amount = 10;
-        } else {
-            amount = Math.floor(fanSpeed / (min_amount + max_amount - 1)) + min_amount;
-        }
-        this.log('convert fanSpeed: ' + fanSpeed + ' to amount: ' + amount);
-        return amount;
-    },
-
-    convertAmountToFanSpeed: function(amount) {
-        var fanSpeed = 0;
-        if (amount == min_amount) {
-            fanSpeed = 0;
-        } else {
-            fanSpeed = (100 / (min_amount + max_amount - 1)) * amount;
-        }
-        this.log('convert amount: ' + amount + ' to fanSpeed: ' + fanSpeed);
-        return fanSpeed;
     },
 }

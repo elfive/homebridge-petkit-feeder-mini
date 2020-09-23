@@ -50,7 +50,7 @@ Goto App Store, download Petkit mobile app, register, login, add device. before 
 
 you should provide two critical infomation to this plugin: **deviceId** and **X-Session**.
 
-- deviceId: this value indicate which device you wanna to control.
+- deviceId: this value indicate which device you wanna to control. If you just have one Petkit feeder mini, you can not provide this value.
 
 - X-Session: this value will change every time you login you Petkit app, so do not logoff your Petkit app unless necessary. 
 
@@ -71,7 +71,7 @@ you can find X-Session data from the request header area and deviceId in respons
 |      name      | string |   yes    |  'PetkitFeederMini'  |     ---     | device name shows in HomeKit. If autoDeviceInfo is set to true, it will overwrited with the name in your Petkit app. we don't need it, but homebridge need it. |
 |    location    | string |   yes    |         'cn'         | 'cn','asia' | China user:'cn'; Asia user: 'asia'; other location because lack of infomation, not support yet. |
 |    headers     | array  |   yes    |         ---          |     ---     | http request headers.see more detail below(headers field)    |
-|    deviceId    | string |   yes    |         ---          |     ---     | your Petkit feeder mini Id, which is buildin your device, will never change. |
+|    deviceId    | string |   tbd    |         ---          |     ---     | your Petkit feeder mini Id, which is buildin your device, will never change. If you just have one Petkit feeder mini, you can not provide this value. |
 |   mealAmount   |  int   |    no    |          3           |   1 to 10   | In homekit this shows as a switch, every time you click this switch it will drop mealAmount meal. This value just for initialize the fan speed after homebridge restart.  A meal stands for about 5g or 1/20 cup of food. |
 | autoDeviceInfo |  bool  |    no    |        false         | true/false  | this plugin supports retrieve device info from Petkit server. Set this value to true, it can retrieve device information (timezone, name, sn, firmware), and shows it in homekit app. |
 |       sn       | string |    no    |  'PetkitFeederMini'  |     ---     | serial number shows in homekit app. If autoDeviceInfo is set to true, it will overwrited with the sn of your device. |
