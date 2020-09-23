@@ -23,5 +23,9 @@
     "request": "^2.88.2",
     "string-format": "^2.0.0",
     "urllib-sync": "^1.1.4"
-  }
+  },
+  "repository": {
+  "type": "git",
+  "url": "https://github.com/elfive/homebridge-petkit-feeder-mini.git"
+},
 }
