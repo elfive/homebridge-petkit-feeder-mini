@@ -56,11 +56,11 @@ function petkit_feeder_mini_plugin(log, config, api) {
         return;
     }
 
-    if (!this.config['location'] || !global_urls[this.location]) {
+    if (!this.config['location'] || !global_urls[this.config['location']]) {
         this.log.error('wrong value in config.json file: location');
         return;
     }
-    this.urls = global_urls[this.location];
+    this.urls = global_urls[this.config['location']];
 
     // handle feed settings
     // meal, same as petkit app unit. one share stands for 5g or 1/20 cup, ten meal most;
