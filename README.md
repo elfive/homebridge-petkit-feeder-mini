@@ -10,7 +10,7 @@ control your petkit feeder mini from homekit, get full use of iOS automation.
 
     
 
-- currently this pluging for [homebridge](#https://github.com/homebridge/homebridge) just support [Petkit-feeder-mini (official store link)](#https://petkit.co.uk/product/petkit-element-mini-auto-feeder/), and this plugin currently only tested and works in Asia(include China mainland), other area may or may not work.
+- currently this plugin for [homebridge](#https://github.com/homebridge/homebridge) just support [Petkit-feeder-mini (official store link)](#https://petkit.co.uk/product/petkit-element-mini-auto-feeder/), and this plugin currently only tested and works in Asia(include China mainland), other area may or may not work.
 
     ![petkit-feeder-mini](https://raw.githubusercontent.com/elfive/homebridge-petkit-feeder-mini/master/petkit-feeder-mini.jpg)
 
