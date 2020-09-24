@@ -20,6 +20,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "dayjs": "^1.8.36",
+    "polling-to-event": "^2.1.0",
     "request": "^2.88.2",
     "string-format": "^2.0.0",
     "urllib-sync": "^1.1.4"
