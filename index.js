@@ -98,7 +98,7 @@ function petkit_feeder_mini_plugin(log, config, api) {
             } else if (devices[0].id != this.deviceId) {
                 this.log.warn('seems that you does not ownd a feeder mini with deviceId: '+ this.deviceId);
                 this.log.warn('use '+ devices[0].id + ' instead ' + this.deviceId);
-                his.deviceId = devices[0].id;
+                this.deviceId = devices[0].id;
             }
         } else {
             const devicesIds = devices.map(function(device){
@@ -130,12 +130,14 @@ function petkit_feeder_mini_plugin(log, config, api) {
 petkit_feeder_mini_plugin.prototype = {
     getServices: function() {
         var services = [];
+        // meal drop service
         this.drop_meal_service = new Service.Switch('DropMeal');
         this.drop_meal_service.getCharacteristic(Characteristic.On)
             .on('get', this.getDropMealStatus.bind(this))
             .on('set', this.setDropMealStatus.bind(this));
         services.push(this.drop_meal_service);
 
+        // meal amount setting service
         this.meal_amount_service = new Service.Fan('MealAmount');
         this.meal_amount_service.getCharacteristic(Characteristic.On)
             .on('get', this.getMealAmountStatus.bind(this));
@@ -150,6 +152,7 @@ petkit_feeder_mini_plugin.prototype = {
             });
         services.push(this.meal_amount_service);
 
+        // food storage indicator service
         var deviceDetailInfo = this.updateDeviceDetail();
         this.food_storage_service = new Service.OccupancySensor('FoodStorage');
         this.food_storage_service.getCharacteristic(Characteristic.OccupancyDetected)
@@ -168,6 +171,7 @@ petkit_feeder_mini_plugin.prototype = {
             this.firmware = this.config['firmware'] || '1.0.0';
         }
 
+        // divice information service
         this.info_service = new Service.AccessoryInformation();
         this.info_service
             .setCharacteristic(Characteristic.Identify, this.deviceId)
