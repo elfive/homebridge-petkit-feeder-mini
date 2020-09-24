@@ -31,8 +31,10 @@ const global_urls = Object.freeze({
     }
 });
 
-const min_amount = 1;
+const min_amount = 0;
 const max_amount = 10;
+const min_desiccantLeftDays = 0;
+const max_desiccantLeftDays = 30;
 const min_pollint_interval = 60;
 const max_pollint_interval = 3600;
 
@@ -46,6 +48,7 @@ function petkit_feeder_mini_plugin(log, config, api) {
     this.log = log;
     this.config = config;
     this.api = api;
+    this.deviceDetailInfo = {};
     this.poolToEventEmitter = null;
 
     this.log('begin to initialize petkit_feeder_mini_plugin');
@@ -112,7 +115,7 @@ function petkit_feeder_mini_plugin(log, config, api) {
 
     // handle feed settings
     // meal, same as petkit app unit. one share stands for 5g or 1/20 cup, ten meal most;
-    this.mealAmount = 3;
+    this.mealAmount = this.config['mealAmount'] || 3;
     if (this.config['mealAmount'] > max_amount) {
         this.log('mealAmount should not greater than ' + max_amount + ', use ' + max_amount + ' instead');
         this.mealAmount = max_amount;
@@ -123,6 +126,8 @@ function petkit_feeder_mini_plugin(log, config, api) {
 
     this.manufacturer = this.config['manufacturer'] || 'Petkit';
     this.model = this.config['model'] || 'Petkit feeder mini';
+
+    this.alertDesiccantLeftDays = this.config['alert_desiccantLeftDays'] || 5;
 
     this.log('Plugin Petkit Feeder Mini Loaded');
 }
@@ -140,36 +145,62 @@ petkit_feeder_mini_plugin.prototype = {
         // meal amount setting service
         this.meal_amount_service = new Service.Fan('MealAmount');
         this.meal_amount_service.getCharacteristic(Characteristic.On)
-            .on('get', this.getMealAmountStatus.bind(this));
+            .on('get', function(callback) {
+                callback(null, this.getMealAmount != 0);
+            }.bind(this));
         this.meal_amount_service.getCharacteristic(Characteristic.RotationSpeed)
             .on('get', this.getMealAmount.bind(this))
             .on('set', this.setMealAmount.bind(this))
             .setProps({
-                minValue: 0,
-                // minValue: min_amount,
+                minValue: min_amount,
                 maxValue: max_amount,
                 minStep: 1
             });
         services.push(this.meal_amount_service);
 
         // food storage indicator service
-        var deviceDetailInfo = this.updateDeviceDetail();
+        this.updateDeviceDetail();
         this.food_storage_service = new Service.OccupancySensor('FoodStorage');
         this.food_storage_service.getCharacteristic(Characteristic.OccupancyDetected)
             .on('get', this.getFoodStorageStatus.bind(this));
-        var food_storage_status = deviceDetailInfo['food'] || 0;
+        var food_storage_status = this.deviceDetailInfo['food'] || 0;
         this.food_storage_service.setCharacteristic(Characteristic.OccupancyDetected, food_storage_status)
         services.push(this.food_storage_service);
 
+        // desiccant left days service
+        var desiccantLeftDays = this.deviceDetailInfo['desiccantLeftDays'] || max_desiccantLeftDays;
+        this.desiccant_level_service = new Service.FilterMaintenance('DesiccantLevel');
+        this.desiccant_level_service.getCharacteristic(Characteristic.FilterChangeIndication)
+            .on('get', this.getDesiccantLeftDaysIndication.bind(this));
+        this.desiccant_level_service.getCharacteristic(Characteristic.FilterLifeLevel)
+            .on('get', this.getDesiccantLeftDays.bind(this))
+            .setProps({
+                minValue: min_desiccantLeftDays,
+                maxValue: max_desiccantLeftDays,
+                minStep: 1
+            });
+        this.desiccant_level_service.getCharacteristic(Characteristic.ResetFilterIndication)
+            .on('set', this.resetDesiccantLeftDays.bind(this))
+        services.push(this.desiccant_level_service);
+
         if (this.config['autoDeviceInfo']) {
-            this.name = deviceDetailInfo['name'] || this.config['name'] || 'PetkitFeederMini';
-            this.serialNumber = deviceDetailInfo['sn'] || this.config['sn'] || 'PetkitFeederMini';
-            this.firmware = deviceDetailInfo['firmware'] || this.config['firmware'] || '1.0.0';
+            this.name = this.deviceDetailInfo['name'] || this.config['name'] || 'PetkitFeederMini';
+            this.serialNumber = this.deviceDetailInfo['sn'] || this.config['sn'] || 'PetkitFeederMini';
+            this.firmware = this.deviceDetailInfo['firmware'] || this.config['firmware'] || '1.0.0';
         } else {
             this.name = this.config['name'] || 'PetkitFeederMini';
             this.serialNumber = this.config['sn'] || 'PetkitFeederMini';
             this.firmware = this.config['firmware'] || '1.0.0';
         }
+
+        this.battery_status_service = new Service.BatteryService('Battery');
+        this.battery_status_service.getCharacteristic(Characteristic.BatteryLevel)
+            .on('get', this.getDeviceBatteryLevel.bind(this));
+        this.battery_status_service.getCharacteristic(Characteristic.ChargingState)
+            .on('get', this.getDeviceChargingState.bind(this));
+        this.battery_status_service.getCharacteristic(Characteristic.StatusLowBattery)
+            .on('get', this.getDeviceStatusLowBattery.bind(this));
+        services.push(this.battery_status_service);
 
         // divice information service
         this.info_service = new Service.AccessoryInformation();
@@ -202,7 +233,7 @@ petkit_feeder_mini_plugin.prototype = {
             };
             this.poolToEventEmitter = pollingtoevent(function(done) {
                 this.log('start polling...');
-                var deviceDetailInfo = this.updateDeviceDetail(function(status_info) {
+                this.updateDeviceDetail(function(status_info) {
                     done(null, status_info)
                 }.bind(this));
             }.bind(this), polling_options);
@@ -448,7 +479,7 @@ petkit_feeder_mini_plugin.prototype = {
         const parseDataFunction = function (data) {
             if (!data) {
                 this.log('unable to retrieve device infomation from server.');
-                return {};
+                this.deviceDetailInfo = {};
             } else {
                 var deviceDetailInfo = JSON.parse(data);
                 if (deviceDetailInfo && deviceDetailInfo['result'] &&
@@ -459,17 +490,19 @@ petkit_feeder_mini_plugin.prototype = {
                         'food' : deviceDetailInfo['result']['state']['food'] || 0,
                         'batteryPower' : deviceDetailInfo['result']['state']['batteryPower'] || 0,
                         'batteryStatus' : deviceDetailInfo['result']['state']['batteryStatus'] || 0,
+                        'desiccantLeftDays' : deviceDetailInfo['result']['state']['desiccantLeftDays'] || 0,
                         'manualLock' : deviceDetailInfo['result']['settings']['manualLock'] || 0,
                         'name' : deviceDetailInfo['result']['name'] || 'PetkitFeederMini',
                         'sn' : deviceDetailInfo['result']['sn'] || 'PetkitFeederMini',
                         'firmware' : deviceDetailInfo['result']['firmware'] || '1.0.0'
                     };
-                    return status_info;
+                    this.deviceDetailInfo = status_info;
                 } else {
                     this.log('unable to retrieve device infomation from server.');
-                    return {};
+                    return this.deviceDetailInfo = {};
                 }
             }
+            return this.deviceDetailInfo;
         }.bind(this);
 
         if (callback) {
@@ -508,11 +541,6 @@ petkit_feeder_mini_plugin.prototype = {
         callback(null);
     },
 
-    getMealAmountStatus: function(callback) {
-        const currentValue = 1;
-        callback(null, currentValue);
-    },
-
     getMealAmount: function(callback) {
         callback(null, this.mealAmount);
     },
@@ -523,17 +551,68 @@ petkit_feeder_mini_plugin.prototype = {
         callback(null);
     },
 
+    getDesiccantLeftDaysIndication: function(callback) {
+        const desiccant_need_change = (this.status_info['desiccantLeftDays'] < this.alertDesiccantLeftDays ? 1 : 0);
+        callback(null, desiccant_need_change);
+    },
+
+    getDesiccantLeftDays: function(callback) {
+        const status = this.deviceDetailInfo['desiccantLeftDays'] || 30;
+        this.log.debug('getDesiccantLeftDays: ' + status);
+        callback(null, status);
+    },
+
+    // TODO reset Desiccant Left Days 
+    resetDesiccantLeftDays: function(callback) {
+        this.log.debug('resetDesiccantLeftDays');
+        callback(null);
+    },
+
     getFoodStorageStatus: function(callback) {
-        if (this.poolToEventEmitter) {this.poolToEventEmitter.pause();}
-        this.updateDeviceDetail(function(data){
-            var status = data['food'] || false;
-            this.log.debug('device food storage status is: ' + (status ? 'Ok' : 'Empty'));
-            if (this.poolToEventEmitter) {this.poolToEventEmitter.resume();}
-            callback(null, status);
-        }.bind(this));
+        const status = this.deviceDetailInfo['food'] || false;
+        callback(null, status);
     },
 
     updateHomebridgeStatus: function(status_info) {
-        this.food_storage_service.setCharacteristic(Characteristic.OccupancyDetected, status_info['food'] || false);
-    }
+        var status = status_info['food'] || false;
+        this.log('device food storage status is: ' + (status ? 'Ok' : 'Empty'));
+        this.food_storage_service.setCharacteristic(Characteristic.OccupancyDetected, status);
+
+        if (this.config['enable_desiccant']) {
+            const desiccantLeftDays = status_info['desiccantLeftDays'] || 30;
+            this.log('desiccant days remain: ' + desiccantLeftDays + ' day(s)');
+            status = (desiccantLeftDays < this.alertDesiccantLeftDays ? Characteristic.FilterChangeIndication.CHANGE_FILTER : Characteristic.FilterChangeIndication.FILTER_OK);
+            this.desiccant_level_service.setCharacteristic(Characteristic.FilterChangeIndication, status);
+        }
+    },
+
+    // TODO
+    getDeviceBatteryLevel: function(callback) {
+        this.log.debug('getDeviceBatteryLevel');
+        const status = 100;
+        if (this.deviceDetailInfo['batteryStatus'] != 0) {
+            status = this.deviceDetailInfo['batteryPower'];
+        }
+        callback(null, status);
+    },
+
+    // TODO
+    getDeviceChargingState: function(callback) {
+        this.log.debug('getDeviceChargingState');
+        var status = Characteristic.ChargingState.CHARGING;
+        if (this.deviceDetailInfo['batteryStatus'] != 0) {
+            status = Characteristic.StatusLowBattery.NOT_CHARGING;
+        }
+        callback(null, Characteristic.ChargingState.CHARGING);
+    },
+
+    // TODO
+    getDeviceStatusLowBattery: function(callback) {
+        this.log.debug('getDeviceStatusLowBattery');
+        var status = Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+        if (this.deviceDetailInfo['batteryStatus'] == 0) {
+            status = Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
+        }
+        callback(null, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
+    },
 }
