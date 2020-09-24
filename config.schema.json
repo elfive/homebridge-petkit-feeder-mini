@@ -120,7 +120,7 @@
             "placeholder": "true"
         },
         "polling_interval": {
-            "title": "update device info interval from Petkit server(ms)",
+            "title": "update device info interval from Petkit server(s)",
             "required": false,
             "type": "integer",
             "default": 60,
