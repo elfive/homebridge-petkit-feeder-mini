@@ -32,15 +32,15 @@ Goto App Store, download Petkit mobile app, register, login, add device. before 
 
 ### Secondly, prepare to capture Petkit app http request.
 
-- #### Capture on mobile: 
+- Capture on mobile: 
 
     you could use iOS app like "Quantumult X" or other app you like which can capture http netflow.
 
-- #### capture on Mac:
+- capture on Mac:
 
     I did not do this on my Mac, Mac capture tutorial may available laterly. but at this time, you could just find some webpage which will help you get it done, like [this one](#https://learning.postman.com/docs/sending-requests/capturing-request-data/capturing-http-requests/).
 
-- #### capture on Windows:
+- capture on Windows:
 
     sorry guys, I didnot have a widows device...so if you have a good tutorial, please let me know.
 
@@ -69,9 +69,9 @@ you can find X-Session data from the request header area and deviceId in respons
 |   field   name   |  type  | required |       default        |    range    | description                                                  |
 | :--------------: | :----: | :------: | :------------------: | :---------: | ------------------------------------------------------------ |
 |       name       | string |   yes    |  'PetkitFeederMini'  |     ---     | device name shows in HomeKit. If autoDeviceInfo is set to true, it will overwrited with the name in your Petkit app. we don't need it, but homebridge need it. |
-|     location     | string |   yes    |         'cn'         | 'cn','asia' | China user:'cn'; Asia user: 'asia'; other location because lack of infomation, not support yet. |
+|     location     | string |   yes    |         'cn'         | 'cn','asia' | China user:'cn'; Asia user: 'asia'; other location because lack of infomation, not sure it will work. |
 |     headers      | array  |   yes    |         ---          |     ---     | http request headers.see more detail below(headers field)    |
-|     deviceId     | string |   tbd    |         ---          |     ---     | your Petkit feeder mini Id, which is buildin your device, will never change. If you just have one Petkit feeder mini, you can not provide this value. |
+|     deviceId     | string |   tbd    |         ---          |     ---     | your Petkit feeder mini Id, which is buildin your device, will never change. If you just have one Petkit feeder mini, you can ignore this value. |
 |    mealAmount    |  int   |    no    |          3           |   1 to 10   | In homekit this shows as a switch, every time you click this switch it will drop mealAmount meal. This value just for initialize the fan speed after homebridge restart.  A meal stands for about 5g or 1/20 cup of food. |
 |  autoDeviceInfo  |  bool  |    no    |        false         | true/false  | this plugin supports retrieve device info from Petkit server. Set this value to true, it can retrieve device information (timezone, name, sn, firmware), and shows it in homekit app. |
 |        sn        | string |    no    |  'PetkitFeederMini'  |     ---     | serial number shows in homekit app. If autoDeviceInfo is set to true, it will overwrited with the sn of your device. |
