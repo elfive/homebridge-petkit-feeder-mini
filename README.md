@@ -4,7 +4,7 @@
 
 control your petkit feeder mini from homekit, get full use of iOS automation.
 
-<img src="https://raw.githubusercontent.com/elfive/homebridge-petkit-feeder-mini/master/screenshot.jpg" alt="screenshot" style="zoom:33%;" />
+<img src="https://raw.githubusercontent.com/elfive/homebridge-petkit-feeder-mini/master/screenshot.jpg" alt="screenshot" />
 
 - this plugin uses fan speed to control the meal amount, and uses the switch to commit the drop.
 
@@ -56,7 +56,7 @@ you should provide two critical infomation to this plugin: **deviceId** and **X-
 
 here is a example of Quantumult X capture data page:
 
-<img src="https://raw.githubusercontent.com/elfive/homebridge-petkit-feeder-mini/master/quantumultX.jpg" alt="quantumultX" style="zoom: 33%;" />
+<img src="https://raw.githubusercontent.com/elfive/homebridge-petkit-feeder-mini/master/quantumultX.jpg" alt="quantumultX" />
 
 you can find X-Session data from the request header area and deviceId in response data area.
 
@@ -100,10 +100,16 @@ you can find X-Session data from the request header area and deviceId in respons
     "name": "喂食器",
     "deviceId": "356367",
     "location": "asia",
-    "headers": {
-        "X-Session": "xxxxxx",
-        "X-Timezone": 8
-    }
+    "headers": [
+        {
+            "key": "X-Session",
+            "value": "xxxxxx"
+        },
+        {
+            "key": "X-Timezone",
+            "value": "8"
+        }
+    ]
 }]
 ```
 
