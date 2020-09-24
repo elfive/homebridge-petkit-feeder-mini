@@ -1,0 +1,116 @@
+{
+    "pluginAlias": "petkit_feeder_mini",
+    "pluginType": "accessory",
+    "headerDisplay": "For documentation please see https://github.com/elfive/homebridge-petkit-feeder-mini",
+    "footerDisplay": "",
+    "schema": {
+        "name": {
+            "title": "Device name shows in HomeKit",
+            "description": "If autoDeviceInfo is set to true, it will overwrited with the name in your Petkit app.<br/>We don't need it, but homebridge need it.",
+            "required": true,
+            "type": "string",
+            "default": "PetkitFeederMini",
+            "placeholder": "PetkitFeederMini"
+        },
+        "location": {
+            "title": "Device location, set this value corrent is very important!",
+            "description": "• for China mainland users, select China mainland.<br/>• for Asia users select Asia",
+            "required": true,
+            "type": "string",
+            "default": "cn",
+            "oneOf": [
+                { "title": "China mainland", "enum": ["cn"] },
+                { "title": "Asia", "enum": ["asia"] }
+            ]
+        },
+        "headers": {
+            "title": "HTTP request headers",
+            "description": "This field shold contain certain infomation to make the plugin work properly, captured by you.",
+            "type": "array",
+            "required": true,
+            "items": {
+                "title": "Header set",
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "title": "Key Name",
+                        "type": "string",
+                        "placeholder": "X-Session",
+                        "default": "X-Session",
+                        "required": true,
+                        "typeahead": {
+                        "source": [
+                                "X-Session",
+                                "X-Api-Version",
+                                "X-Timezone"
+                            ]
+                        }
+                    },
+                    "value": {
+                        "title": "Value",
+                        "type": "string",
+                        "placeholder": "",
+                        "default": "",
+                        "required": false
+                    }
+                }
+            }
+        },
+        "deviceId": {
+            "title": "Petkit feeder mini Device ID",
+            "description": "Buildin your device, will never change.If you just have one Petkit feeder mini, you can ignore this value.",
+            "required": false,
+            "type": "string"
+        },
+        "mealAmount": {
+            "title": "How many meals the feeder should drop when switch clicked in Homekit",
+            "description": "A meal stands for about 5g or 1/20 cup of food.",
+            "required": false,
+            "type": "integer",
+            "default": 3,
+            "placeholder": "3",
+            "minimum": 1,
+            "maximum": 10
+        },
+        "autoDeviceInfo": {
+            "title": "Automatically retrieve device info from Petkit server",
+            "description": "Only retrieve infomation: timezone, name, sn and firmware version",
+            "required": false,
+            "type": "boolean",
+            "default": false,
+            "placeholder": "false"
+        },
+        "sn": {
+            "title": "Serial number shows in homekit app",
+            "description": "If autoDeviceInfo is set to true, it will overwrited with the ns of your device.",
+            "required": false,
+            "type": "string",
+            "default": "PetkitFeederMini",
+            "placeholder": "PetkitFeederMini"
+        },
+        "firmware": {
+            "title": "Firmware version shows in homekit app",
+            "description": "If autoDeviceInfo is set to true, it will overwrited with the firmware version of your device.",
+            "required": false,
+            "type": "string",
+            "default": "1.0.0",
+            "placeholder": "1.0.0"
+        },
+        "manufacturer": {
+            "title": "Manufacturer shows in homekit app",
+            "description": "The manufacturer of your device.",
+            "required": false,
+            "type": "string",
+            "default": "Petkit",
+            "placeholder": "1.0.0"
+        },
+        "model": {
+            "title": "Model shows in homekit app",
+            "description": "The model of your device.",
+            "required": false,
+            "type": "string",
+            "default": "Petkit feeder mini",
+            "placeholder": "1.0.0"
+        }
+    }
+}

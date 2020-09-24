@@ -57,7 +57,7 @@ function petkit_feeder_mini_plugin(log, config, api) {
         this.log.error('missing field in config.json file: headers');
         return;
     }
-    this.headers = this.config['headers'];
+    this.headers = this.convertHeadersetFormat(this.config['headers']);
     switch(this.config['location']) {
         case 'cn':
             if (!this.headers['X-Session']) {
@@ -175,22 +175,6 @@ petkit_feeder_mini_plugin.prototype = {
         return this.service;
     },
 
-    realTimeExtraMealService_set: function(value, callback) {
-        this.log('Triggered SET On:', value);
-        saveDailyFeed();
-        callback(null);
-    },
-
-    planedExtraMealService_get: function(callback) {
-        const currentValue = 0;
-        callback(null, currentValue);
-    },
-
-    planedExtraMealService_set: function(value, callback) {
-        this.log('Triggered SET On:', value);
-        callback(null);
-    },
-
     // timeString: 08:20:00
     getDateString: function(timeString) {
         var date = dayjs(new Date());
@@ -208,7 +192,7 @@ petkit_feeder_mini_plugin.prototype = {
     },
 
     post: function(url, callback = null) {
-        this.log(url);
+        this.log.debug(url);
         const options = {
           url: url,
           method: 'POST',
@@ -404,6 +388,15 @@ petkit_feeder_mini_plugin.prototype = {
     // date：20200920、time: 68400(-1 stand for current)
     removeDailyFeed: function(date, time, callback = null) {
         return this.post(format(this.urls.removeDailyFeed, this.deviceId, date, time), callback);
+    },
+
+    convertHeadersetFormat: function(config_headers) {
+        var post_headers = {};
+        config_headers.forEach(function(header, index) {
+            post_headers[header.key] = header.value;
+        });
+        this.log.debug(post_headers);
+        return post_headers;
     },
 
     getDevices: function(callback = null) {
