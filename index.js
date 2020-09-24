@@ -6,6 +6,7 @@ const request = require('request');
 const request_sync = require('urllib-sync').request;
 const format = require('string-format');
 const dayjs = require('dayjs');
+const pollingtoevent = require('polling-to-event');
 
 const global_urls = Object.freeze({
     'cn': {
@@ -32,6 +33,8 @@ const global_urls = Object.freeze({
 
 const min_amount = 1;
 const max_amount = 10;
+const min_pollint_interval = 60;
+const max_pollint_interval = 3600;
 
 module.exports = function(homebridge) {
     Service = homebridge.hap.Service;
@@ -43,7 +46,7 @@ function petkit_feeder_mini_plugin(log, config, api) {
     this.log = log;
     this.config = config;
     this.api = api;
-    this.service = [];
+    this.poolToEventEmitter = null;
 
     this.log('begin to initialize petkit_feeder_mini_plugin');
 
@@ -121,58 +124,92 @@ function petkit_feeder_mini_plugin(log, config, api) {
     this.manufacturer = this.config['manufacturer'] || 'Petkit';
     this.model = this.config['model'] || 'Petkit feeder mini';
 
-    var deviceDetail = {};
-    if (this.config['autoDeviceInfo']) {
-        this.deviceDetailInfo = JSON.parse(this.getDeviceDetail());
-        if (this.deviceDetailInfo && this.deviceDetailInfo['result']) {
-            deviceDetail = this.deviceDetailInfo['result'];
-            this.log('retrieve device infomation from server.');
-        } else {
-            this.log('unable to retrieve device infomation from server.');
-        }
-    }
-    this.timezone = this.config['timezone'] || deviceDetail['timezone'] || 8;
-    this.name = this.config['name'] || deviceDetail['name'] || 'PetkitFeederMini';
-    this.serialNumber = this.config['sn'] || deviceDetail['sn'] || 'PetkitFeederMini';
-    this.firmware = this.config['firmware'] || deviceDetail['firmware'] || '1.0.0';
-
     this.log('Plugin Petkit Feeder Mini Loaded');
-
-    this.drop_meal_service = new Service.Switch('DropMeal');
-    this.drop_meal_service.getCharacteristic(Characteristic.On)
-        .on('get', this.getDropMealStatus.bind(this))
-        .on('set', this.setDropMealStatus.bind(this));
-    this.service.push(this.drop_meal_service);
-
-    this.meal_amount_service = new Service.Fan('MealAmount');
-    this.meal_amount_service.getCharacteristic(Characteristic.On)
-        .on('get', this.getMealAmountStatus.bind(this));
-    this.meal_amount_service.getCharacteristic(Characteristic.RotationSpeed)
-        .on('get', this.getMealAmount.bind(this))
-        .on('set', this.setMealAmount.bind(this))
-        .setProps({
-            minValue: 0,
-            // minValue: min_amount,
-            maxValue: max_amount,
-            minStep: 1
-        });
-    this.service.push(this.meal_amount_service);
-
-    this.info_service = new Service.AccessoryInformation();
-    this.info_service
-        .setCharacteristic(Characteristic.Identify, this.deviceId)
-        .setCharacteristic(Characteristic.Manufacturer, this.manufacturer)
-        .setCharacteristic(Characteristic.Model, this.model)
-        .setCharacteristic(Characteristic.SerialNumber, this.serialNumber)
-        // infomation below changed from petkit app require a homebridge reboot to take effect.
-        .setCharacteristic(Characteristic.Name, this.name)
-        .setCharacteristic(Characteristic.FirmwareRevision, this.firmware);
-    this.service.push(this.info_service);
 }
 
 petkit_feeder_mini_plugin.prototype = {
     getServices: function() {
-        return this.service;
+        var services = [];
+        this.drop_meal_service = new Service.Switch('DropMeal');
+        this.drop_meal_service.getCharacteristic(Characteristic.On)
+            .on('get', this.getDropMealStatus.bind(this))
+            .on('set', this.setDropMealStatus.bind(this));
+        services.push(this.drop_meal_service);
+
+        this.meal_amount_service = new Service.Fan('MealAmount');
+        this.meal_amount_service.getCharacteristic(Characteristic.On)
+            .on('get', this.getMealAmountStatus.bind(this));
+        this.meal_amount_service.getCharacteristic(Characteristic.RotationSpeed)
+            .on('get', this.getMealAmount.bind(this))
+            .on('set', this.setMealAmount.bind(this))
+            .setProps({
+                minValue: 0,
+                // minValue: min_amount,
+                maxValue: max_amount,
+                minStep: 1
+            });
+        services.push(this.meal_amount_service);
+
+        var deviceDetailInfo = this.updateDeviceDetail();
+        this.food_storage_service = new Service.OccupancySensor('FoodStorage');
+        this.food_storage_service.getCharacteristic(Characteristic.OccupancyDetected)
+            .on('get', this.getFoodStorageStatus.bind(this));
+        var food_storage_status = deviceDetailInfo['food'] || 0;
+        this.food_storage_service.setCharacteristic(Characteristic.OccupancyDetected, food_storage_status)
+        services.push(this.food_storage_service);
+
+        if (this.config['autoDeviceInfo']) {
+            this.name = deviceDetailInfo['name'] || this.config['name'] || 'PetkitFeederMini';
+            this.serialNumber = deviceDetailInfo['sn'] || this.config['sn'] || 'PetkitFeederMini';
+            this.firmware = deviceDetailInfo['firmware'] || this.config['firmware'] || '1.0.0';
+        } else {
+            this.name = this.config['name'] || 'PetkitFeederMini';
+            this.serialNumber = this.config['sn'] || 'PetkitFeederMini';
+            this.firmware = this.config['firmware'] || '1.0.0';
+        }
+
+        this.info_service = new Service.AccessoryInformation();
+        this.info_service
+            .setCharacteristic(Characteristic.Identify, this.deviceId)
+            .setCharacteristic(Characteristic.Manufacturer, this.manufacturer)
+            .setCharacteristic(Characteristic.Model, this.model)
+            .setCharacteristic(Characteristic.SerialNumber, this.serialNumber)
+            // infomation below changed from petkit app require a homebridge reboot to take effect.
+            .setCharacteristic(Characteristic.Name, this.name)
+            .setCharacteristic(Characteristic.FirmwareRevision, this.firmware);
+        services.push(this.info_service);
+
+        // polling
+        this.enable_polling = this.config['enable_polling'] || true;
+        if (this.enable_polling) {
+            // enable_polling between 5min to 1day, default 5min
+            this.polling_interval = this.config['polling_interval'] || min_pollint_interval;
+            if (this.polling_interval < min_pollint_interval) {
+                this.log.warn('polling interval should greater than ' + min_pollint_interval + '(' + min_pollint_interval / 60 +' min), change to ' + min_pollint_interval + '.');
+                this.polling_interval = min_pollint_interval;
+            } else if (this.polling_interval > max_pollint_interval) {
+                this.log.warn('polling interval should less than ' + max_pollint_interval + '(' + max_pollint_interval / 60 +' min), change to ' + max_pollint_interval + '.');
+                this.polling_interval = max_pollint_interval;
+            }
+            const polling_options = {
+                longpolling: true,
+                interval: this.polling_interval * 1000,
+                longpollEventName: 'deviceStatusUpdatePoll'
+            };
+            this.poolToEventEmitter = pollingtoevent(function(done) {
+                this.log('start polling...');
+                var deviceDetailInfo = this.updateDeviceDetail(function(status_info) {
+                    done(null, status_info)
+                }.bind(this));
+            }.bind(this), polling_options);
+
+            this.poolToEventEmitter.on('deviceStatusUpdatePoll', function(status_info) {
+                this.updateHomebridgeStatus(status_info);
+                this.log.debug('emit polling data: ' + JSON.stringify(status_info));
+            }.bind(this));
+        }
+
+        return services;
     },
 
     // timeString: 08:20:00
@@ -403,21 +440,62 @@ petkit_feeder_mini_plugin.prototype = {
         return this.post(this.urls.owndevices, callback);
     },
 
+    updateDeviceDetail: function(callback = null) {
+        const parseDataFunction = function (data) {
+            if (!data) {
+                this.log('unable to retrieve device infomation from server.');
+                return {};
+            } else {
+                var deviceDetailInfo = JSON.parse(data);
+                if (deviceDetailInfo && deviceDetailInfo['result'] &&
+                    deviceDetailInfo['result']['state'] &&
+                    deviceDetailInfo['result']['settings']) {
+                    this.log('successfully retrieved device infomation from server.');
+                    const status_info = {
+                        'food' : deviceDetailInfo['result']['state']['food'] || 0,
+                        'batteryPower' : deviceDetailInfo['result']['state']['batteryPower'] || 0,
+                        'batteryStatus' : deviceDetailInfo['result']['state']['batteryStatus'] || 0,
+                        'manualLock' : deviceDetailInfo['result']['settings']['manualLock'] || 0,
+                        'name' : deviceDetailInfo['result']['name'] || 'PetkitFeederMini',
+                        'sn' : deviceDetailInfo['result']['sn'] || 'PetkitFeederMini',
+                        'firmware' : deviceDetailInfo['result']['firmware'] || '1.0.0'
+                    };
+                    return status_info;
+                } else {
+                    this.log('unable to retrieve device infomation from server.');
+                    return {};
+                }
+            }
+        }.bind(this);
+
+        if (callback) {
+            this.getDeviceDetail(function(data) {
+                callback(parseDataFunction(data));
+            }.bind(this));
+        } else {
+            return parseDataFunction(this.getDeviceDetail());
+        }
+    },
+
     getDropMealStatus: function(callback) {
         const currentValue = 0;
         callback(null, currentValue);
     },
 
     setDropMealStatus: function(value, callback) {
-        if (value && this.mealAmount) {
-            this.log('drop food:' + this.mealAmount + 'meal(s)');
-            const that = this;
-            const data = this.saveDailyFeed(dayjs(new Date()).format('YYYYMMDD'), -1, this.mealAmount);
-            if (!data) {
-                callback('failed to commuciate with server.');
+        if (value) {
+            if (this.mealAmount) {
+                this.log('drop food:' + this.mealAmount + 'meal(s)');
+                const that = this;
+                const data = this.saveDailyFeed(dayjs(new Date()).format('YYYYMMDD'), -1, this.mealAmount);
+                if (!data) {
+                    callback('failed to commuciate with server.');
+                } else {
+                    const result = that.praseSaveDailyFeedResult(data);
+                    that.log('food drop result: ' + result);
+                }
             } else {
-                const result = that.praseSaveDailyFeedResult(data);
-                that.log('food drop result: ' + result);
+                this.log('drop food with zero amount, pass.');
             }
             setTimeout(function() {
                 this.drop_meal_service.setCharacteristic(Characteristic.On, false);
@@ -440,4 +518,18 @@ petkit_feeder_mini_plugin.prototype = {
         this.log('set meal amount to ' + value);
         callback(null);
     },
+
+    getFoodStorageStatus: function(callback) {
+        if (this.poolToEventEmitter) {this.poolToEventEmitter.pause();}
+        this.updateDeviceDetail(function(data){
+            var status = data['food'] || false;
+            this.log.debug('device food storage status is: ' + (status ? 'Ok' : 'Empty'));
+            if (this.poolToEventEmitter) {this.poolToEventEmitter.resume();}
+            callback(null, status);
+        }.bind(this));
+    },
+
+    updateHomebridgeStatus: function(status_info) {
+        this.food_storage_service.setCharacteristic(Characteristic.OccupancyDetected, status_info['food'] || false);
+    }
 }

@@ -17,7 +17,8 @@
             "description": "• for China mainland users, select China mainland.<br/>• for Asia users select Asia",
             "required": true,
             "type": "string",
-            "default": "cn",
+            "default": "China mainland",
+            "placeholder": "China mainland",
             "oneOf": [
                 { "title": "China mainland", "enum": ["cn"] },
                 { "title": "Asia", "enum": ["asia"] }
@@ -63,7 +64,7 @@
             "type": "string"
         },
         "mealAmount": {
-            "title": "How many meals the feeder should drop when switch clicked in Homekit",
+            "title": "default meals amount after Homekit restart",
             "description": "A meal stands for about 5g or 1/20 cup of food.",
             "required": false,
             "type": "integer",
@@ -111,6 +112,22 @@
             "type": "string",
             "default": "Petkit feeder mini",
             "placeholder": "1.0.0"
+        },
+        "enable_polling": {
+            "title": "Automatically update device info from Petkit server",
+            "required": false,
+            "type": "boolean",
+            "default": true,
+            "placeholder": "true"
+        },
+        "polling_interval": {
+            "title": "update device info interval from Petkit server(ms)",
+            "required": false,
+            "type": "integer",
+            "default": 60,
+            "placeholder": "60",
+            "minimum": 60,
+            "maximum": 3600
         }
     }
 }
