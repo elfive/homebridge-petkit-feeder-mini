@@ -22,7 +22,7 @@ control your petkit feeder mini from homekit, get full use of iOS automation.
 
 ### Firstly, setup your Petkit mobile app.
 
-Goto App Store, download Petkit mobile app, register, login, add device. before use this plugin you MUST make sure the app is works fine with you.
+Goto App Store, download Petkit mobile app, register, login, add device. before use this plugin you MUST make sure the app works fine with you.
 
 - for China mainland users, download “小佩宠物”
 - for those Asia users outside China mainland, you should download "PetKit(International)"
@@ -48,11 +48,10 @@ Goto App Store, download Petkit mobile app, register, login, add device. before 
 
 ### Finally, retrieve infomateion.
 
-you should provide two critical infomation to this plugin: **deviceId** and **X-Session**.
-
-- deviceId: this value indicate which device you wanna to control. If you just have one Petkit feeder mini, you can not provide this value.
+you should provide one critical infomation to this plugin: **X-Session**, if you have more than one Petkit feeder mini device, then you should alse provide **deviceId** in the header field of the config.json file.
 
 - X-Session: this value will change every time you login you Petkit app, so do not logoff your Petkit app unless necessary. 
+- deviceId: this value indicate which device you wanna to control. If you just have one Petkit feeder mini, you can not provide this value.
 
 here is a example of Quantumult X capture data page:
 
