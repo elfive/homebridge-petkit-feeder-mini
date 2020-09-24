@@ -552,11 +552,17 @@ petkit_feeder_mini_plugin.prototype = {
     },
 
     getDesiccantLeftDaysIndication: function(callback) {
+        if (!this.enable_polling) {
+            updateDeviceDetail();
+        }
         const desiccant_need_change = (this.status_info['desiccantLeftDays'] < this.alertDesiccantLeftDays ? 1 : 0);
         callback(null, desiccant_need_change);
     },
 
     getDesiccantLeftDays: function(callback) {
+        if (!this.enable_polling) {
+            updateDeviceDetail();
+        }
         const status = this.deviceDetailInfo['desiccantLeftDays'] || 30;
         this.log.debug('getDesiccantLeftDays: ' + status);
         callback(null, status);
@@ -569,8 +575,10 @@ petkit_feeder_mini_plugin.prototype = {
     },
 
     getFoodStorageStatus: function(callback) {
-        const status = this.deviceDetailInfo['food'] || false;
-        callback(null, status);
+        if (!this.enable_polling) {
+            updateDeviceDetail();
+        }
+        callback(null, this.deviceDetailInfo['food'] || false);
     },
 
     updateHomebridgeStatus: function(status_info) {
@@ -588,6 +596,9 @@ petkit_feeder_mini_plugin.prototype = {
 
     // TODO
     getDeviceBatteryLevel: function(callback) {
+        if (!this.enable_polling) {
+            updateDeviceDetail();
+        }
         this.log.debug('getDeviceBatteryLevel');
         const status = 100;
         if (this.deviceDetailInfo['batteryStatus'] != 0) {
@@ -598,6 +609,9 @@ petkit_feeder_mini_plugin.prototype = {
 
     // TODO
     getDeviceChargingState: function(callback) {
+        if (!this.enable_polling) {
+            updateDeviceDetail();
+        }
         this.log.debug('getDeviceChargingState');
         var status = Characteristic.ChargingState.CHARGING;
         if (this.deviceDetailInfo['batteryStatus'] != 0) {
@@ -608,6 +622,9 @@ petkit_feeder_mini_plugin.prototype = {
 
     // TODO
     getDeviceStatusLowBattery: function(callback) {
+        if (!this.enable_polling) {
+            updateDeviceDetail();
+        }
         this.log.debug('getDeviceStatusLowBattery');
         var status = Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
         if (this.deviceDetailInfo['batteryStatus'] == 0) {
