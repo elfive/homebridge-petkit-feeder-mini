@@ -120,12 +120,18 @@
             "placeholder": "true"
         },
         "polling_interval": {
-            "title": "update device status interval from Petkit server(s)",
+            "title": "update device status interval from Petkit server(s).",
             "required": false,
             "type": "integer",
             "default": 60,
             "minimum": 60,
             "maximum": 3600
+        },
+        "autoResetDesiccant": {
+            "title": "auto reset desiccant left days if only 5 dyas left over.",
+            "required": false,
+            "type": "boolean",
+            "default": false
         }
     }
 }
