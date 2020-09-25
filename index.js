@@ -17,6 +17,7 @@ const global_urls = Object.freeze({
         'dailyfeeds': 'http://api.petkit.cn/6/feedermini/dailyfeeds?deviceId={}&days={}',
         'restoreDailyFeeds': 'http://api.petkit.cn/6/feedermini/restore_dailyfeed?deviceId={}&day={}&id=s{}',
         'disableDailyFeeds': 'http://api.petkit.cn/6/feedermini/remove_dailyfeed?deviceId={}&day={}&id=s{}',
+        'resetDesiccant': 'http://api.petkit.cn/6/feedermini/desiccant_reset?deviceId={}',
         'owndevices': 'http://api.petkit.cn/6/discovery/device_roster',
     },
     'asia':{
@@ -27,6 +28,7 @@ const global_urls = Object.freeze({
         'dailyfeeds': 'http://api.petktasia.com/latest/feedermini/dailyfeeds?deviceId={}&days={}',
         'restoreDailyFeeds': 'http://api.petktasia.com/latest/feedermini/restore_dailyfeed?deviceId={}&day={}&id=s{}',
         'disableDailyFeeds': 'http://api.petktasia.com/latest/feedermini/remove_dailyfeed?deviceId={}&day={}&id=s{}',
+        'resetDesiccant': 'http://api.petktasia.com/latest/feedermini/desiccant_reset?deviceId={}',
         'owndevices': 'http://api.petktasia.com/latest/discovery/device_roster',
     }
 });
@@ -240,27 +242,10 @@ petkit_feeder_mini_plugin.prototype = {
 
             this.poolToEventEmitter.on('deviceStatusUpdatePoll', function(status_info) {
                 this.updateHomebridgeStatus(status_info);
-                this.log.debug('emit polling data: ' + JSON.stringify(status_info));
             }.bind(this));
         }
 
         return services;
-    },
-
-    // timeString: 08:20:00
-    getDateString: function(timeString) {
-        var date = dayjs(new Date());
-        const currentTimeString = dayjs(new Date()).format('HH:mm:ss');
-        if (getTimeFromString(currentTimeString) >= getTimeFromString(timeString)) {
-            date.add(1, 'day');
-        }
-        return date.format('YYYYMMDD');
-    },
-
-    // timeString: 08:20:00
-    getTimeFromString: function(timeString) {
-        const matches = timeString.match(/(\d+)[^0-9](\d+)[^0-9](\d+)/);
-        return parseInt(matches[1]) * 3600 + parseInt(matches[2]) * 60 + parseInt(matches[3]);
     },
 
     post: function(url, callback = null) {
@@ -281,7 +266,7 @@ petkit_feeder_mini_plugin.prototype = {
                     }
                 }.bind(this));
             } catch(e) {
-                this.log.error('we had a problem to post request: 'e);
+                this.log.error('we had a problem to post request: ' + e);
                 callback(false);
             }
         } else {
@@ -293,7 +278,7 @@ petkit_feeder_mini_plugin.prototype = {
                 this.log.error(response.statusCode + ': ' + error);
                 return false;
             } catch(e) {
-                this.log.error('we had a problem to post request: 'e);
+                this.log.error('we had a problem to post request: ' + e);
                 return false;
             }
         }
@@ -320,43 +305,6 @@ petkit_feeder_mini_plugin.prototype = {
         }
 
         return false;
-    },
-
-    praseRemoveDailyFeedResult: function(jsonStr) {
-        const jsonObj = JSON.parse(jsonStr);
-        if (!jsonObj) {
-            log('JSON.parse error with:' + jsonStr);
-            return false;
-        }
-
-        if (jsonObj.hasOwnProperty('error')) {
-            this.log(jsonObj.error.msg);
-            return false;
-        }
-
-        if (!jsonObj.hasOwnProperty('result')) {
-            return false;
-        }
-
-        if (jsonObj.result == 'success') {
-            return true;
-        }
-
-        return false;
-    },
-
-    praseDeviceStateResult: function(jsonStr) {
-        const jsonObj = JSON.parse(jsonStr);
-        if (!jsonObj) {
-            this.log('JSON.parse error with:' + jsonStr);
-            return false;
-        }
-
-        if (!jsonObj.hasOwnProperty('result')) {
-            return false;
-        }
-
-        if (jsonObj.result.food) {}
     },
 
     praseGetDeviceResult: function(jsonStr) {
@@ -561,43 +509,70 @@ petkit_feeder_mini_plugin.prototype = {
     },
 
     getDesiccantLeftDaysIndication: function(callback) {
+        const callbackResult = function(fake_param) {
+            const status = (this.status_info['desiccantLeftDays'] < this.alertDesiccantLeftDays ? 1 : 0);
+            this.log.debug('getDesiccantLeftDaysIndication: ' + status);
+            callback(null, status);
+        }.bind(this);
+
         if (!this.enable_polling) {
-            updateDeviceDetail();
+            updateDeviceDetail(callbackResult);
+        } else {
+            callbackResult();
         }
-        const desiccant_need_change = (this.status_info['desiccantLeftDays'] < this.alertDesiccantLeftDays ? 1 : 0);
-        callback(null, desiccant_need_change);
     },
 
     getDesiccantLeftDays: function(callback) {
+        const callbackResult = function(fake_param) {
+            const status = this.deviceDetailInfo['desiccantLeftDays'] || 30;
+            this.log.debug('desiccant days remain: ' + status + ' day(s)');
+            callback(null, status);
+        }.bind(this);
+
         if (!this.enable_polling) {
-            updateDeviceDetail();
+            updateDeviceDetail(callbackResult);
+        } else {
+            callbackResult();
         }
-        const status = this.deviceDetailInfo['desiccantLeftDays'] || 30;
-        this.log.debug('getDesiccantLeftDays: ' + status);
-        callback(null, status);
     },
 
-    // TODO reset Desiccant Left Days 
+    // reset Desiccant Left Days 
     resetDesiccantLeftDays: function(callback) {
         this.log.debug('resetDesiccantLeftDays');
-        callback(null);
+        return this.post(format(this.urls.resetDesiccant, this.deviceId), function(data){
+            var jsonObj = JSON.parse(data);
+            if (jsonObj['result']) {
+                this.deviceDetailInfo['desiccantLeftDays'] = jsonObj['result'];
+                this.log.debug('reset desiccant left days success, left days reset to ' + jsonObj['result'] + ' days');
+            } else {
+                this.log.warn('reset desiccant left days failed.');
+            }
+            callback(null);
+        }.bind(this));
     },
 
     getFoodStorageStatus: function(callback) {
+        const callbackResult = function(fake_param) {
+            const status = this.deviceDetailInfo['food'] || false;
+            this.log.debug('device food storage status is: ' + (status ? 'Ok' : 'Empty'));
+            callback(null, status);
+        }.bind(this);
+        
         if (!this.enable_polling) {
-            updateDeviceDetail();
+            updateDeviceDetail(callbackResult);
+        } else {
+            callbackResult();
         }
-        callback(null, this.deviceDetailInfo['food'] || false);
     },
 
     updateHomebridgeStatus: function(status_info) {
         var status = status_info['food'] || false;
-        this.log('device food storage status is: ' + (status ? 'Ok' : 'Empty'));
+        this.log.debug('device food storage status is: ' + (status ? 'Ok' : 'Empty'));
         this.food_storage_service.setCharacteristic(Characteristic.OccupancyDetected, status);
 
         if (this.config['enable_desiccant']) {
             const desiccantLeftDays = status_info['desiccantLeftDays'] || 30;
-            this.log('desiccant days remain: ' + desiccantLeftDays + ' day(s)');
+            this.log.debug('desiccant days remain: ' + desiccantLeftDays + ' day(s)');
             status = (desiccantLeftDays < this.alertDesiccantLeftDays ? Characteristic.FilterChangeIndication.CHANGE_FILTER : Characteristic.FilterChangeIndication.FILTER_OK);
             this.desiccant_level_service.setCharacteristic(Characteristic.FilterChangeIndication, status);
         }
@@ -605,40 +580,55 @@ petkit_feeder_mini_plugin.prototype = {
 
     // TODO
     getDeviceBatteryLevel: function(callback) {
+        const callbackResult = function(fake_param) {
+            const status = 100;
+            if (this.deviceDetailInfo['batteryStatus'] != 0) {
+                status = this.deviceDetailInfo['batteryPower'];
+            }
+            this.log.debug('getDeviceBatteryLevel:' + status);
+            callback(null, status);
+        }.bind(this);
+        
         if (!this.enable_polling) {
-            updateDeviceDetail();
+            updateDeviceDetail(callbackResult);
+        } else {
+            callbackResult();
         }
-        this.log.debug('getDeviceBatteryLevel');
-        const status = 100;
-        if (this.deviceDetailInfo['batteryStatus'] != 0) {
-            status = this.deviceDetailInfo['batteryPower'];
-        }
-        callback(null, status);
     },
 
     // TODO
     getDeviceChargingState: function(callback) {
+        const callbackResult = function(fake_param) {
+            var status = Characteristic.ChargingState.CHARGING;
+            if (this.deviceDetailInfo['batteryStatus'] != 0) {
+                status = Characteristic.StatusLowBattery.NOT_CHARGING;
+            }
+            this.log.debug('getDeviceChargingState:' + status);
+            callback(null, status);
+        }.bind(this);
+        
         if (!this.enable_polling) {
-            updateDeviceDetail();
+            updateDeviceDetail(callbackResult);
+        } else {
+            callbackResult();
         }
-        this.log.debug('getDeviceChargingState');
-        var status = Characteristic.ChargingState.CHARGING;
-        if (this.deviceDetailInfo['batteryStatus'] != 0) {
-            status = Characteristic.StatusLowBattery.NOT_CHARGING;
-        }
-        callback(null, Characteristic.ChargingState.CHARGING);
     },
 
     // TODO
     getDeviceStatusLowBattery: function(callback) {
+        const callbackResult = function(fake_param) {
+            var status = Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+            if (this.deviceDetailInfo['batteryStatus'] != 0) {
+                status = Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
+            }
+            this.log.debug('getDeviceStatusLowBattery:' + status);
+            callback(null, status);
+        }.bind(this);
+        
         if (!this.enable_polling) {
-            updateDeviceDetail();
+            updateDeviceDetail(callbackResult);
+        } else {
+            callbackResult();
         }
-        this.log.debug('getDeviceStatusLowBattery');
-        var status = Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
-        if (this.deviceDetailInfo['batteryStatus'] == 0) {
-            status = Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
-        }
-        callback(null, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
     },
 }
