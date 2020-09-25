@@ -39,6 +39,7 @@ const min_desiccantLeftDays = 0;
 const max_desiccantLeftDays = 30;
 const min_pollint_interval = 60;
 const max_pollint_interval = 3600;
+const reset_desiccant_threshold = 5;
 
 module.exports = function(homebridge) {
     Service = homebridge.hap.Service;
@@ -53,29 +54,29 @@ function petkit_feeder_mini_plugin(log, config, api) {
     this.deviceDetailInfo = {};
     this.poolToEventEmitter = null;
 
-    this.log('begin to initialize petkit_feeder_mini_plugin');
+    this.log('begin to initialize petkit feeder mini.');
 
     if (!this.config['location'] || !global_urls[this.config['location']]) {
-        this.log.error('wrong value in config.json file: location');
+        this.log.error('wrong value in config.json file: location.');
         return;
     }
     this.urls = global_urls[this.config['location']];
 
     if (!this.config['headers']) {
-        this.log.error('missing field in config.json file: headers');
+        this.log.error('missing field in config.json file: headers.');
         return;
     }
     this.headers = this.convertHeadersetFormat(this.config['headers']);
     switch(this.config['location']) {
         case 'cn':
             if (!this.headers['X-Session']) {
-                this.log.error('missing field in config.json file: headers.X-Session');
+                this.log.error('missing field in config.json file: headers.X-Session.');
                 return;
             }
             break;
         case 'asia':
             if (!this.headers['X-Session']) {
-                this.log.error('missing field in config.json file: headers.X-Session');
+                this.log.error('missing field in config.json file: headers.X-Session.');
                 return;
             }
             if (!this.headers['X-Api-Version']) {
@@ -84,7 +85,7 @@ function petkit_feeder_mini_plugin(log, config, api) {
             }
             break;
         default:
-        this.log.error('wrong value in config.json file: location');
+        this.log.error('wrong value in config.json file: location.');
         return;
     }
 
@@ -93,7 +94,7 @@ function petkit_feeder_mini_plugin(log, config, api) {
 
     // make sure deviceId is correct or get the deviceId
     this.deviceId = this.config['deviceId'];
-    const devices = this.praseGetDeviceResult(this.getDevices());
+    const devices = this.praseGetDeviceResult(this.getDevicesFromServer());
     if (devices) {
         if (devices.length === 1) {
             this.log.debug(JSON.stringify(devices[0]));
@@ -131,7 +132,7 @@ function petkit_feeder_mini_plugin(log, config, api) {
 
     this.alertDesiccantLeftDays = this.config['alert_desiccantLeftDays'] || 5;
 
-    this.log('Plugin Petkit Feeder Mini Loaded');
+    this.log('petkit feeder mini loaded successfully.');
 }
 
 petkit_feeder_mini_plugin.prototype = {
@@ -140,19 +141,28 @@ petkit_feeder_mini_plugin.prototype = {
         // meal drop service
         this.drop_meal_service = new Service.Switch('DropMeal');
         this.drop_meal_service.getCharacteristic(Characteristic.On)
-            .on('get', this.getDropMealStatus.bind(this))
-            .on('set', this.setDropMealStatus.bind(this));
+            .on('get', function(callback) {
+                const currentValue = 0;
+                callback(null, currentValue);
+            }.bind(this))
+            .on('set', this.hb_dropMeal_set.bind(this));
         services.push(this.drop_meal_service);
 
         // meal amount setting service
         this.meal_amount_service = new Service.Fan('MealAmount');
         this.meal_amount_service.getCharacteristic(Characteristic.On)
             .on('get', function(callback) {
-                callback(null, this.getMealAmount != 0);
+                callback(null, this.mealAmount != 0);
             }.bind(this));
         this.meal_amount_service.getCharacteristic(Characteristic.RotationSpeed)
-            .on('get', this.getMealAmount.bind(this))
-            .on('set', this.setMealAmount.bind(this))
+            .on('get', function(callback) {
+                callback(null, this.mealAmount);
+            }.bind(this))
+            .on('set', function(value, callback) {
+                this.mealAmount = value;
+                this.log('set meal amount to ' + value);
+                callback(null);
+            }.bind(this))
             .setProps({
                 minValue: min_amount,
                 maxValue: max_amount,
@@ -161,10 +171,10 @@ petkit_feeder_mini_plugin.prototype = {
         services.push(this.meal_amount_service);
 
         // food storage indicator service
-        this.updateDeviceDetail();
+        this.getDeviceStatusFromServer();
         this.food_storage_service = new Service.OccupancySensor('FoodStorage');
         this.food_storage_service.getCharacteristic(Characteristic.OccupancyDetected)
-            .on('get', this.getFoodStorageStatus.bind(this));
+            .on('get', this.hb_foodStorageStatus_get.bind(this));
         var food_storage_status = this.deviceDetailInfo['food'] || 0;
         this.food_storage_service.setCharacteristic(Characteristic.OccupancyDetected, food_storage_status)
         services.push(this.food_storage_service);
@@ -173,16 +183,16 @@ petkit_feeder_mini_plugin.prototype = {
         var desiccantLeftDays = this.deviceDetailInfo['desiccantLeftDays'] || max_desiccantLeftDays;
         this.desiccant_level_service = new Service.FilterMaintenance('DesiccantLevel');
         this.desiccant_level_service.getCharacteristic(Characteristic.FilterChangeIndication)
-            .on('get', this.getDesiccantLeftDaysIndication.bind(this));
+            .on('get', this.hb_desiccantIndicator_get.bind(this));
         this.desiccant_level_service.getCharacteristic(Characteristic.FilterLifeLevel)
-            .on('get', this.getDesiccantLeftDays.bind(this))
+            .on('get', this.hb_desiccantLeftDays_get.bind(this))
             .setProps({
                 minValue: min_desiccantLeftDays,
                 maxValue: max_desiccantLeftDays,
                 minStep: 1
             });
         this.desiccant_level_service.getCharacteristic(Characteristic.ResetFilterIndication)
-            .on('set', this.resetDesiccantLeftDays.bind(this))
+            .on('set', this.hb_desiccantLeftDays_reset.bind(this))
         services.push(this.desiccant_level_service);
 
         if (this.config['autoDeviceInfo']) {
@@ -197,11 +207,11 @@ petkit_feeder_mini_plugin.prototype = {
 
         this.battery_status_service = new Service.BatteryService('Battery');
         this.battery_status_service.getCharacteristic(Characteristic.BatteryLevel)
-            .on('get', this.getDeviceBatteryLevel.bind(this));
+            .on('get', this.hb_deviceBatteryLevel_get.bind(this));
         this.battery_status_service.getCharacteristic(Characteristic.ChargingState)
-            .on('get', this.getDeviceChargingState.bind(this));
+            .on('get', this.hb_deviceChargingState_get.bind(this));
         this.battery_status_service.getCharacteristic(Characteristic.StatusLowBattery)
-            .on('get', this.getDeviceStatusLowBattery.bind(this));
+            .on('get', this.hb_deviceStatusLowBattery_get.bind(this));
         services.push(this.battery_status_service);
 
         // divice information service
@@ -235,7 +245,7 @@ petkit_feeder_mini_plugin.prototype = {
             };
             this.poolToEventEmitter = pollingtoevent(function(done) {
                 this.log('start polling...');
-                this.updateDeviceDetail(function(status_info) {
+                this.getDeviceStatusFromServer(function(status_info) {
                     done(null, status_info)
                 }.bind(this));
             }.bind(this), polling_options);
@@ -248,40 +258,13 @@ petkit_feeder_mini_plugin.prototype = {
         return services;
     },
 
-    post: function(url, callback = null) {
-        this.log.debug(url);
-        const options = {
-          url: url,
-          method: 'POST',
-          headers: this.headers
-        };
-        if (callback) {
-            try {
-                request(options, function(error, response, data) {
-                    if (!error && response.statusCode == 200) {
-                        callback(data);
-                    } else {
-                        this.log.error(response.statusCode + ': ' + error);
-                        callback(false);
-                    }
-                }.bind(this));
-            } catch(e) {
-                this.log.error('we had a problem to post request: ' + e);
-                callback(false);
-            }
-        } else {
-            try {
-                var response = request_sync(options.url, options);
-                if (response.status == 200) {
-                    return response.data.toString();
-                }
-                this.log.error(response.statusCode + ': ' + error);
-                return false;
-            } catch(e) {
-                this.log.error('we had a problem to post request: ' + e);
-                return false;
-            }
-        }
+    convertHeadersetFormat: function(config_headers) {
+        var post_headers = {};
+        config_headers.forEach(function(header, index) {
+            post_headers[header.key] = header.value;
+        });
+        this.log.debug(post_headers);
+        return post_headers;
     },
 
     praseSaveDailyFeedResult: function(jsonStr) {
@@ -346,7 +329,7 @@ petkit_feeder_mini_plugin.prototype = {
 
     // date：20200920、time: 68400
     confirmSaveFeedSuccess: function(date, time) {
-        const jsonStr = this.getDailyFeedsInfo(date);
+        const jsonStr = this.getDailyFeedsInfoFromServer(date);
         const jsonObj = JSON.parse(jsonStr);
         if (!jsonObj) {
             this.log('JSON.parse error with:' + jsonStr);
@@ -367,7 +350,7 @@ petkit_feeder_mini_plugin.prototype = {
 
     // date：20200920、time: 68400
     confirmRemoveFeedSuccess: function(date, time) {
-        const jsonStr = this.getDailyFeedsInfo(date);
+        const jsonStr = this.getDailyFeedsInfoFromServer(date);
         const jsonObj = JSON.parse(jsonStr);
         if (!jsonObj) {
             this.log('JSON.parse error with:' + jsonStr);
@@ -386,7 +369,43 @@ petkit_feeder_mini_plugin.prototype = {
         });
     },
 
-    getDeviceState: function(callback = null) {
+    post: function(url, callback = null) {
+        this.log.debug(url);
+        const options = {
+          url: url,
+          method: 'POST',
+          headers: this.headers
+        };
+        if (callback) {
+            try {
+                request(options, function(error, response, data) {
+                    if (!error && response.statusCode == 200) {
+                        callback(data);
+                    } else {
+                        this.log.error(response.statusCode + ': ' + error);
+                        callback(false);
+                    }
+                }.bind(this));
+            } catch(e) {
+                this.log.error('we had a problem to post request: ' + e);
+                callback(false);
+            }
+        } else {
+            try {
+                var response = request_sync(options.url, options);
+                if (response.status == 200) {
+                    return response.data.toString();
+                }
+                this.log.error(response.statusCode + ': ' + error);
+                return false;
+            } catch(e) {
+                this.log.error('we had a problem to post request: ' + e);
+                return false;
+            }
+        }
+    },
+
+    getDeviceStateFromServer: function(callback = null) {
         // {
         //     "result": {
         //         "batteryPower":4,"batteryStatus":0,"desiccantLeftDays":6,
@@ -399,40 +418,16 @@ petkit_feeder_mini_plugin.prototype = {
         return this.post(format(this.urls.deviceState, this.deviceId), callback);
     },
 
-    getDeviceDetail: function(callback = null) {
-        // {"result":{"createdAt":"2020-05-26T12:48:29.158Z","feed":{"deviceId":356367,"isExecuted":1,"isLock":1,"items":[{"amount":15,"id":"43200","name":"\u5348\u9910","petAmount":[{"amount":15,"petId":"770000"}],"time":43200}],"repeats":"1,2,3,4,5,6,7","suspended":0,"userId":"xxxxxx"},"firmware":"1.394","firmwareDetails":[{"module":"userbin","version":2003001}],"hardware":1,"id":356367,"locale":"Asia\/Shanghai","mac":"xxxxxxxxxxxx","name":"\u667A\u80FD\u5582\u98DF\u5668","relation":{"petIds":["xxxxxx"],"userId":"xxxxxx"},"secret":"xxxxxx","settings":{"desiccantNotify":0,"feedNotify":1,"foodNotify":1,"lightMode":0,"lightRange":[0,1440],"manualLock":0,"reBatteryNotify":1},"shareOpen":0,"signupAt":"2020-09-20T18:05:39.269Z","sn":"xxxx","state":{"batteryPower":4,"batteryStatus":0,"desiccantLeftDays":6,"errorPriority":0,"feeding":0,"food":1,"ota":0,"overall":1,"pim":1,"runtime":49677,"wifi":{"bssid":"xxxxxxxxxxxx","rsq":-37,"ssid":"xxxxxxxxxx"}},"timezone":8.0,"type":0,"user":{"avatar":"http:\/\/img5.petkit.cn\/uavatar\/2020\/5\/24\/xxxxxxxxxx","gender":1,"id":"xxxxxx","nick":"xxxxxx","official":0,"point":{"endGrowth":2000,"growth":1415,"honour":"LV5","icon":"http:\/\/img5.petkit.cn\/misc\/point\/s5","icon2":"http:\/\/img5.petkit.cn\/misc\/point\/l5","rank":5,"startGrowth":1000}}}}
-        return this.post(format(this.urls.deviceDetail, this.deviceId), callback);
-    },
-
-    // date：20200920
-    getDailyFeedsInfo: function(date, callback = null) {
-        return this.post(format(this.urls.dailyfeeds, this.deviceId, date), callback);
-    },
-
-    // date：20200920、time: 68400(-1 stand for current)、amount in app unit，1 for 5g, 10 is max(50g)
-    saveDailyFeed: function(date, time, amount, callback = null) {
-        return this.post(format(this.urls.saveDailyFeed, this.deviceId, date, time, amount * 5), callback);
-    },
-
-    // date：20200920、time: 68400(-1 stand for current)
-    removeDailyFeed: function(date, time, callback = null) {
-        return this.post(format(this.urls.removeDailyFeed, this.deviceId, date, time), callback);
-    },
-
-    convertHeadersetFormat: function(config_headers) {
-        var post_headers = {};
-        config_headers.forEach(function(header, index) {
-            post_headers[header.key] = header.value;
-        });
-        this.log.debug(post_headers);
-        return post_headers;
-    },
-
-    getDevices: function(callback = null) {
+    getDevicesFromServer: function(callback = null) {
         return this.post(this.urls.owndevices, callback);
     },
 
-    updateDeviceDetail: function(callback = null) {
+    getDeviceStatusFromServer: function(callback = null) {
+        const getDeviceDetailFromServer = function (callback = null) {
+            // {"result":{"createdAt":"2020-05-26T12:48:29.158Z","feed":{"deviceId":356367,"isExecuted":1,"isLock":1,"items":[{"amount":15,"id":"43200","name":"\u5348\u9910","petAmount":[{"amount":15,"petId":"770000"}],"time":43200}],"repeats":"1,2,3,4,5,6,7","suspended":0,"userId":"xxxxxx"},"firmware":"1.394","firmwareDetails":[{"module":"userbin","version":2003001}],"hardware":1,"id":356367,"locale":"Asia\/Shanghai","mac":"xxxxxxxxxxxx","name":"\u667A\u80FD\u5582\u98DF\u5668","relation":{"petIds":["xxxxxx"],"userId":"xxxxxx"},"secret":"xxxxxx","settings":{"desiccantNotify":0,"feedNotify":1,"foodNotify":1,"lightMode":0,"lightRange":[0,1440],"manualLock":0,"reBatteryNotify":1},"shareOpen":0,"signupAt":"2020-09-20T18:05:39.269Z","sn":"xxxx","state":{"batteryPower":4,"batteryStatus":0,"desiccantLeftDays":6,"errorPriority":0,"feeding":0,"food":1,"ota":0,"overall":1,"pim":1,"runtime":49677,"wifi":{"bssid":"xxxxxxxxxxxx","rsq":-37,"ssid":"xxxxxxxxxx"}},"timezone":8.0,"type":0,"user":{"avatar":"http:\/\/img5.petkit.cn\/uavatar\/2020\/5\/24\/xxxxxxxxxx","gender":1,"id":"xxxxxx","nick":"xxxxxx","official":0,"point":{"endGrowth":2000,"growth":1415,"honour":"LV5","icon":"http:\/\/img5.petkit.cn\/misc\/point\/s5","icon2":"http:\/\/img5.petkit.cn\/misc\/point\/l5","rank":5,"startGrowth":1000}}}}
+            return this.post(format(this.urls.deviceDetail, this.deviceId), callback);
+        }.bind(this);
+
         const parseDataFunction = function (data) {
             if (!data) {
                 this.log('unable to retrieve device infomation from server.');
@@ -456,113 +451,40 @@ petkit_feeder_mini_plugin.prototype = {
                     this.deviceDetailInfo = status_info;
                 } else {
                     this.log('unable to retrieve device infomation from server.');
-                    return this.deviceDetailInfo = {};
+                    this.deviceDetailInfo = {};
                 }
+            }
+            // if desiccantLeftDays less than 5 day, auto reset it.
+            if (this.config['autoResetDesiccant'] &&
+                this.deviceDetailInfo &&
+                this.deviceDetailInfo.desiccantLeftDays < 35) {
+                this.hb_desiccantLeftDays_reset(null);
             }
             return this.deviceDetailInfo;
         }.bind(this);
 
         if (callback) {
-            this.getDeviceDetail(function(data) {
+            getDeviceDetailFromServer(function(data) {
                 callback(parseDataFunction(data));
             }.bind(this));
         } else {
-            return parseDataFunction(this.getDeviceDetail());
+            return parseDataFunction(getDeviceDetailFromServer());
         }
     },
 
-    getDropMealStatus: function(callback) {
-        const currentValue = 0;
-        callback(null, currentValue);
+    // date：20200920
+    getDailyFeedsInfoFromServer: function(date, callback = null) {
+        return this.post(format(this.urls.dailyfeeds, this.deviceId, date), callback);
     },
 
-    setDropMealStatus: function(value, callback) {
-        if (value) {
-            if (this.mealAmount) {
-                this.log('drop food:' + this.mealAmount + 'meal(s)');
-                const that = this;
-                const data = this.saveDailyFeed(dayjs(new Date()).format('YYYYMMDD'), -1, this.mealAmount);
-                if (!data) {
-                    callback('failed to commuciate with server.');
-                } else {
-                    const result = that.praseSaveDailyFeedResult(data);
-                    that.log('food drop result: ' + result);
-                }
-            } else {
-                this.log('drop food with zero amount, pass.');
-            }
-            setTimeout(function() {
-                this.drop_meal_service.setCharacteristic(Characteristic.On, false);
-            }.bind(this), 200);
-        }
-        callback(null);
+    // date：20200920、time: 68400(-1 stand for current)、amount in app unit，1 for 5g, 10 is max(50g)
+    saveDailyFeed: function(date, time, amount, callback = null) {
+        return this.post(format(this.urls.saveDailyFeed, this.deviceId, date, time, amount * 5), callback);
     },
 
-    getMealAmount: function(callback) {
-        callback(null, this.mealAmount);
-    },
-
-    setMealAmount: function(value, callback) {
-        this.mealAmount = value;
-        this.log('set meal amount to ' + value);
-        callback(null);
-    },
-
-    getDesiccantLeftDaysIndication: function(callback) {
-        const callbackResult = function(fake_param) {
-            const status = (this.status_info['desiccantLeftDays'] < this.alertDesiccantLeftDays ? 1 : 0);
-            this.log.debug('getDesiccantLeftDaysIndication: ' + status);
-            callback(null, status);
-        }.bind(this);
-
-        if (!this.enable_polling) {
-            updateDeviceDetail(callbackResult);
-        } else {
-            callbackResult();
-        }
-    },
-
-    getDesiccantLeftDays: function(callback) {
-        const callbackResult = function(fake_param) {
-            const status = this.deviceDetailInfo['desiccantLeftDays'] || 30;
-            this.log.debug('desiccant days remain: ' + status + ' day(s)');
-            callback(null, status);
-        }.bind(this);
-
-        if (!this.enable_polling) {
-            updateDeviceDetail(callbackResult);
-        } else {
-            callbackResult();
-        }
-    },
-
-    // reset Desiccant Left Days 
-    resetDesiccantLeftDays: function(callback) {
-        this.log.debug('resetDesiccantLeftDays');
-        return this.post(format(this.urls.resetDesiccant, this.deviceId), function(data){
-            var jsonObj = JSON.parse(data);
-            if (jsonObj['result']) {
-                this.deviceDetailInfo['desiccantLeftDays'] = jsonObj['result'];
-                this.log.debug('reset desiccant left days success, left days reset to ' + jsonObj['result'] + ' days');
-            } else {
-                this.log.warn('reset desiccant left days failed.');
-            }
-            callback(null);
-        }.bind(this));
-    },
-
-    getFoodStorageStatus: function(callback) {
-        const callbackResult = function(fake_param) {
-            const status = this.deviceDetailInfo['food'] || false;
-            this.log.debug('device food storage status is: ' + (status ? 'Ok' : 'Empty'));
-            callback(null, status);
-        }.bind(this);
-        
-        if (!this.enable_polling) {
-            updateDeviceDetail(callbackResult);
-        } else {
-            callbackResult();
-        }
+    // date：20200920、time: 68400(-1 stand for current)
+    removeDailyFeed: function(date, time, callback = null) {
+        return this.post(format(this.urls.removeDailyFeed, this.deviceId, date, time), callback);
     },
 
     updateHomebridgeStatus: function(status_info) {
@@ -578,55 +500,133 @@ petkit_feeder_mini_plugin.prototype = {
         }
     },
 
+    hb_dropMeal_set: function(value, callback) {
+        if (value) {
+            if (this.mealAmount) {
+                this.log('drop food:' + this.mealAmount + 'meal(s)');
+                const data = this.saveDailyFeed(dayjs(new Date()).format('YYYYMMDD'), -1, this.mealAmount);
+                if (!data) {
+                    callback('failed to commuciate with server.');
+                } else {
+                    const result = this.praseSaveDailyFeedResult(data);
+                    this.log('food drop result: ' + result ? 'success' : 'failed');
+                }
+            } else {
+                this.log('drop food with zero amount, pass.');
+            }
+            setTimeout(function() {
+                this.drop_meal_service.setCharacteristic(Characteristic.On, false);
+            }.bind(this), 200);
+        }
+        callback(null);
+    },
+
+    hb_desiccantIndicator_get: function(callback) {
+        const callbackResult = function(fake_param) {
+            const status = (this.status_info['desiccantLeftDays'] < this.alertDesiccantLeftDays ? 1 : 0);
+            this.log.debug('desiccant status indicator status: ' + status);
+            callback(null, status);
+        }.bind(this);
+
+        if (!this.enable_polling) {
+            getDeviceStatusFromServer(callbackResult);
+        } else {
+            callbackResult();
+        }
+    },
+
+    hb_desiccantLeftDays_get: function(callback) {
+        const callbackResult = function(fake_param) {
+            const status = this.deviceDetailInfo['desiccantLeftDays'] || 30;
+            this.log.debug('desiccant days remain: ' + status + ' day(s)');
+            callback(null, status);
+        }.bind(this);
+
+        if (!this.enable_polling) {
+            getDeviceStatusFromServer(callbackResult);
+        } else {
+            callbackResult();
+        }
+    },
+
+    // reset Desiccant Left Days 
+    hb_desiccantLeftDays_reset: function(callback) {
+        this.log.debug('hb_desiccantLeftDays_reset');
+        return this.post(format(this.urls.resetDesiccant, this.deviceId), function(data){
+            var jsonObj = JSON.parse(data);
+            if (jsonObj['result']) {
+                this.deviceDetailInfo['desiccantLeftDays'] = jsonObj['result'];
+                this.log('reset desiccant left days success, left days reset to ' + jsonObj['result'] + ' days');
+            } else {
+                this.log.warn('reset desiccant left days failed.');
+            }
+            if (callback) {callback(null);}
+        }.bind(this));
+    },
+
+    hb_foodStorageStatus_get: function(callback) {
+        const callbackResult = function(fake_param) {
+            const status = this.deviceDetailInfo['food'] || false;
+            this.log.debug('device food storage status is: ' + (status ? 'Ok' : 'Empty'));
+            callback(null, status);
+        }.bind(this);
+        
+        if (!this.enable_polling) {
+            getDeviceStatusFromServer(callbackResult);
+        } else {
+            callbackResult();
+        }
+    },
+
     // TODO
-    getDeviceBatteryLevel: function(callback) {
+    hb_deviceBatteryLevel_get: function(callback) {
         const callbackResult = function(fake_param) {
             const status = 100;
             if (this.deviceDetailInfo['batteryStatus'] != 0) {
                 status = this.deviceDetailInfo['batteryPower'];
             }
-            this.log.debug('getDeviceBatteryLevel:' + status);
+            this.log.debug('hb_deviceBatteryLevel_get:' + status);
             callback(null, status);
         }.bind(this);
         
         if (!this.enable_polling) {
-            updateDeviceDetail(callbackResult);
+            getDeviceStatusFromServer(callbackResult);
         } else {
             callbackResult();
         }
     },
 
     // TODO
-    getDeviceChargingState: function(callback) {
+    hb_deviceChargingState_get: function(callback) {
         const callbackResult = function(fake_param) {
             var status = Characteristic.ChargingState.CHARGING;
             if (this.deviceDetailInfo['batteryStatus'] != 0) {
                 status = Characteristic.StatusLowBattery.NOT_CHARGING;
             }
-            this.log.debug('getDeviceChargingState:' + status);
+            this.log.debug('hb_deviceChargingState_get:' + status);
             callback(null, status);
         }.bind(this);
         
         if (!this.enable_polling) {
-            updateDeviceDetail(callbackResult);
+            getDeviceStatusFromServer(callbackResult);
         } else {
             callbackResult();
         }
     },
 
     // TODO
-    getDeviceStatusLowBattery: function(callback) {
+    hb_deviceStatusLowBattery_get: function(callback) {
         const callbackResult = function(fake_param) {
             var status = Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
             if (this.deviceDetailInfo['batteryStatus'] != 0) {
                 status = Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
             }
-            this.log.debug('getDeviceStatusLowBattery:' + status);
+            this.log.debug('hb_deviceStatusLowBattery_get:' + status);
             callback(null, status);
         }.bind(this);
         
         if (!this.enable_polling) {
-            updateDeviceDetail(callbackResult);
+            getDeviceStatusFromServer(callbackResult);
         } else {
             callbackResult();
         }

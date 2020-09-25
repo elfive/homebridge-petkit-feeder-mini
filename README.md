@@ -1,7 +1,5 @@
 ## homebridge-petkit-feeder-mini
 
-[![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
-
 ## 1) Description
 
 control your petkit feeder mini from homekit, get full use of iOS automation.
