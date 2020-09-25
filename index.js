@@ -271,22 +271,31 @@ petkit_feeder_mini_plugin.prototype = {
           headers: this.headers
         };
         if (callback) {
-            const that = this;
-            request(options, function(error, response, data) {
-                if (!error && response.statusCode == 200) {
-                    callback(data);
-                } else {
-                    that.log.error(response.statusCode + ': ' + error);
-                    callback(false);
-                }
-            });
-        } else {
-            var response = request_sync(options.url, options);
-            if (response.status == 200) {
-                return response.data.toString();
+            try {
+                request(options, function(error, response, data) {
+                    if (!error && response.statusCode == 200) {
+                        callback(data);
+                    } else {
+                        this.log.error(response.statusCode + ': ' + error);
+                        callback(false);
+                    }
+                }.bind(this));
+            } catch(e) {
+                this.log.error('we had a problem to post request: 'e);
+                callback(false);
             }
-            this.log.error(response.statusCode + ': ' + error);
-            return false;
+        } else {
+            try {
+                var response = request_sync(options.url, options);
+                if (response.status == 200) {
+                    return response.data.toString();
+                }
+                this.log.error(response.statusCode + ': ' + error);
+                return false;
+            } catch(e) {
+                this.log.error('we had a problem to post request: 'e);
+                return false;
+            }
         }
     },
 
