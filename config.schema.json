@@ -113,14 +113,14 @@
             "placeholder": "1.0.0"
         },
         "enable_polling": {
-            "title": "Automatically update device info from Petkit server",
+            "title": "Automatically update device status from Petkit server",
             "required": false,
             "type": "boolean",
             "default": true,
             "placeholder": "true"
         },
         "polling_interval": {
-            "title": "update device info interval from Petkit server(s)",
+            "title": "update device status interval from Petkit server(s)",
             "required": false,
             "type": "integer",
             "default": 60,
