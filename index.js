@@ -483,7 +483,7 @@ petkit_feeder_mini_plugin.prototype = {
                     const status_info = {
                         'food' : deviceDetailInfo['result']['state']['food'] || 0,
                         'batteryPower' : deviceDetailInfo['result']['state']['batteryPower'] * (100 / max_batteryLevel) || 0,
-                        'batteryStatus' : deviceDetailInfo['result']['state']['batteryStatus'] || 0,
+                        'batteryStatus' : deviceDetailInfo['result']['state']['batteryStatus'] || 1,
                         'desiccantLeftDays' : deviceDetailInfo['result']['state']['desiccantLeftDays'] || 0,
                         'manualLock' : deviceDetailInfo['result']['settings']['manualLock'] || 0,
                         'name' : deviceDetailInfo['result']['name'] || 'PetkitFeederMini',
@@ -644,7 +644,7 @@ petkit_feeder_mini_plugin.prototype = {
     hb_deviceBatteryLevel_get: function(callback) {
         const callbackResult = function(fake_param) {
             var status = this.deviceDetailInfo['batteryPower'];
-            if (this.deviceDetailInfo['batteryStatus'] == 1) {
+            if (this.deviceDetailInfo['batteryStatus'] == 0) {
                 status = 100;
             }
             this.log.debug('hb_deviceBatteryLevel_get:' + status);
