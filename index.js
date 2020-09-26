@@ -228,12 +228,7 @@ petkit_feeder_mini_plugin.prototype = {
         // battery status
         this.battery_status_service = new Service.BatteryService(this.name + 'Battery', 'Battery');
         this.battery_status_service.getCharacteristic(Characteristic.BatteryLevel)
-            .on('get', this.hb_deviceBatteryLevel_get.bind(this))
-            .setProps({
-                minValue: min_batteryLevel,
-                maxValue: max_batteryLevel,
-                minStep: 1
-            });
+            .on('get', this.hb_deviceBatteryLevel_get.bind(this));
         this.battery_status_service.getCharacteristic(Characteristic.ChargingState)
             .on('get', this.hb_deviceChargingState_get.bind(this));
         this.battery_status_service.getCharacteristic(Characteristic.StatusLowBattery)
@@ -648,10 +643,11 @@ petkit_feeder_mini_plugin.prototype = {
 
     hb_deviceBatteryLevel_get: function(callback) {
         const callbackResult = function(fake_param) {
-            var status = this.deviceDetailInfo['batteryPower'];;
+            var status = this.deviceDetailInfo['batteryPower'];
             if (this.deviceDetailInfo['batteryStatus'] == 1) {
                 status = max_batteryLevel;
             }
+            status = 100 / max_batteryLevel * status;
             this.log.debug('hb_deviceBatteryLevel_get:' + status);
             callback(null, status);
         }.bind(this);
