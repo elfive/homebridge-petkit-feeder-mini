@@ -573,7 +573,7 @@ petkit_feeder_mini_plugin.prototype = {
 
     hb_desiccantIndicator_get: function(callback) {
         const callbackResult = function(fake_param) {
-            const status = (this.status_info['desiccantLeftDays'] < this.alertDesiccantLeftDays ? 1 : 0);
+            const status = (this.deviceDetailInfo['desiccantLeftDays'] < this.alertDesiccantLeftDays ? 1 : 0);
             this.log.debug('desiccant status indicator status: ' + status);
             callback(null, status);
         }.bind(this);
