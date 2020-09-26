@@ -482,7 +482,7 @@ petkit_feeder_mini_plugin.prototype = {
                     this.log('successfully retrieved device infomation from server.');
                     const status_info = {
                         'food' : deviceDetailInfo['result']['state']['food'] || 0,
-                        'batteryPower' : deviceDetailInfo['result']['state']['batteryPower'] || 0,
+                        'batteryPower' : deviceDetailInfo['result']['state']['batteryPower'] * (100 / max_batteryLevel) || 0,
                         'batteryStatus' : deviceDetailInfo['result']['state']['batteryStatus'] || 0,
                         'desiccantLeftDays' : deviceDetailInfo['result']['state']['desiccantLeftDays'] || 0,
                         'manualLock' : deviceDetailInfo['result']['settings']['manualLock'] || 0,
@@ -645,9 +645,8 @@ petkit_feeder_mini_plugin.prototype = {
         const callbackResult = function(fake_param) {
             var status = this.deviceDetailInfo['batteryPower'];
             if (this.deviceDetailInfo['batteryStatus'] == 1) {
-                status = max_batteryLevel;
+                status = 100;
             }
-            status = 100 / max_batteryLevel * status;
             this.log.debug('hb_deviceBatteryLevel_get:' + status);
             callback(null, status);
         }.bind(this);
@@ -679,7 +678,7 @@ petkit_feeder_mini_plugin.prototype = {
     hb_deviceStatusLowBattery_get: function(callback) {
         const callbackResult = function(fake_param) {
             var status = Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
-            if (this.deviceDetailInfo['batteryPower'] <= 2) {
+            if (this.deviceDetailInfo['batteryPower'] <= 50) {
                 status = Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
             }
             this.log.debug('hb_deviceStatusLowBattery_get:' + status);
