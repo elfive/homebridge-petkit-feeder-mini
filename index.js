@@ -43,6 +43,8 @@ const min_amount = 0;
 const max_amount = 10;
 const min_desiccantLeftDays = 0;
 const max_desiccantLeftDays = 30;
+const min_batteryLevel = 0;
+const max_batteryLevel = 4;
 const min_pollint_interval = 60;
 const max_pollint_interval = 3600;
 const reset_desiccant_threshold = 5;
@@ -226,7 +228,12 @@ petkit_feeder_mini_plugin.prototype = {
         // battery status
         this.battery_status_service = new Service.BatteryService(this.name + 'Battery', 'Battery');
         this.battery_status_service.getCharacteristic(Characteristic.BatteryLevel)
-            .on('get', this.hb_deviceBatteryLevel_get.bind(this));
+            .on('get', this.hb_deviceBatteryLevel_get.bind(this))
+            .setProps({
+                minValue: min_batteryLevel,
+                maxValue: max_batteryLevel,
+                minStep: 1
+            });
         this.battery_status_service.getCharacteristic(Characteristic.ChargingState)
             .on('get', this.hb_deviceChargingState_get.bind(this));
         this.battery_status_service.getCharacteristic(Characteristic.StatusLowBattery)
@@ -639,12 +646,11 @@ petkit_feeder_mini_plugin.prototype = {
         }.bind(this));
     },
 
-    // TODO
     hb_deviceBatteryLevel_get: function(callback) {
         const callbackResult = function(fake_param) {
-            const status = 100;
-            if (this.deviceDetailInfo['batteryStatus'] != 0) {
-                status = this.deviceDetailInfo['batteryPower'];
+            var status = this.deviceDetailInfo['batteryPower'];;
+            if (this.deviceDetailInfo['batteryStatus'] == 1) {
+                status = max_batteryLevel;
             }
             this.log.debug('hb_deviceBatteryLevel_get:' + status);
             callback(null, status);
@@ -657,12 +663,11 @@ petkit_feeder_mini_plugin.prototype = {
         }
     },
 
-    // TODO
     hb_deviceChargingState_get: function(callback) {
         const callbackResult = function(fake_param) {
-            var status = Characteristic.ChargingState.CHARGING;
-            if (this.deviceDetailInfo['batteryStatus'] != 0) {
-                status = Characteristic.StatusLowBattery.NOT_CHARGING;
+            var status = Characteristic.ChargingState.NOT_CHARGING;
+            if (this.deviceDetailInfo['batteryStatus'] == 0) {
+                status = Characteristic.StatusLowBattery.CHARGING;
             }
             this.log.debug('hb_deviceChargingState_get:' + status);
             callback(null, status);
@@ -675,11 +680,10 @@ petkit_feeder_mini_plugin.prototype = {
         }
     },
 
-    // TODO
     hb_deviceStatusLowBattery_get: function(callback) {
         const callbackResult = function(fake_param) {
             var status = Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
-            if (this.deviceDetailInfo['batteryStatus'] != 0) {
+            if (this.deviceDetailInfo['batteryPower'] <= 2) {
                 status = Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
             }
             this.log.debug('hb_deviceStatusLowBattery_get:' + status);
