@@ -499,7 +499,7 @@ petkit_feeder_mini_plugin.prototype = {
             // if desiccantLeftDays less than 5 day, auto reset it.
             if (this.config['autoResetDesiccant'] &&
                 this.deviceDetailInfo &&
-                this.deviceDetailInfo.desiccantLeftDays < 35) {
+                this.deviceDetailInfo.desiccantLeftDays < reset_desiccant_threshold) {
                 this.hb_desiccantLeftDays_reset(null);
             }
             return this.deviceDetailInfo;
