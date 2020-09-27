@@ -55,96 +55,96 @@ module.exports = function(homebridge) {
     homebridge.registerAccessory('homebridge-petkit-feeder-mini', 'petkit_feeder_mini', petkit_feeder_mini_plugin);
 }
 
-function petkit_feeder_mini_plugin(log, config, api) {
-    this.log = log;
-    this.config = config;
-    this.api = api;
-    this.deviceDetailInfo = {};
-    this.poolToEventEmitter = null;
+class petkit_feeder_mini_plugin {
+    constructor(log, config, api) {
+        this.log = log;
+        this.config = config;
+        this.api = api;
+        this.deviceDetailInfo = {};
+        this.poolToEventEmitter = null;
 
-    this.log('begin to initialize petkit feeder mini.');
+        this.log('begin to initialize petkit feeder mini.');
 
-    if (!this.config['location'] || !global_urls[this.config['location']]) {
-        this.log.error('wrong value in config.json file: location.');
-        return;
-    }
-    this.urls = global_urls[this.config['location']];
-
-    if (!this.config['headers']) {
-        this.log.error('missing field in config.json file: headers.');
-        return;
-    }
-    this.headers = this.convertHeadersetFormat(this.config['headers']);
-    switch(this.config['location']) {
-        case 'cn':
-            if (!this.headers['X-Session']) {
-                this.log.error('missing field in config.json file: headers.X-Session.');
-                return;
-            }
-            break;
-        case 'asia':
-            if (!this.headers['X-Session']) {
-                this.log.error('missing field in config.json file: headers.X-Session.');
-                return;
-            }
-            if (!this.headers['X-Api-Version']) {
-                this.headers['X-Api-Version'] = '7.18.1';
-                this.log('missing field in config.json file: headers.X-Api-Version, using "' + this.headers['X-Api-Version'] + '" instead.');
-            }
-            break;
-        default:
-        this.log.error('wrong value in config.json file: location.');
-        return;
-    }
-
-    // handle device connection info
-    this.userAgent = this.config['userAgent'] || 'PetKit/7.19.1 (iPhone; iOS 14.0; Scale/3.00)';
-
-    // make sure deviceId is correct or get the deviceId
-    this.deviceId = this.config['deviceId'];
-    const devices = this.praseGetDeviceResult(this.getDevicesFromServer());
-    if (devices) {
-        if (devices.length === 1) {
-            this.log.debug(JSON.stringify(devices[0]));
-            if (!this.deviceId) {
-                this.log('found you just ownd one feeder mini with deviceId: '+ devices[0].id);
-                this.deviceId = devices[0].id;
-            } else if (devices[0].id != this.deviceId) {
-                this.log.warn('seems that you does not ownd a feeder mini with deviceId: '+ this.deviceId);
-                this.log.warn('use '+ devices[0].id + ' instead ' + this.deviceId);
-                this.deviceId = devices[0].id;
-            }
-        } else {
-            const devicesIds = devices.map(function(device){
-                return {'id': device.id, 'name': device.name};
-            });
-            this.log.error('seems that you does not ownd more than one feeder mini');
-            this.log.error('do you mean one of this: '+ JSON.stringify(devicesIds));
+        if (!this.config['location'] || !global_urls[this.config['location']]) {
+            this.log.error('wrong value in config.json file: location.');
             return;
         }
+        this.urls = global_urls[this.config['location']];
+
+        if (!this.config['headers']) {
+            this.log.error('missing field in config.json file: headers.');
+            return;
+        }
+        this.headers = this.convertHeadersetFormat(this.config['headers']);
+        switch(this.config['location']) {
+            case 'cn':
+                if (!this.headers['X-Session']) {
+                    this.log.error('missing field in config.json file: headers.X-Session.');
+                    return;
+                }
+                break;
+            case 'asia':
+                if (!this.headers['X-Session']) {
+                    this.log.error('missing field in config.json file: headers.X-Session.');
+                    return;
+                }
+                if (!this.headers['X-Api-Version']) {
+                    this.headers['X-Api-Version'] = '7.18.1';
+                    this.log('missing field in config.json file: headers.X-Api-Version, using "' + this.headers['X-Api-Version'] + '" instead.');
+                }
+                break;
+            default:
+            this.log.error('wrong value in config.json file: location.');
+            return;
+        }
+
+        // handle device connection info
+        this.userAgent = this.config['userAgent'] || 'PetKit/7.19.1 (iPhone; iOS 14.0; Scale/3.00)';
+
+        // make sure deviceId is correct or get the deviceId
+        this.deviceId = this.config['deviceId'];
+        const devices = this.praseGetDeviceResult(this.getDevicesFromServer());
+        if (devices) {
+            if (devices.length === 1) {
+                this.log.debug(JSON.stringify(devices[0]));
+                if (!this.deviceId) {
+                    this.log('found you just ownd one feeder mini with deviceId: '+ devices[0].id);
+                    this.deviceId = devices[0].id;
+                } else if (devices[0].id != this.deviceId) {
+                    this.log.warn('seems that you does not ownd a feeder mini with deviceId: '+ this.deviceId);
+                    this.log.warn('use '+ devices[0].id + ' instead ' + this.deviceId);
+                    this.deviceId = devices[0].id;
+                }
+            } else {
+                const devicesIds = devices.map(function(device){
+                    return {'id': device.id, 'name': device.name};
+                });
+                this.log.error('seems that you does not ownd more than one feeder mini');
+                this.log.error('do you mean one of this: '+ JSON.stringify(devicesIds));
+                return;
+            }
+        }
+
+        // handle feed settings
+        // meal, same as petkit app unit. one share stands for 5g or 1/20 cup, ten meal most;
+        this.mealAmount = this.config['mealAmount'] || 3;
+        if (this.config['mealAmount'] > max_amount) {
+            this.log('mealAmount should not greater than ' + max_amount + ', use ' + max_amount + ' instead');
+            this.mealAmount = max_amount;
+        } else if (this.config['mealAmount'] < min_amount) {
+            this.log('mealAmount should not less than ' + min_amount + ', use ' + min_amount + ' instead');
+            this.mealAmount = min_amount;
+        }
+
+        this.manufacturer = this.config['manufacturer'] || 'Petkit';
+        this.model = this.config['model'] || 'Petkit feeder mini';
+
+        this.alertDesiccantLeftDays = this.config['alert_desiccantLeftDays'] || 5;
+
+        this.log('petkit feeder mini loaded successfully.');
     }
 
-    // handle feed settings
-    // meal, same as petkit app unit. one share stands for 5g or 1/20 cup, ten meal most;
-    this.mealAmount = this.config['mealAmount'] || 3;
-    if (this.config['mealAmount'] > max_amount) {
-        this.log('mealAmount should not greater than ' + max_amount + ', use ' + max_amount + ' instead');
-        this.mealAmount = max_amount;
-    } else if (this.config['mealAmount'] < min_amount) {
-        this.log('mealAmount should not less than ' + min_amount + ', use ' + min_amount + ' instead');
-        this.mealAmount = min_amount;
-    }
-
-    this.manufacturer = this.config['manufacturer'] || 'Petkit';
-    this.model = this.config['model'] || 'Petkit feeder mini';
-
-    this.alertDesiccantLeftDays = this.config['alert_desiccantLeftDays'] || 5;
-
-    this.log('petkit feeder mini loaded successfully.');
-}
-
-petkit_feeder_mini_plugin.prototype = {
-    getServices: function() {
+    getServices() {
         var services = [];
         this.getDeviceDetailInfoFromServer();
 
@@ -277,18 +277,18 @@ petkit_feeder_mini_plugin.prototype = {
         }
 
         return services;
-    },
+    }
 
-    convertHeadersetFormat: function(config_headers) {
+    convertHeadersetFormat(config_headers) {
         var post_headers = {};
         config_headers.forEach(function(header, index) {
             post_headers[header.key] = header.value;
         });
         this.log.debug(post_headers);
         return post_headers;
-    },
+    }
 
-    praseSaveDailyFeedResult: function(jsonStr) {
+    praseSaveDailyFeedResult(jsonStr) {
         const jsonObj = JSON.parse(jsonStr);
         if (!jsonObj) {
             log.warn('JSON.parse error with:' + jsonStr);
@@ -310,9 +310,9 @@ petkit_feeder_mini_plugin.prototype = {
         }
 
         return false;
-    },
+    }
 
-    praseGetDeviceResult: function(jsonStr) {
+    praseGetDeviceResult(jsonStr) {
         const jsonObj = JSON.parse(jsonStr);
         if (!jsonObj) {
             this.log.warn('JSON.parse error with:' + jsonStr);
@@ -347,9 +347,9 @@ petkit_feeder_mini_plugin.prototype = {
         }
 
         return devices;
-    },
+    }
 
-    praseUpdateDeviceSettingsResult: function(jsonStr) {
+    praseUpdateDeviceSettingsResult(jsonStr) {
         const jsonObj = JSON.parse(jsonStr);
         if (!jsonObj) {
             this.log.warn('JSON.parse error with:' + jsonStr);
@@ -367,10 +367,10 @@ petkit_feeder_mini_plugin.prototype = {
         }
 
         return (jsonObj.result == 'success');
-    },
+    }
 
     // date：20200920、time: 68400
-    confirmSaveFeedSuccess: function(date, time) {
+    confirmSaveFeedSuccess(date, time) {
         const jsonStr = this.getDailyFeedsInfoFromServer(date);
         const jsonObj = JSON.parse(jsonStr);
         if (!jsonObj) {
@@ -388,10 +388,10 @@ petkit_feeder_mini_plugin.prototype = {
                 return (item.id != 'd' + time || item.id != 's' + time || item.id.startsWith('r' + time + '-'));
             });
         });
-    },
+    }
 
     // date：20200920、time: 68400
-    confirmRemoveFeedSuccess: function(date, time) {
+    confirmRemoveFeedSuccess(date, time) {
         const jsonStr = this.getDailyFeedsInfoFromServer(date);
         const jsonObj = JSON.parse(jsonStr);
         if (!jsonObj) {
@@ -409,9 +409,9 @@ petkit_feeder_mini_plugin.prototype = {
                 return (item.id != 'd' + time || item.id != 's' + time || item.id.startsWith('r' + time + '-'));
             });
         });
-    },
+    }
 
-    post: function(url, callback = null) {
+    post(url, callback = null) {
         this.log.debug(url);
         const options = {
           url: url,
@@ -445,13 +445,13 @@ petkit_feeder_mini_plugin.prototype = {
                 return false;
             }
         }
-    },
+    }
 
-    getDevicesFromServer: function(callback = null) {
+    getDevicesFromServer(callback = null) {
         return this.post(this.urls.owndevices, callback);
-    },
+    }
 
-    getDeviceBriefInfoFromServer: function(callback = null) {
+    getDeviceBriefInfoFromServer(callback = null) {
         // {
         //     "result": {
         //         "batteryPower":4,"batteryStatus":0,"desiccantLeftDays":6,
@@ -462,9 +462,9 @@ petkit_feeder_mini_plugin.prototype = {
         //     }
         // }
         return this.post(format(this.urls.deviceState, this.deviceId), callback);
-    },
+    }
 
-    getDeviceDetailInfoFromServer: function(callback = null) {
+    getDeviceDetailInfoFromServer(callback = null) {
         const getDeviceDetailFromServer = function (callback = null) {
             // {"result":{"createdAt":"2020-05-26T12:48:29.158Z","feed":{"deviceId":356367,"isExecuted":1,"isLock":1,"items":[{"amount":15,"id":"43200","name":"\u5348\u9910","petAmount":[{"amount":15,"petId":"770000"}],"time":43200}],"repeats":"1,2,3,4,5,6,7","suspended":0,"userId":"xxxxxx"},"firmware":"1.394","firmwareDetails":[{"module":"userbin","version":2003001}],"hardware":1,"id":356367,"locale":"Asia\/Shanghai","mac":"xxxxxxxxxxxx","name":"\u667A\u80FD\u5582\u98DF\u5668","relation":{"petIds":["xxxxxx"],"userId":"xxxxxx"},"secret":"xxxxxx","settings":{"desiccantNotify":0,"feedNotify":1,"foodNotify":1,"lightMode":0,"lightRange":[0,1440],"manualLock":0,"reBatteryNotify":1},"shareOpen":0,"signupAt":"2020-09-20T18:05:39.269Z","sn":"xxxx","state":{"batteryPower":4,"batteryStatus":0,"desiccantLeftDays":6,"errorPriority":0,"feeding":0,"food":1,"ota":0,"overall":1,"pim":1,"runtime":49677,"wifi":{"bssid":"xxxxxxxxxxxx","rsq":-37,"ssid":"xxxxxxxxxx"}},"timezone":8.0,"type":0,"user":{"avatar":"http:\/\/img5.petkit.cn\/uavatar\/2020\/5\/24\/xxxxxxxxxx","gender":1,"id":"xxxxxx","nick":"xxxxxx","official":0,"point":{"endGrowth":2000,"growth":1415,"honour":"LV5","icon":"http:\/\/img5.petkit.cn\/misc\/point\/s5","icon2":"http:\/\/img5.petkit.cn\/misc\/point\/l5","rank":5,"startGrowth":1000}}}}
             return this.post(format(this.urls.deviceDetail, this.deviceId), callback);
@@ -512,31 +512,31 @@ petkit_feeder_mini_plugin.prototype = {
         } else {
             return parseDataFunction(getDeviceDetailFromServer());
         }
-    },
+    }
 
     // date：20200920
-    getDailyFeedsInfoFromServer: function(date, callback = null) {
+    getDailyFeedsInfoFromServer(date, callback = null) {
         return this.post(format(this.urls.dailyfeeds, this.deviceId, date), callback);
-    },
+    }
 
     // date：20200920、time: 68400(-1 stand for current)、amount in app unit，1 for 5g, 10 is max(50g)
-    saveDailyFeed: function(date, time, amount, callback = null) {
+    saveDailyFeed(date, time, amount, callback = null) {
         return this.post(format(this.urls.saveDailyFeed, this.deviceId, date, time, amount * 5), callback);
-    },
+    }
 
     // date：20200920、time: 68400(-1 stand for current)
-    removeDailyFeed: function(date, time, callback = null) {
+    removeDailyFeed(date, time, callback = null) {
         return this.post(format(this.urls.removeDailyFeed, this.deviceId, date, time), callback);
-    },
+    }
 
     // key see support_settings.
-    updateDeviceSettings: function(key, value, callback = null) {
+    updateDeviceSettings(key, value, callback = null) {
         var data = {};
         data[support_settings[key]] = value;
         return this.post(format(this.urls.updateSettings, this.deviceId, JSON.stringify(data)), callback);
-    },
+    }
 
-    updateHomebridgeStatus: function(status_info) {
+    updateHomebridgeStatus(status_info) {
         var status = status_info['food'] || false;
         this.log.debug('device food storage status is: ' + (status ? 'Ok' : 'Empty'));
         this.food_storage_service.setCharacteristic(Characteristic.OccupancyDetected, status);
@@ -547,9 +547,9 @@ petkit_feeder_mini_plugin.prototype = {
             status = (desiccantLeftDays < this.alertDesiccantLeftDays ? Characteristic.FilterChangeIndication.CHANGE_FILTER : Characteristic.FilterChangeIndication.FILTER_OK);
             this.desiccant_level_service.setCharacteristic(Characteristic.FilterChangeIndication, status);
         }
-    },
+    }
 
-    hb_dropMeal_set: function(value, callback) {
+    hb_dropMeal_set(value, callback) {
         if (value) {
             if (this.mealAmount) {
                 this.log('drop food:' + this.mealAmount + 'meal(s)');
@@ -571,9 +571,9 @@ petkit_feeder_mini_plugin.prototype = {
         this.getDeviceDetailInfoFromServer(function(status_info){
             this.updateHomebridgeStatus(status_info);
         }.bind(this));
-    },
+    }
 
-    hb_desiccantIndicator_get: function(callback) {
+    hb_desiccantIndicator_get(callback) {
         const callbackResult = function(fake_param) {
             const status = (this.deviceDetailInfo['desiccantLeftDays'] < this.alertDesiccantLeftDays ? 1 : 0);
             this.log.debug('desiccant status indicator status: ' + status);
@@ -585,9 +585,9 @@ petkit_feeder_mini_plugin.prototype = {
         } else {
             callbackResult();
         }
-    },
+    }
 
-    hb_desiccantLeftDays_get: function(callback) {
+    hb_desiccantLeftDays_get(callback) {
         const callbackResult = function(fake_param) {
             const status = this.deviceDetailInfo['desiccantLeftDays'] || 30;
             this.log.debug('desiccant days remain: ' + status + ' day(s)');
@@ -599,10 +599,10 @@ petkit_feeder_mini_plugin.prototype = {
         } else {
             callbackResult();
         }
-    },
+    }
 
     // reset Desiccant Left Days 
-    hb_desiccantLeftDays_reset: function(callback) {
+    hb_desiccantLeftDays_reset(callback) {
         this.log.debug('hb_desiccantLeftDays_reset');
         return this.post(format(this.urls.resetDesiccant, this.deviceId), function(data){
             var jsonObj = JSON.parse(data);
@@ -614,9 +614,9 @@ petkit_feeder_mini_plugin.prototype = {
             }
             if (callback) {callback(null);}
         }.bind(this));
-    },
+    }
 
-    hb_foodStorageStatus_get: function(callback) {
+    hb_foodStorageStatus_get(callback) {
         const callbackResult = function(fake_param) {
             const status = this.deviceDetailInfo['food'] || false;
             this.log.debug('device food storage status is: ' + (status ? 'Ok' : 'Empty'));
@@ -628,9 +628,9 @@ petkit_feeder_mini_plugin.prototype = {
         } else {
             callbackResult();
         }
-    },
+    }
 
-    hb_manualLockStatus_set: function(value, callback) {
+    hb_manualLockStatus_set(value, callback) {
         const status = value ? 0 : 1;       // on for off, off for on, same behavior with Petkit app.
         this.updateDeviceSettings('manualLock', status, function(data) {
             callback(null);
@@ -639,9 +639,9 @@ petkit_feeder_mini_plugin.prototype = {
                 this.updateHomebridgeStatus(status_info);
             }.bind(this));
         }.bind(this));
-    },
+    }
 
-    hb_deviceBatteryLevel_get: function(callback) {
+    hb_deviceBatteryLevel_get(callback) {
         const callbackResult = function(fake_param) {
             var status = this.deviceDetailInfo['batteryPower'];
             this.log.debug('hb_deviceBatteryLevel_get:' + status);
@@ -653,9 +653,9 @@ petkit_feeder_mini_plugin.prototype = {
         } else {
             callbackResult();
         }
-    },
+    }
 
-    hb_deviceChargingState_get: function(callback) {
+    hb_deviceChargingState_get(callback) {
         const callbackResult = function(fake_param) {
 
             const status = (this.deviceDetailInfo['batteryStatus'] == 0 ?
@@ -670,9 +670,9 @@ petkit_feeder_mini_plugin.prototype = {
         } else {
             callbackResult();
         }
-    },
+    }
 
-    hb_deviceStatusLowBattery_get: function(callback) {
+    hb_deviceStatusLowBattery_get(callback) {
         const callbackResult = function(fake_param) {
             var status = Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
             if (this.deviceDetailInfo['batteryPower'] <= 50) {
@@ -687,5 +687,5 @@ petkit_feeder_mini_plugin.prototype = {
         } else {
             callbackResult();
         }
-    },
+    }
 }
