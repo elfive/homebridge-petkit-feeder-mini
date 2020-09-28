@@ -19,9 +19,10 @@
   "author": "elfive@elfive.cn",
   "license": "Apache-2.0",
   "dependencies": {
+    "axios": "^0.20.0",
     "dayjs": "^1.8.36",
+    "deasync-promise": "^1.0.1",
     "polling-to-event": "^2.1.0",
-    "request": "^2.88.2",
     "string-format": "^2.0.0",
     "urllib-sync": "^1.1.4"
   },
