@@ -132,6 +132,85 @@
             "required": false,
             "type": "boolean",
             "default": false
+        },
+        "reverse_food_storage_indicator": {
+            "title": "Reverse food storage indicator status in Homekit.",
+            "required": false,
+            "type": "boolean",
+            "default": false,
+            "placeholder": "false"
         }
-    }
+    },
+    "form": null,
+    "display": null,
+    "layout": [
+        {
+          "type": "flex",
+          "flex-flow": "row wrap",
+            "items": [
+                {
+                    "type": "flex",
+                    "flex-flow": "column",
+                    "items": [
+                        "name",
+                        "mealAmount"
+                    ]
+                }
+            ]
+        },
+        {
+            "ref": "requests",
+            "type": "fieldset",
+            "expandable": true,
+            "title": "HTTP request settings",
+            "items": [
+                "location",
+                {
+                    "key": "headers",
+                    "type": "array",
+                    "expandable": true,
+                    "orderable": false,
+                    "buttonText": "Add Header Set",
+                    "items": [
+                        "headers[].key",
+                        "headers[].value"
+                    ]
+                },
+                "deviceId"
+            ]
+        },
+        {
+            "ref": "infomation",
+            "type": "fieldset",
+            "expandable": true,
+            "title": "Device infomation settings",
+            "items": [
+                "autoDeviceInfo",
+                "sn",
+                "firmware",
+                "manufacturer",
+                "model"
+            ]
+        },
+        {
+            "ref": "polling",
+            "type": "fieldset",
+            "expandable": true,
+            "title": "Polling settings",
+            "items": [
+                "enable_polling",
+                "polling_interval"
+            ]
+        },
+        {
+            "ref": "others",
+            "type": "fieldset",
+            "expandable": true,
+            "title": "Other settings",
+            "items": [
+                "autoResetDesiccant",
+                "reverse_food_storage_indicator"
+            ]
+        }
+    ]
 }

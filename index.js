@@ -213,18 +213,20 @@ class petkit_feeder_mini_plugin {
         services.push(this.meal_amount_service);
 
         // food storage indicator
-        this.food_storage_service = new Service.OccupancySensor('FoodStorage', 'FoodStorage');
+        const food_storage_service_name = this.config['reverse_food_storage_indicator'] ? 'FoodStorage_Empty': 'FoodStorage';
+        this.food_storage_service = new Service.OccupancySensor(food_storage_service_name, food_storage_service_name);
+        this.food_storage_service.setCharacteristic(Characteristic.OccupancyDetected, this.deviceDetailInfo['food'])
         this.food_storage_service.getCharacteristic(Characteristic.OccupancyDetected)
             .on('get', this.hb_foodStorageStatus_get.bind(this));
-        this.food_storage_service.setCharacteristic(Characteristic.OccupancyDetected, this.deviceDetailInfo['food'])
         services.push(this.food_storage_service);
 
         // desiccant left days
         this.desiccant_level_service = new Service.FilterMaintenance('DesiccantLevel', 'DesiccantLevel');
+        this.desiccant_level_service.setCharacteristic(Characteristic.FilterChangeIndication, (this.deviceDetailInfo['desiccantLeftDays'] < this.alertDesiccantLeftDays ? 1 : 0));
         this.desiccant_level_service.getCharacteristic(Characteristic.FilterChangeIndication)
             .on('get', this.hb_desiccantIndicator_get.bind(this));
-        this.desiccant_level_service.setCharacteristic(Characteristic.FilterChangeIndication, (this.deviceDetailInfo['desiccantLeftDays'] < this.alertDesiccantLeftDays ? 1 : 0));
         
+        this.desiccant_level_service.setCharacteristic(Characteristic.FilterLifeLevel, this.deviceDetailInfo['desiccantLeftDays']);
         this.desiccant_level_service.getCharacteristic(Characteristic.FilterLifeLevel)
             .on('get', this.hb_desiccantLeftDays_get.bind(this))
             .setProps({
@@ -232,7 +234,6 @@ class petkit_feeder_mini_plugin {
                 maxValue: max_desiccantLeftDays,
                 minStep: 1
             });
-        this.desiccant_level_service.setCharacteristic(Characteristic.FilterLifeLevel, this.deviceDetailInfo['desiccantLeftDays']);
         
         this.desiccant_level_service.getCharacteristic(Characteristic.ResetFilterIndication)
             .on('set', this.hb_desiccantLeftDays_reset.bind(this))
@@ -240,37 +241,37 @@ class petkit_feeder_mini_plugin {
 
         // manualLock setting
         this.manualLock_service = new Service.Switch('ManualLock', 'ManualLock');
+        this.manualLock_service.setCharacteristic(Characteristic.On, this.deviceDetailInfo['manualLock']);
         this.manualLock_service.getCharacteristic(Characteristic.On)
             .on('get', this.hb_manualLockStatus_get.bind(this))
             .on('set', this.hb_manualLockStatus_set.bind(this));
-        this.manualLock_service.setCharacteristic(Characteristic.On, this.deviceDetailInfo['manualLock']);
         services.push(this.manualLock_service);
 
         // lightMode setting
-        this.lightMode_service = new Service.Switch('lightMode', 'lightMode');
+        this.lightMode_service = new Service.Switch('LightMode', 'LightMode');
+        this.lightMode_service.setCharacteristic(Characteristic.On, this.deviceDetailInfo['manualLock']);
         this.lightMode_service.getCharacteristic(Characteristic.On)
             .on('get', this.hb_lightModeStatus_get.bind(this))
             .on('set', this.hb_lightModeStatus_set.bind(this));
-        this.lightMode_service.setCharacteristic(Characteristic.On, this.deviceDetailInfo['manualLock']);
         services.push(this.lightMode_service);
 
         // battery status
         this.battery_status_service = new Service.BatteryService('Battery', 'Battery');
+        this.battery_status_service.setCharacteristic(Characteristic.BatteryLevel, this.deviceDetailInfo['batteryPower']);
         this.battery_status_service.getCharacteristic(Characteristic.BatteryLevel)
             .on('get', this.hb_deviceBatteryLevel_get.bind(this));
-        this.battery_status_service.setCharacteristic(Characteristic.BatteryLevel, this.deviceDetailInfo['batteryPower']);
         
-        this.battery_status_service.getCharacteristic(Characteristic.ChargingState)
-            .on('get', this.hb_deviceChargingState_get.bind(this));
         this.battery_status_service.setCharacteristic(Characteristic.ChargingState, (this.deviceDetailInfo['batteryStatus'] == 0 ?
                 Characteristic.ChargingState.CHARGING :
                 Characteristic.ChargingState.NOT_CHARGING));
-        
-        this.battery_status_service.getCharacteristic(Characteristic.StatusLowBattery)
-            .on('get', this.hb_deviceStatusLowBattery_get.bind(this));
+        this.battery_status_service.getCharacteristic(Characteristic.ChargingState)
+            .on('get', this.hb_deviceChargingState_get.bind(this));
+
         this.battery_status_service.setCharacteristic(Characteristic.StatusLowBattery, (this.deviceDetailInfo['batteryPower'] <= 50 ?
                 Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW :
                 Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL));
+        this.battery_status_service.getCharacteristic(Characteristic.StatusLowBattery)
+            .on('get', this.hb_deviceStatusLowBattery_get.bind(this));
         services.push(this.battery_status_service);
 
         // divice information
@@ -440,12 +441,16 @@ class petkit_feeder_mini_plugin {
                     const result = device_info['result'];
                     const state = result['state'];
                     const settings = result['settings'];
-                    if (state['food'] !== undefined) this.deviceDetailInfo['food'] = state['food'];
+
+                    this.log.debug('http_getDeviceDetail: ');
+                    this.log.debug(result);
+
+                    if (state['food'] !== undefined) this.deviceDetailInfo['food'] = (this.config['reverse_food_storage_indicator'] ? (state['food'] === 1 ? 0 : 1) : state['food']) ;
                     if (state['batteryPower'] !== undefined) this.deviceDetailInfo['batteryPower'] = state['batteryPower'] * (100 / max_batteryLevel);
                     if (state['batteryStatus'] !== undefined) this.deviceDetailInfo['batteryStatus'] = state['batteryStatus'];
                     if (state['desiccantLeftDays'] !== undefined) this.deviceDetailInfo['desiccantLeftDays'] = state['desiccantLeftDays'];
-                    if (settings['manualLock'] !== undefined) this.deviceDetailInfo['manualLock'] = settings['manualLock'] == 1 ? 0 : 1;// on for off, off for on, same behavior with Petkit app.
-                    if (settings['lightMode'] !== undefined) this.deviceDetailInfo['lightMode'] = settings['lightMode'] == 1 ? 0 : 1;// on for off, off for on, same behavior with Petkit app.
+                    if (settings['manualLock'] !== undefined) this.deviceDetailInfo['manualLock'] = settings['manualLock'] === 1 ? 0 : 1;// on for off, off for on, same behavior with Petkit app.
+                    if (settings['lightMode'] !== undefined) this.deviceDetailInfo['lightMode'] = settings['lightMode'] === 1 ? 1 : 0;
                     if (result['name'] !== undefined) this.deviceDetailInfo['name'] = result['name'];
                     if (result['sn'] !== undefined) this.deviceDetailInfo['sn'] = result['sn'];
                     if (result['firmware'] !== undefined) this.deviceDetailInfo['firmware'] = result['firmware'];
@@ -497,7 +502,8 @@ class petkit_feeder_mini_plugin {
 
     uploadStatusToHomebridge() {
         var status = this.deviceDetailInfo['food'];
-        this.log('device food storage status is: ' + (status ? 'Ok' : 'Empty'));
+        this.log('device food storage status is: ' +
+            (this.config['reverse_food_storage_indicator'] ? (status ? 'Empty' : 'Ok') : (status ? 'Ok' : 'Empty')));
         this.food_storage_service.setCharacteristic(Characteristic.OccupancyDetected, status);
 
         if (this.config['enable_desiccant']) {
@@ -508,6 +514,31 @@ class petkit_feeder_mini_plugin {
                 Characteristic.FilterChangeIndication.FILTER_OK;
             this.desiccant_level_service.setCharacteristic(Characteristic.FilterChangeIndication, status);
         }
+    }
+
+    hb_handle_get(caller, callback) {
+        this.log.debug(caller);
+        this.updataDeviceDetail()
+            .then(callback)
+            .catch(this.log)
+            .then(() => {});
+    }
+
+    hb_handle_set_deviceSettings(settingName, status) {
+        this.log('set ' + settingName + ' to: ' + status);
+        this.http_updateDeviceSettings(settingName, status)
+            .then((response) => {
+                if (!response) {
+                    this.log.error('failed to commuciate with server.');
+                } else {
+                    const result = this.praseUpdateDeviceSettingsResult(response.data);
+                    this.log('set ' + settingName + ' to: ' + status + (result ? ', success' : ', failed'));
+                }
+            }).catch((error) => {
+                this.log(error);
+            }).then(() => {
+                this.updataDeviceDetail();
+            });
     }
 
     hb_dropMeal_set(value, callback) {
@@ -538,8 +569,7 @@ class petkit_feeder_mini_plugin {
     }
 
     hb_desiccantIndicator_get(callback) {
-        this.log.debug('hb_desiccantIndicator_get');
-        this.updataDeviceDetail().then(() => {
+        this.hb_handle_get('hb_desiccantIndicator_get', () => {
             const status = (this.deviceDetailInfo['desiccantLeftDays'] < this.alertDesiccantLeftDays ? 1 : 0);
             this.log('device desiccant status indicator status: ' + status);
             callback(null, status);
@@ -547,8 +577,7 @@ class petkit_feeder_mini_plugin {
     }
 
     hb_desiccantLeftDays_get(callback) {
-        this.log.debug('hb_desiccantLeftDays_get');
-        this.updataDeviceDetail().then(() => {
+        this.hb_handle_get('hb_desiccantLeftDays_get', () => {
             const status = this.deviceDetailInfo['desiccantLeftDays'];
             this.log('device desiccant days remain: ' + status + ' day(s)');
             callback(null, status);
@@ -580,14 +609,18 @@ class petkit_feeder_mini_plugin {
         this.log.debug('hb_foodStorageStatus_get');
         this.updataDeviceDetail().then(() => {
             const status = this.deviceDetailInfo['food'];
-            this.log('device food storage status is: ' + (status ? 'Ok' : 'Empty'));
+            this.log('device food storage status is: ' +
+                (this.config['reverse_food_storage_indicator'] ? (status ? 'Empty' : 'Ok') : (status ? 'Ok' : 'Empty')));
             callback(null, status);
+        }).catch((error) => {
+
+        }).then(() => {
+
         });
     }
 
     hb_manualLockStatus_get(callback) {
-        this.log.debug('hb_manualLockStatus_get');
-        this.updataDeviceDetail().then(() => {
+        this.hb_handle_get('hb_manualLockStatus_get', () => {
             // on for off, off for on, same behavior with Petkit app.
             const status = this.deviceDetailInfo['manualLock'];
             this.log('device manual lock status is: ' + status);
@@ -598,23 +631,11 @@ class petkit_feeder_mini_plugin {
     hb_manualLockStatus_set(value, callback) {
         callback(null);
         const status = value ? 0 : 1;       // on for off, off for on, same behavior with Petkit app.
-        this.log('set manualLock to: ' + status);
-        this.http_updateDeviceSettings('manualLock', status)
-            .then((response) => {
-                if (!response) {
-                    this.log.error('failed to commuciate with server.');
-                } else {
-                    const result = this.praseUpdateDeviceSettingsResult(response.data);
-                    this.log('hb_manualLockStatus_set:' + result ? 'success' : 'failed');
-                }
-            });
-        this.updataDeviceDetail();
+        this.hb_handle_set_deviceSettings('manualLock', status);
     }
 
     hb_lightModeStatus_get(callback) {
-        this.log.debug('hb_lightModeStatus_get');
-        this.updataDeviceDetail().then(() => {
-            // on for off, off for on, same behavior with Petkit app.
+        this.hb_handle_get('hb_lightModeStatus_get', () => {
             const status = this.deviceDetailInfo['lightMode'];
             this.log('device light mode status is: ' + status);
             callback(null, status);
@@ -624,22 +645,11 @@ class petkit_feeder_mini_plugin {
     hb_lightModeStatus_set(value, callback) {
         callback(null);
         const status = value ? 1 : 0;
-        this.log('set lightMode to: ' + status);
-        this.http_updateDeviceSettings('lightMode', status)
-            .then((response) => {
-                if (!response) {
-                    this.log.error('failed to commuciate with server.');
-                } else {
-                    const result = this.praseUpdateDeviceSettingsResult(response.data);
-                    this.log('hb_lightModeStatus_set:' + result ? 'success' : 'failed');
-                }
-            });
-        this.updataDeviceDetail();
+        this.hb_handle_set_deviceSettings('lightMode', status);
     }
 
     hb_deviceBatteryLevel_get(callback) {
-        this.log.debug('hb_deviceBatteryLevel_get');
-        this.updataDeviceDetail().then(() => {
+        this.hb_handle_get('hb_deviceBatteryLevel_get', () => {
             var status = this.deviceDetailInfo['batteryPower'];
             this.log('device battery level status is: ' + status);
             callback(null, status);
@@ -647,8 +657,7 @@ class petkit_feeder_mini_plugin {
     }
 
     hb_deviceChargingState_get(callback) {
-        this.log.debug('hb_deviceChargingState_get');
-        this.updataDeviceDetail().then(() => {
+        this.hb_handle_get('hb_deviceChargingState_get', () => {
             const status = (this.deviceDetailInfo['batteryStatus'] == 0 ?
                 Characteristic.ChargingState.CHARGING :
                 Characteristic.ChargingState.NOT_CHARGING);
@@ -658,8 +667,7 @@ class petkit_feeder_mini_plugin {
     }
 
     hb_deviceStatusLowBattery_get(callback) {
-        this.log.debug('hb_deviceStatusLowBattery_get');
-        this.updataDeviceDetail().then(() => {
+        this.hb_handle_get('hb_deviceStatusLowBattery_get', () => {
             var status = Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
             if (this.deviceDetailInfo['batteryPower'] <= 50) {
                 status = Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
