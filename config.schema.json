@@ -127,11 +127,33 @@
             "minimum": 60,
             "maximum": 3600
         },
-        "autoResetDesiccant": {
-            "title": "auto reset desiccant left days if only 5 dyas left over.",
+        "enable_desiccant": {
+            "title": "enable desiccant monitor function in homekit",
             "required": false,
             "type": "boolean",
             "default": false
+        },
+        "enable_autoreset_desiccant": {
+            "title": "enable auto reset desiccant left days.",
+            "required": false,
+            "type": "boolean",
+            "default": false
+        },
+        "alert_desiccant_threshold": {
+            "title": "shows an alert in homekit when desiccant left days less than this value of dyas.",
+            "required": false,
+            "type": "integer",
+            "default": 7,
+            "minimum": 2,
+            "maximum": 28
+        },
+        "reset_desiccant_threshold": {
+            "title": "auto reset desiccant left days if desiccant left days reaches this value of dyas.",
+            "required": false,
+            "type": "integer",
+            "default": 5,
+            "minimum": 1,
+            "maximum": 29
         },
         "reverse_food_storage_indicator": {
             "title": "Reverse food storage indicator status in Homekit.",
@@ -193,6 +215,18 @@
             ]
         },
         {
+            "ref": "desiccant",
+            "type": "fieldset",
+            "expandable": true,
+            "title": "Device desiccant settings",
+            "items": [
+                "enable_desiccant",
+                "enable_autoreset_desiccant",
+                "alert_desiccant_threshold",
+                "reset_desiccant_threshold"
+            ]
+        },
+        {
             "ref": "polling",
             "type": "fieldset",
             "expandable": true,
@@ -208,7 +242,6 @@
             "expandable": true,
             "title": "Other settings",
             "items": [
-                "autoResetDesiccant",
                 "reverse_food_storage_indicator"
             ]
         }

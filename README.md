@@ -27,7 +27,7 @@ control your petkit feeder mini from homekit, get full use of iOS automation.
     - what's this plugin can't do:
 
         - set a timed meal(may never support it, because you can just use homekit automation to do it.);
-        - enable/disable meal plan for the day(may be in the next major version, currently not plan to do it).
+        - enable/disable meal plan for the day(may be in the next major version, currently no plan to do it).
         - ......
 
 
@@ -71,6 +71,8 @@ Goto App Store, download Petkit mobile app, register, login, add device. before 
 ### Finally, retrieve infomateion.
 
 you should provide one critical infomation to this plugin: **X-Session**, if you have more than one Petkit feeder mini device, then you should alse provide **deviceId** in the header field of the config.json file.
+
+be aware of that, to minimize the effect to the Petkit server with unnecessary http requests, the plugin just update device status more than 10s interval, which means the status will bufferd at lease 10s. 
 
 - X-Session: this value will change every time you login you Petkit app, so do not logoff your Petkit app unless necessary. 
 - deviceId: this value indicate which device you wanna to control. If you just have one Petkit feeder mini, you can not provide this value.
