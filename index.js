@@ -137,7 +137,7 @@ class petkit_feeder_mini_plugin {
                     this.deviceId = devices[0].id;
                 }
             } else {
-                const devicesIds = devices.map(function(device){
+                const devicesIds = devices.map((device) => {
                     return {'id': device.id, 'name': device.name};
                 });
                 this.log.error('seems that you ownd more than one feeder mini');
@@ -183,28 +183,28 @@ class petkit_feeder_mini_plugin {
         // meal drop service
         this.drop_meal_service = new Service.Switch('DropMeal', 'DropMeal');
         this.drop_meal_service.getCharacteristic(Characteristic.On)
-            .on('get', function(callback) {
+            .on('get', (callback) => {
                 const currentValue = 0;
                 callback(null, currentValue);
-            }.bind(this))
+            })
             .on('set', this.hb_dropMeal_set.bind(this));
         services.push(this.drop_meal_service);
 
         // meal amount setting
         this.meal_amount_service = new Service.Fan('MealAmount', 'MealAmount');
         this.meal_amount_service.getCharacteristic(Characteristic.On)
-            .on('get', function(callback) {
+            .on('get', (callback) => {
                 callback(null, this.mealAmount != 0);
-            }.bind(this));
+            });
         this.meal_amount_service.getCharacteristic(Characteristic.RotationSpeed)
-            .on('get', function(callback) {
+            .on('get', (callback) => {
                 callback(null, this.mealAmount);
-            }.bind(this))
-            .on('set', function(value, callback) {
+            })
+            .on('set', (value, callback) => {
                 this.mealAmount = value;
                 this.log('set meal amount to ' + value);
                 callback(null);
-            }.bind(this))
+            })
             .setProps({
                 minValue: min_amount,
                 maxValue: max_amount,
@@ -302,16 +302,17 @@ class petkit_feeder_mini_plugin {
                 interval: this.polling_interval * 1000,
                 longpollEventName: 'deviceStatusUpdatePoll'
             };
-            this.poolToEventEmitter = pollingtoevent(function(done) {
-                this.log('start polling...');
-                this.http_getDeviceDetail(function(status_info) {
+            this.poolToEventEmitter = pollingtoevent((done) => {
+                this.log('polling start...');
+                this.http_getDeviceDetail((status_info) => {
                     done(null, status_info)
-                }.bind(this));
-            }.bind(this), polling_options);
+                    this.log('polling end...');
+                });
+            }, polling_options);
 
-            this.poolToEventEmitter.on('deviceStatusUpdatePoll', function(status_info) {
+            this.poolToEventEmitter.on('deviceStatusUpdatePoll', (status_info) => {
                 this.updateHomebridgeStatus(status_info);
-            }.bind(this));
+            });
         }
 
         this.log.debug('getServices end');
@@ -320,7 +321,7 @@ class petkit_feeder_mini_plugin {
 
     convertHeadersetFormat(config_headers) {
         var post_headers = {};
-        config_headers.forEach(function(header, index) {
+        config_headers.forEach((header, index) => {
             post_headers[header.key] = header.value;
         });
         this.log.debug(post_headers);
@@ -350,11 +351,11 @@ class petkit_feeder_mini_plugin {
         }
 
         var devices = [];
-        jsonObj.result.devices.forEach(function(item, index) {
+        jsonObj.result.devices.forEach((item, index) => {
             if (item.type == 'FeederMini' && item.data) {
                 devices.push(item.data);
             }
-        }.bind(this));
+        });
 
         if (devices.length == 0) {
             this.log('seems you nots owned a Petkit feeder mini, this plugin only works for Petkit feeder mini, sorry.');
