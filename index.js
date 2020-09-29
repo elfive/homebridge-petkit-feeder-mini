@@ -328,8 +328,8 @@ class petkit_feeder_mini_plugin {
             };
             this.poolToEventEmitter = pollingtoevent((done) => {
                 this.log('polling start...');
-                this.http_getDeviceDetail((result) => {
-                    done(null, result)
+                this.http_getDeviceDetail().then((result) => {
+                    done(null, result);
                     this.log('polling end...');
                 });
             }, polling_options);
@@ -456,7 +456,7 @@ class petkit_feeder_mini_plugin {
 
     async http_getDeviceDetail() {
         const currentTimestamp = getTimestamp();
-        if (currentTimestamp - this.lastUpdateTime > fetch_status_interval * 1000) {
+        if (currentTimestamp - this.lastUpdateTime > fetch_status_interval) {
             const response = await this.http_post(format(this.urls.deviceDetail, this.deviceId));
             if (response) {
                 var device_info = response.data;
