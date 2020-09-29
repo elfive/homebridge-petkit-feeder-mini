@@ -13,15 +13,16 @@
             "placeholder": "PetkitFeederMini"
         },
         "location": {
-            "title": "Device location, set this value corrent is very important!",
-            "description": "• for China mainland users, select China mainland.<br/>• for Asia users select Asia",
+            "title": "Server location, set this value corrent is very important becaus user data are not shared between servers.!",
+            "description": "• for China mainland users, select 'China mainland'.<br/>• for Asia users select 'Asia'.<br/>• for North America users select 'North America'",
             "required": true,
             "type": "string",
             "default": "cn",
             "placeholder": "China mainland",
             "oneOf": [
                 { "title": "China mainland", "enum": ["cn"] },
-                { "title": "Asia", "enum": ["asia"] }
+                { "title": "Asia", "enum": ["asia"] },
+                { "title": "North America", "enum": ["north_america"] }
             ]
         },
         "headers": {

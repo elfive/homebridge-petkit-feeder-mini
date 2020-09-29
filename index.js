@@ -37,6 +37,18 @@ const global_urls = Object.freeze({
         'resetDesiccant': 'http://api.petktasia.com/latest/feedermini/desiccant_reset?deviceId={}',
         'updateSettings': 'http://api.petktasia.com/latest/feedermini/update?id={}&kv={}',
         'owndevices': 'http://api.petktasia.com/latest/discovery/device_roster',
+    },
+    'north_america':{
+        'deviceState': 'http://api.petkt.com/latest/feedermini/devicestate?id={}',
+        'deviceDetail': 'http://api.petkt.com/latest/feedermini/device_detail?id={}',
+        'saveDailyFeed': 'http://api.petkt.com/latest/feedermini/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
+        'removeDailyFeed': 'http://api.petkt.com/latest/feedermini/remove_dailyfeed?deviceId={}&day={}&id=d{}',
+        'dailyfeeds': 'http://api.petkt.com/latest/feedermini/dailyfeeds?deviceId={}&days={}',
+        'restoreDailyFeeds': 'http://api.petkt.com/latest/feedermini/restore_dailyfeed?deviceId={}&day={}&id=s{}',
+        'disableDailyFeeds': 'http://api.petkt.com/latest/feedermini/remove_dailyfeed?deviceId={}&day={}&id=s{}',
+        'resetDesiccant': 'http://api.petkt.com/latest/feedermini/desiccant_reset?deviceId={}',
+        'updateSettings': 'http://api.petkt.com/latest/feedermini/update?id={}&kv={}',
+        'owndevices': 'http://api.petkt.com/latest/discovery/device_roster',
     }
 });
 
