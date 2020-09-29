@@ -547,23 +547,24 @@ class petkit_feeder_mini_plugin {
 
     hb_handle_set_deviceSettings(settingName, status, status_converter) {
         this.log('set ' + settingName + ' to: ' + status);
+        var result = false;
         const petkit_status = status_converter ? status_converter(status) : status;
         this.http_updateDeviceSettings(settingName, petkit_status)
             .then((response) => {
                 if (!response) {
                     this.log.error('failed to commuciate with server.');
-                } else {
-                    const result = this.praseUpdateDeviceSettingsResult(response.data);
-                    if (result) {
-                        this.deviceDetailInfo[settingName] = status;
-                        this.log('set ' + settingName + ' to: ' + status + ', success');
-                    } else {
-                        this.log.warn('set ' + settingName + ' to: ' + status + ', failed');
-                    }
+                } else if (this.praseUpdateDeviceSettingsResult(response.data)) {
+                    result = true;
+                    this.deviceDetailInfo[settingName] = status;
                 }
             }).catch((error) => {
-                this.log(error);
+                this.log.error(error);
             }).then(() => {
+                if (result) {
+                    this.log('set ' + settingName + ' to: ' + status + ', success');
+                } else {
+                    this.log.warn('set ' + settingName + ' to: ' + status + ', failed');
+                }
                 this.updataDeviceDetail();
             });
     }
