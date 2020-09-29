@@ -556,7 +556,7 @@ class petkit_feeder_mini_plugin {
                     const result = this.praseUpdateDeviceSettingsResult(response.data);
                     if (result) {
                         this.deviceDetailInfo[settingName] = status;
-                        this.log.success('set ' + settingName + ' to: ' + status + ', success');
+                        this.log('set ' + settingName + ' to: ' + status + ', success');
                     } else {
                         this.log.warn('set ' + settingName + ' to: ' + status + ', failed');
                     }
