@@ -17,7 +17,7 @@
             "description": "• for China mainland users, select China mainland.<br/>• for Asia users select Asia",
             "required": true,
             "type": "string",
-            "default": "China mainland",
+            "default": "cn",
             "placeholder": "China mainland",
             "oneOf": [
                 { "title": "China mainland", "enum": ["cn"] },
@@ -25,34 +25,46 @@
             ]
         },
         "headers": {
-            "title": "HTTP request headers",
-            "description": "This field shold contain certain infomation to make the plugin work properly, captured by you.",
+            "title": "Headers",
             "type": "array",
             "required": true,
             "items": {
-                "title": "Header set",
                 "type": "object",
                 "properties": {
                     "key": {
                         "title": "Key Name",
                         "type": "string",
                         "placeholder": "X-Session",
-                        "default": "X-Session",
                         "required": true,
                         "typeahead": {
-                        "source": [
+                            "source": [
                                 "X-Session",
                                 "X-Api-Version",
-                                "X-Timezone"
+                                "X-Timezone",
+                                "X-Client",
+                                "X-TimezoneId",
+                                "X-Locale",
+                                "Accept",
+                                "Accept-Language",
+                                "Accept-Encoding",
+                                "Content-Type",
+                                "User-Agent"
                             ]
                         }
                     },
                     "value": {
                         "title": "Value",
                         "type": "string",
-                        "placeholder": "",
-                        "default": "",
-                        "required": false
+                        "required": false,
+                        "typeahead": {
+                            "source": [
+                                "gzip, deflate",
+                                "application/x-www-form-urlencoded",
+                                "PETKIT/7.18.1 (iPhone; iOS 14.0; Scale/3.00)",
+                                "Asia/Shanghai",
+                                "en_US"
+                            ]
+                        }
                     }
                 }
             }
@@ -167,15 +179,20 @@
     "display": null,
     "layout": [
         {
-          "type": "flex",
-          "flex-flow": "row wrap",
+            "ref": "basic",
+            "type": "fieldset",
+            "expandable": true,
+            "expanded": true,
+            "title": "Basic settings",
             "items": [
                 {
                     "type": "flex",
                     "flex-flow": "column",
                     "items": [
                         "name",
-                        "mealAmount"
+                        "mealAmount",
+                        "location",
+                        "deviceId"
                     ]
                 }
             ]
@@ -184,27 +201,30 @@
             "ref": "requests",
             "type": "fieldset",
             "expandable": true,
-            "title": "HTTP request settings",
+            "expanded": false,
+            "title": "HTTP request header",
             "items": [
-                "location",
+                {
+                    "type": "help",
+                    "helpvalue": "<h5>Description</h5><p>• The HTTP request headers is the key to make this plugin work.<br/>• At least, you must fufill the \"X-Session\" header set.<br/>• You are always supposed to set all the headers you captured, here is a full example:</p><code>X-Client: ios(14.0;iPhone12,3)<br>X-Session: -----YOUR SESSION ID HERE-----<br>Accept: */*<br>X-Timezone: 8.0<br>F-Session: -----SAME AS SESSION ID-----<br>Accept-Language: en-US;q=1, zh-Hans-US;q=0.9<br>Accept-Encoding: gzip, deflate<br>X-Api-Version: 7.18.1<br>Content-Type: application/x-www-form-urlencoded<br>User-Agent: PETKIT/7.18.1 (iPhone; iOS 14.0; Scale/3.00)<br>X-TimezoneId: Asia/Shanghai<br>X-Locale: en_US</code>"
+                },
                 {
                     "key": "headers",
                     "type": "array",
-                    "expandable": true,
                     "orderable": false,
                     "buttonText": "Add Header Set",
                     "items": [
                         "headers[].key",
                         "headers[].value"
                     ]
-                },
-                "deviceId"
+                }
             ]
         },
         {
             "ref": "infomation",
             "type": "fieldset",
             "expandable": true,
+            "expanded": false,
             "title": "Device infomation settings",
             "items": [
                 "autoDeviceInfo",
@@ -218,6 +238,7 @@
             "ref": "desiccant",
             "type": "fieldset",
             "expandable": true,
+            "expanded": false,
             "title": "Device desiccant settings",
             "items": [
                 "enable_desiccant",
@@ -230,6 +251,7 @@
             "ref": "polling",
             "type": "fieldset",
             "expandable": true,
+            "expanded": false,
             "title": "Polling settings",
             "items": [
                 "enable_polling",
@@ -240,6 +262,7 @@
             "ref": "others",
             "type": "fieldset",
             "expandable": true,
+            "expanded": false,
             "title": "Other settings",
             "items": [
                 "reverse_food_storage_indicator"
