@@ -575,6 +575,7 @@ class petkit_feeder_mini_plugin {
     }
 
     hb_handle_get(caller, callback) {
+        this.log.debug(caller);
         if (this.getDeviceDetailEvent) {
             const callbackHandler = (result) => {
                 callback(result);
@@ -582,7 +583,6 @@ class petkit_feeder_mini_plugin {
             }
             this.getDeviceDetailEvent.addListener('finished', callbackHandler);
         } else {
-            this.log.debug(caller);
             this.updataDeviceDetail()
                 .then(callback)
                 .catch((error) => {
