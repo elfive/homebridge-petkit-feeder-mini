@@ -168,7 +168,7 @@ class petkit_feeder_mini_plugin {
         // other settings
         this.enable_manualLock = getConfigValue(config['enable_manualLock'], false);
         this.enable_lightMode = getConfigValue(config['enable_lightMode'], false);
-        this.reverse_food_storage_indicator = getConfigValue(config['reverse_food_storage_indicator'], false);
+        this.reverse_foodStorage_indicator = getConfigValue(config['reverse_foodStorage_indicator'], false);
 
         this.log('petkit feeder mini loaded successfully.');
     }
@@ -210,7 +210,7 @@ class petkit_feeder_mini_plugin {
         services.push(this.meal_amount_service);
 
         // food storage indicator
-        const food_storage_service_name = this.reverse_food_storage_indicator ? 'FoodStorage_Empty': 'FoodStorage';
+        const food_storage_service_name = this.reverse_foodStorage_indicator ? 'FoodStorage_Empty': 'FoodStorage';
         this.food_storage_service = new Service.OccupancySensor(food_storage_service_name, food_storage_service_name);
         this.food_storage_service.setCharacteristic(Characteristic.OccupancyDetected, this.deviceDetailInfo['food'])
         this.food_storage_service.getCharacteristic(Characteristic.OccupancyDetected)
@@ -559,7 +559,7 @@ class petkit_feeder_mini_plugin {
     uploadStatusToHomebridge() {
         var status = this.deviceDetailInfo['food'];
         this.log('device food storage status is: ' + (status ? 'Ok' : 'Empty'));
-        if (this.reverse_food_storage_indicator)
+        if (this.reverse_foodStorage_indicator)
             status = !status;
         this.food_storage_service.setCharacteristic(Characteristic.OccupancyDetected, status);
 
@@ -683,7 +683,7 @@ class petkit_feeder_mini_plugin {
         this.hb_handle_get('hb_foodStorageStatus_get', (result) => {
             var status = this.deviceDetailInfo['food']
             this.log('device food storage status is: ' + (status ? 'Ok' : 'Empty'));
-            if (this.reverse_food_storage_indicator) {
+            if (this.reverse_foodStorage_indicator) {
                 status = !status;
             }
             callback(null, status);

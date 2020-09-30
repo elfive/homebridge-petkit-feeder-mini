@@ -182,7 +182,7 @@
             "default": false,
             "placeholder": "false"
         },
-        "reverse_food_storage_indicator": {
+        "reverse_foodStorage_indicator": {
             "title": "Reverse food storage indicator status in Homekit.",
             "required": false,
             "type": "boolean",
@@ -282,7 +282,7 @@
             "items": [
                 "enable_manualLock",
                 "enable_lightMode",
-                "reverse_food_storage_indicator"
+                "reverse_foodStorage_indicator"
             ]
         }
     ]
