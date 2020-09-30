@@ -22,6 +22,7 @@
     "axios": "^0.20.0",
     "dayjs": "^1.8.36",
     "deasync-promise": "^1.0.1",
+    "event": "^1.0.0",
     "polling-to-event": "^2.1.0",
     "string-format": "^2.0.0"
   },
