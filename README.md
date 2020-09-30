@@ -11,7 +11,7 @@
     <img src="https://flat.badgen.net/badge/homebridge/verified/purple" alt="Verified by Homebridge" />
   </a>
   <br>
-  <strong><a href="#2) Before make changes to homebridge">Quick Start</a> | <a href="#4) How to contribute">Contribute</a> </strong>
+  <strong><a href="#2-before-make-changes-to-homebridge">Quick Start</a> | <a href="#4-how-to-contribute">Contribute</a> </strong>
 </p>
 
 ## 1) Description
