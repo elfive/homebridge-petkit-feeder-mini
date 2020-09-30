@@ -168,6 +168,20 @@
             "minimum": 1,
             "maximum": 29
         },
+        "enable_manualLock": {
+            "title": "enable manual lock service in Homekit.",
+            "required": false,
+            "type": "boolean",
+            "default": false,
+            "placeholder": "false"
+        },
+        "enable_lightMode": {
+            "title": "enable light mode service in Homekit.",
+            "required": false,
+            "type": "boolean",
+            "default": false,
+            "placeholder": "false"
+        },
         "reverse_food_storage_indicator": {
             "title": "Reverse food storage indicator status in Homekit.",
             "required": false,
