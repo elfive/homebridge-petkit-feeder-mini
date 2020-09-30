@@ -1,2 +1,3 @@
-.vscode
-.gitignore
+/.git
+/.vscode
+/.gitignore

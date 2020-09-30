@@ -280,6 +280,8 @@
             "expanded": false,
             "title": "Other settings",
             "items": [
+                "enable_manualLock",
+                "enable_lightMode",
                 "reverse_food_storage_indicator"
             ]
         }

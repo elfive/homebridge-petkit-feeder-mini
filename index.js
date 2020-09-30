@@ -119,9 +119,10 @@ class petkit_feeder_mini_plugin {
         const devices = this.praseGetDeviceResult(deasyncPromise(this.http_getOwnDevice()));
         if (!devices) {
             return;
-        } else if (devices != this.deviceId) {
-            this.log.warn('seems that you does not ownd a feeder mini with deviceId: '+ this.deviceId);
-            this.log.warn('use '+ devices + ' instead ' + this.deviceId);
+        } else if (this.deviceId !== undefined && devices != this.deviceId) {
+            this.log.warn('found you just ownd one feeder mini with deviceId: '+ devices);
+            this.log.warn('which is not the same with the deviceId you set: '+ this.deviceId);
+            this.log.warn('use '+ devices + ' instead of ' + this.deviceId);
             this.deviceId = devices;
         } else {
             this.log('found you just ownd one feeder mini with deviceId: '+ this.deviceId);
