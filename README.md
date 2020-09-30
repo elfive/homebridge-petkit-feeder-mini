@@ -1,6 +1,18 @@
 ## homebridge-petkit-feeder-mini
 
-[![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
+<p align="center">
+  <a href="https://www.npmjs.com/package/homebridge-petkit-feeder-mini">
+    <img src="https://flat.badgen.net/npm/v/homebridge-petkit-feeder-mini" alt="NPM Version" />
+  </a>
+  <a href="https://www.npmjs.com/package/homebridge-petkit-feeder-mini">
+    <img src="https://flat.badgen.net/npm/dt/homebridge-petkit-feeder-mini" alt="Total NPM Downloads" />
+  </a>
+  <a href="https://github.com/homebridge/homebridge/wiki/Verified-Plugins">
+    <img src="https://flat.badgen.net/badge/homebridge/verified/purple" alt="Verified by Homebridge" />
+  </a>
+  <br>
+  <strong><a href="#2) Before make changes to homebridge">Quick Start</a> | <a href="#4) How to contribute">Contribute</a> </strong>
+</p>
 
 ## 1) Description
 
