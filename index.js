@@ -575,7 +575,7 @@ class petkit_feeder_mini_plugin {
     }
 
     hb_handle_get(caller, callback) {
-        this.log.debug(caller);
+        this.log.debug('hb_handle_get: ' + caller);
         if (this.getDeviceDetailEvent) {
             const callbackHandler = (result) => {
                 callback(result);
@@ -681,17 +681,13 @@ class petkit_feeder_mini_plugin {
     }
 
     hb_foodStorageStatus_get(callback) {
-        this.log.debug('hb_foodStorageStatus_get');
-        this.updataDeviceDetail().then(() => {
+        this.hb_handle_get('hb_foodStorageStatus_get', (result) => {
             var status = this.deviceDetailInfo['food']
             this.log('device food storage status is: ' + (status ? 'Ok' : 'Empty'));
             if (this.reverse_food_storage_indicator) {
                 status = !status;
             }
             callback(null, status);
-        }).catch((error) => {
-            this.log.error('get food storage status failed: ' + error);
-        }).then(() => {
         });
     }
 
