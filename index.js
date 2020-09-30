@@ -121,6 +121,7 @@ class petkit_feeder_mini_plugin {
                 }
                 break;
             case 'asia':
+            case 'north_america':
                 if (!this.headers['X-Session']) {
                     this.log.error('missing field in config.json file: headers.X-Session.');
                     return;
