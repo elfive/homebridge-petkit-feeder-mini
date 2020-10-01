@@ -67,20 +67,20 @@ you can find X-Session data from the request header area and deviceId in respons
 
 ### config.json field
 
-|   field   name   |  type  | required |       default        |    range    | description                                                  |
-| :--------------: | :----: | :------: | :------------------: | :---------: | ------------------------------------------------------------ |
-|       name       | string |   yes    |  'PetkitFeederMini'  |     ---     | device name shows in HomeKit. If autoDeviceInfo is set to true, it will overwrited with the name in your Petkit app. we don't need it, but homebridge need it. |
-|     location     | string |   yes    |         'cn'         | 'cn','asia' | China user:'cn'; Asia user: 'asia'; other location because lack of infomation, not sure it will work. |
-|     headers      | array  |   yes    |         ---          |     ---     | http request headers.see more detail below(headers field)    |
-|     deviceId     | string |   tbd    |         ---          |     ---     | your Petkit feeder mini Id, which is buildin your device, will never change. If you just have one Petkit feeder mini, you can ignore this value. |
-|    mealAmount    |  int   |    no    |          3           |   0 to 10   | In homekit this shows as a switch, every time you click this switch it will drop mealAmount of meal. This value just for initialize the fan speed after homebridge restart.  A meal stands for about 5g or 1/20 cup of food. Every 10% fan speed equals 1 meal. |
-|  autoDeviceInfo  |  bool  |    no    |        false         | true/false  | this plugin supports retrieve device info from Petkit server. Set this value to true, it can retrieve device information (timezone, name, sn, firmware), and shows it in homekit app. |
-|        sn        | string |    no    |  'PetkitFeederMini'  |     ---     | serial number shows in homekit app. If autoDeviceInfo is set to true, it will overwrited with the sn of your device. |
-|     firmware     | string |    no    |       '1.0.0'        |     ---     | firmware version shows in homekit app. If autoDeviceInfo is set to true, it will overwrited with the firmware version of your device. |
-|   manufacturer   | string |    no    |       'Petkit'       |     ---     | the manufacturer of your device.                             |
-|      model       | string |    no    | 'Petkit feeder mini' |     ---     | the model of your device.                                    |
-|  enable_polling  |  bool  |    no    |         true         | true/false  | Automatically update device info from Petkit server.         |
-| polling_interval |  int   |    no    |          60          | 60 to 3600  | update device info interval from Petkit server(ms).          |
+|   field   name   |  type  | required |       default        |                range                | description                                                  |
+| :--------------: | :----: | :------: | :------------------: | :---------------------------------: | ------------------------------------------------------------ |
+|       name       | string |   yes    |  'PetkitFeederMini'  |                 ---                 | device name shows in HomeKit. If autoDeviceInfo is set to true, it will overwrited with the name in your Petkit app. we don't need it, but homebridge need it. |
+|     location     | string |   yes    |         'cn'         | 'cn',<br>'asia',<br>'north_america' | China users:'cn';<br>Asia users: 'asia';<br>North America users: 'north_america';<br>other location because lack of infomation, not sure it will work. |
+|     headers      | array  |   yes    |         ---          |                 ---                 | http request headers.see more detail below(headers field)    |
+|     deviceId     | string |   tbd    |         ---          |                 ---                 | your Petkit feeder mini Id, which is buildin your device, will never change. If you just have one Petkit feeder mini, you can ignore this value. |
+|    mealAmount    |  int   |    no    |          3           |               0 to 10               | In homekit this shows as a switch, every time you click this switch it will drop mealAmount of meal. This value just for initialize the fan speed after homebridge restart.  A meal stands for about 5g or 1/20 cup of food. Every 10% fan speed equals 1 meal. |
+|  autoDeviceInfo  |  bool  |    no    |        false         |             true/false              | this plugin supports retrieve device info from Petkit server. Set this value to true, it can retrieve device information (timezone, name, sn, firmware), and shows it in homekit app. |
+|        sn        | string |    no    |  'PetkitFeederMini'  |                 ---                 | serial number shows in homekit app. If autoDeviceInfo is set to true, it will overwrited with the sn of your device. |
+|     firmware     | string |    no    |       '1.0.0'        |                 ---                 | firmware version shows in homekit app. If autoDeviceInfo is set to true, it will overwrited with the firmware version of your device. |
+|   manufacturer   | string |    no    |       'Petkit'       |                 ---                 | the manufacturer of your device.                             |
+|      model       | string |    no    | 'Petkit feeder mini' |                 ---                 | the model of your device.                                    |
+|  enable_polling  |  bool  |    no    |         true         |             true/false              | Automatically update device info from Petkit server.         |
+| polling_interval |  int   |    no    |          60          |             60 to 3600              | update device info interval from Petkit server(ms).          |
 
 
 
@@ -89,7 +89,7 @@ you can find X-Session data from the request header area and deviceId in respons
 | field   name  |  type  | required | default  |   range   | description                                                  |
 | :-----------: | :----: | :------: | :------: | :-------: | ------------------------------------------------------------ |
 |   X-Session   | string |   yes    |   ---    |    ---    | Tell server who you are. This changes everytime you login Petkit app. |
-| X-Api-Version | string |  prefer  | '7.18.1' |    ---    | For China mainland users, this field is not necessary, but for users outside China mainland, this field is required, but if not provided, then the default value will be used. but we recommand to fufill this field. |
+| X-Api-Version | string |  prefer  | '7.18.1' |    ---    | For China mainland users, this field is not necessary, but for users outside China mainland, this field is optional, if not provided, then the default value will be used. but we recommand to fufill this field. |
 |  X-Timezone   |  int   |    no    |    8     | -12 to 12 | Your local timezone offset, UTC time. If autoDeviceInfo is set to true, it will overwrited with the timezone of your device, which is set in your Petkit app. |
 
 
@@ -121,3 +121,4 @@ you can find X-Session data from the request header area and deviceId in respons
 ## 4) How to contribute
 
 everyone is welcome to contribute to this plugin. PR/debug/api help all are welcome.
+
