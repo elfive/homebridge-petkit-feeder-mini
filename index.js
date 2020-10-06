@@ -125,7 +125,7 @@ class petkit_feeder_mini_plugin {
             this.log.warn('use '+ devices + ' instead of ' + this.deviceId);
             this.deviceId = devices;
         } else {
-            this.log('found you just ownd one feeder mini with deviceId: '+ this.deviceId);
+            this.log('found you just ownd one feeder mini with deviceId: '+ devices);
             this.deviceId = devices;
         }
 
