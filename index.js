@@ -411,6 +411,29 @@ class petkit_feeder_mini_plugin {
         return (jsonObj.result == 'success');
     }
 
+    praseSaveDailyFeedResult(jsonObj) {
+        if (!jsonObj) {
+            log.warn('JSON.parse error with:' + jsonObj);
+            return false;
+        }
+
+        if (jsonObj.hasOwnProperty('error')) {
+            this.log.warn(jsonObj.error.msg);
+            return false;
+        }
+
+        if (!jsonObj.hasOwnProperty('result')) {
+            this.log.warn('JSON.parse error with:' + jsonObj);
+            return false;
+        }
+
+        if (jsonObj.result.isExecuted == 1) {
+            return true;
+        }
+
+        return false;
+    }
+
     async onDeviceInfoUpdate() {
         return new Promise((resolve) => {
             // if desiccantLeftDays less than {reset_desiccant_threshold} day, auto reset it.
