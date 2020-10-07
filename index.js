@@ -413,7 +413,7 @@ class petkit_feeder_mini_plugin {
 
     praseSaveDailyFeedResult(jsonObj) {
         if (!jsonObj) {
-            log.warn('JSON.parse error with:' + jsonObj);
+            log.warn('JSON.parse error with:' + JSON.stringify(jsonObj));
             return false;
         }
 
@@ -423,7 +423,7 @@ class petkit_feeder_mini_plugin {
         }
 
         if (!jsonObj.hasOwnProperty('result')) {
-            this.log.warn('JSON.parse error with:' + jsonObj);
+            this.log.warn('JSON.parse error with:' + JSON.stringify(jsonObj));
             return false;
         }
 
@@ -472,7 +472,7 @@ class petkit_feeder_mini_plugin {
                     reject(error);
                 } else {
                     this.log.debug('post request success')
-                    resolve(response);
+                    resolve(response.data);
                 }
             } catch(error) {
                 this.log.error('post request failed: ' + error);
@@ -483,11 +483,7 @@ class petkit_feeder_mini_plugin {
     }
 
     async http_getOwnDevice() {
-        const response = await this.http_post(this.urls.owndevices);
-        if (response) {
-            return response.data;
-        }
-        return false;
+        return await this.http_post(this.urls.owndevices);
     }
 
     async http_getDeviceState() {
@@ -518,7 +514,7 @@ class petkit_feeder_mini_plugin {
                     // meals info
                     if (results[0]) {
                         const meals_info = results[0];
-                        if (meals_info && meals_info.result) {
+                        if (meals_info.result) {
                             this.deviceDetailInfo['meals'] = meals_info.result;
                             getDeviceDetailResult[0] = true;
                         }
@@ -526,30 +522,28 @@ class petkit_feeder_mini_plugin {
 
                     // device info
                     if (results[1]) {
-                        if (results[1].data) {
-                            const device_info = results[1].data;
-                            if (device_info['result'] &&
-                                device_info['result']['state'] &&
-                                device_info['result']['settings']) {
-                                const result = device_info['result'];
-                                const state = result['state'];
-                                const settings = result['settings'];
+                        const device_info = results[1];
+                        if (device_info['result'] &&
+                            device_info['result']['state'] &&
+                            device_info['result']['settings']) {
+                            const result = device_info['result'];
+                            const state = result['state'];
+                            const settings = result['settings'];
 
-                                if (state['food'] !== undefined) this.deviceDetailInfo['food'] = state['food'] ? 1 : 0;		// 1 for statue ok, 0 for empty
-                                if (state['batteryPower'] !== undefined) this.deviceDetailInfo['batteryPower'] = state['batteryPower'] * batteryPersentPerLevel;
-                                if (state['batteryStatus'] !== undefined) this.deviceDetailInfo['batteryStatus'] = state['batteryStatus'];	// 0 for charging mode, 1 for battery mode
-                                if (state['desiccantLeftDays'] !== undefined) this.deviceDetailInfo['desiccantLeftDays'] = state['desiccantLeftDays'];
-                                if (settings['manualLock'] !== undefined) this.deviceDetailInfo['manualLock'] = settings['manualLock'] ? 0 : 1;	// on for off, off for on, same behavior with Petkit app.
-                                if (settings['lightMode'] !== undefined) this.deviceDetailInfo['lightMode'] = settings['lightMode'] ? 1 : 0;		// 1 for lignt on, 0 for light off
-                                if (result['name'] !== undefined) this.deviceDetailInfo['name'] = result['name'];
-                                if (result['sn'] !== undefined) this.deviceDetailInfo['sn'] = result['sn'];
-                                if (result['firmware'] !== undefined) this.deviceDetailInfo['firmware'] = result['firmware'];
+                            if (state['food'] !== undefined) this.deviceDetailInfo['food'] = state['food'] ? 1 : 0;		// 1 for statue ok, 0 for empty
+                            if (state['batteryPower'] !== undefined) this.deviceDetailInfo['batteryPower'] = state['batteryPower'] * batteryPersentPerLevel;
+                            if (state['batteryStatus'] !== undefined) this.deviceDetailInfo['batteryStatus'] = state['batteryStatus'];	// 0 for charging mode, 1 for battery mode
+                            if (state['desiccantLeftDays'] !== undefined) this.deviceDetailInfo['desiccantLeftDays'] = state['desiccantLeftDays'];
+                            if (settings['manualLock'] !== undefined) this.deviceDetailInfo['manualLock'] = settings['manualLock'] ? 0 : 1;	// on for off, off for on, same behavior with Petkit app.
+                            if (settings['lightMode'] !== undefined) this.deviceDetailInfo['lightMode'] = settings['lightMode'] ? 1 : 0;		// 1 for lignt on, 0 for light off
+                            if (result['name'] !== undefined) this.deviceDetailInfo['name'] = result['name'];
+                            if (result['sn'] !== undefined) this.deviceDetailInfo['sn'] = result['sn'];
+                            if (result['firmware'] !== undefined) this.deviceDetailInfo['firmware'] = result['firmware'];
 
-                                this.log.debug('successfully retrieved device infomation from server.');
-                                getDeviceDetailResult[1] = true;
+                            this.log.debug('successfully retrieved device infomation from server.');
+                            getDeviceDetailResult[1] = true;
 
-                                this.onDeviceInfoUpdate();
-                            }
+                            this.onDeviceInfoUpdate();
                         }
                     }
                 })
@@ -640,10 +634,10 @@ class petkit_feeder_mini_plugin {
         var result = false;
         const petkit_status = status_converter ? status_converter(status) : status;
         this.http_updateDeviceSettings(settingName, petkit_status)
-            .then((response) => {
-                if (!response) {
+            .then((data) => {
+                if (!data) {
                     this.log.error('failed to commuciate with server.');
-                } else if (this.praseUpdateDeviceSettingsResult(response.data)) {
+                } else if (this.praseUpdateDeviceSettingsResult(data)) {
                     result = true;
                     this.deviceDetailInfo[settingName] = status;
                 }
@@ -664,7 +658,7 @@ class petkit_feeder_mini_plugin {
         this.log.debug('hb_dropMeal_set');
         if (value) {
             if (this.mealAmount) {
-                this.log('drop food:' + this.mealAmount + 'meal(s)');
+                this.log('drop food:' + this.mealAmount + ' meal(s)');
                 this.http_saveDailyFeed(this.mealAmount, -1)
                     .then((data) => {
                         if (!data) {
