@@ -188,6 +188,13 @@
             "type": "boolean",
             "default": false,
             "placeholder": "false"
+        },
+        "fast_response": {
+            "title": "When received a Homekit set request, return immediately, ignore the result.<br/>this is useful when your Petkit device has a bad internet connection.",
+            "required": false,
+            "type": "boolean",
+            "default": false,
+            "placeholder": "false"
         }
     },
     "form": null,
@@ -282,7 +289,8 @@
             "items": [
                 "enable_manualLock",
                 "enable_lightMode",
-                "reverse_foodStorage_indicator"
+                "reverse_foodStorage_indicator",
+                "fast_response"
             ]
         }
     ]
