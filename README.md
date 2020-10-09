@@ -41,7 +41,7 @@ control your petkit feeder mini from homekit, get full use of iOS automation.
 
 - set a timed meal(may never support it, because you can just use homekit automation to do it.);
 - enable/disable meal plan for the day(may be in the next major version, currently no plan to do it).
-- currently this plugin for [homebridge](#https://github.com/homebridge/homebridge) just support [Petkit-feeder-mini (official store link)](#https://petkit.co.uk/product/petkit-element-mini-auto-feeder/), and this plugin currently only tested and works in Asia(include China mainland), other area may or may not working properly.
+- currently this plugin for <a href="https://github.com/homebridge/homebridge">homebridge</a> just support <a href="https://petkit.co.uk/product/petkit-element-mini-auto-feeder/">Petkit-feeder-mini (official store link)</a>, and this plugin currently only tested and works in Asia(include China mainland), other area may or may not working properly.
 - to continuously use this plugin you should login Petkit app and never logoff, this plugin uses session id from the app and it will change every time you logoff and relogin.
 - ......
 
@@ -63,15 +63,12 @@ Goto App Store, download Petkit mobile app, register, login, add device. before 
 ### Secondly, prepare to capture Petkit app http request.
 
 - Capture on mobile: 
-
     you could use iOS app like "Quantumult X" or other app you like which can capture http netflow.
 
 - capture on Mac:
-
-    I did not do this on my Mac, Mac capture tutorial may available laterly. but at this time, you could just find some webpage which will help you get it done, like [this one](#https://learning.postman.com/docs/sending-requests/capturing-request-data/capturing-http-requests/).
+    I did not do this on my Mac, Mac capture tutorial may available laterly. but at this time, you could just find some webpage which will help you get it done, like <a href="https://learning.postman.com/docs/sending-requests/capturing-request-data/capturing-http-requests/">this one</a>.
 
 - capture on Windows:
-
     sorry guys, I didnot have a widows device...so if you have a good tutorial, please let me know.
 
 

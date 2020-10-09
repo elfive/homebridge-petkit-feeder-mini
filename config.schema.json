@@ -87,7 +87,7 @@
         },
         "autoDeviceInfo": {
             "title": "Automatically retrieve device info from Petkit server",
-            "description": "Only retrieve infomation: timezone, name, sn and firmware version",
+            "description": "Only retrieve infomation: timezone, name, SN and firmware version",
             "required": false,
             "type": "boolean",
             "default": false,
@@ -95,7 +95,7 @@
         },
         "sn": {
             "title": "Serial number shows in homekit app",
-            "description": "If autoDeviceInfo is set to true, it will overwrited with the ns of your device.",
+            "description": "If autoDeviceInfo is set to true, it will overwrited with the SN of your device.",
             "required": false,
             "type": "string",
             "default": "PetkitFeederMini",
