@@ -139,7 +139,7 @@ we recomand you entered all the headers you captured. If you don't want to do so
     "name": "feeder",
     "deviceId": "123456",
     "location": "asia",
-    "reverse_food_storage_indicator": false
+    "reverse_food_storage_indicator": false,
     "headers": [
         {
             "key": "X-Session",
