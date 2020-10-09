@@ -17,7 +17,7 @@
             "description": "• for China mainland users, select 'China mainland'.<br/>• for Asia users select 'Asia'.<br/>• for North America users select 'North America'",
             "required": true,
             "type": "string",
-            "default": "China mainland",
+            "default": "cn",
             "placeholder": "China mainland",
             "oneOf": [
                 { "title": "China mainland", "enum": ["cn"] },
@@ -26,34 +26,46 @@
             ]
         },
         "headers": {
-            "title": "HTTP request headers",
-            "description": "This field shold contain certain infomation to make the plugin work properly, captured by you.",
+            "title": "Headers",
             "type": "array",
             "required": true,
             "items": {
-                "title": "Header set",
                 "type": "object",
                 "properties": {
                     "key": {
                         "title": "Key Name",
                         "type": "string",
                         "placeholder": "X-Session",
-                        "default": "X-Session",
                         "required": true,
                         "typeahead": {
-                        "source": [
+                            "source": [
                                 "X-Session",
                                 "X-Api-Version",
-                                "X-Timezone"
+                                "X-Timezone",
+                                "X-Client",
+                                "X-TimezoneId",
+                                "X-Locale",
+                                "Accept",
+                                "Accept-Language",
+                                "Accept-Encoding",
+                                "Content-Type",
+                                "User-Agent"
                             ]
                         }
                     },
                     "value": {
                         "title": "Value",
                         "type": "string",
-                        "placeholder": "",
-                        "default": "",
-                        "required": false
+                        "required": false,
+                        "typeahead": {
+                            "source": [
+                                "gzip, deflate",
+                                "application/x-www-form-urlencoded",
+                                "PETKIT/7.18.1 (iPhone; iOS 14.0; Scale/3.00)",
+                                "Asia/Shanghai",
+                                "en_US"
+                            ]
+                        }
                     }
                 }
             }
@@ -128,11 +140,158 @@
             "minimum": 60,
             "maximum": 3600
         },
-        "autoResetDesiccant": {
-            "title": "auto reset desiccant left days if only 5 dyas left over.",
+        "enable_desiccant": {
+            "title": "enable desiccant monitor function in homekit",
             "required": false,
             "type": "boolean",
             "default": false
+        },
+        "enable_autoreset_desiccant": {
+            "title": "enable auto reset desiccant left days.",
+            "required": false,
+            "type": "boolean",
+            "default": false
+        },
+        "alert_desiccant_threshold": {
+            "title": "shows an alert in homekit when desiccant left days less than this value of dyas.",
+            "required": false,
+            "type": "integer",
+            "default": 7,
+            "minimum": 2,
+            "maximum": 28
+        },
+        "reset_desiccant_threshold": {
+            "title": "auto reset desiccant left days if desiccant left days reaches this value of dyas.",
+            "required": false,
+            "type": "integer",
+            "default": 5,
+            "minimum": 1,
+            "maximum": 29
+        },
+        "enable_manualLock": {
+            "title": "enable manual lock service in Homekit.",
+            "required": false,
+            "type": "boolean",
+            "default": false,
+            "placeholder": "false"
+        },
+        "enable_lightMode": {
+            "title": "enable light mode service in Homekit.",
+            "required": false,
+            "type": "boolean",
+            "default": false,
+            "placeholder": "false"
+        },
+        "reverse_foodStorage_indicator": {
+            "title": "Reverse food storage indicator status in Homekit.",
+            "required": false,
+            "type": "boolean",
+            "default": false,
+            "placeholder": "false"
+        },
+        "fast_response": {
+            "title": "When received a Homekit set request, return immediately, ignore the result.<br/>this is useful when your Petkit device has a bad internet connection.",
+            "required": false,
+            "type": "boolean",
+            "default": false,
+            "placeholder": "false"
         }
-    }
+    },
+    "form": null,
+    "display": null,
+    "layout": [
+        {
+            "ref": "basic",
+            "type": "fieldset",
+            "expandable": true,
+            "expanded": true,
+            "title": "Basic settings",
+            "items": [
+                {
+                    "type": "flex",
+                    "flex-flow": "column",
+                    "items": [
+                        "name",
+                        "mealAmount",
+                        "location",
+                        "deviceId"
+                    ]
+                }
+            ]
+        },
+        {
+            "ref": "requests",
+            "type": "fieldset",
+            "expandable": true,
+            "expanded": false,
+            "title": "HTTP request header",
+            "items": [
+                {
+                    "type": "help",
+                    "helpvalue": "<h5>Description</h5><p>• The HTTP request headers is the key to make this plugin work.<br/>• At least, you must fufill the \"X-Session\" header set.<br/>• You are always supposed to set all the headers you captured, here is a full example:</p><code>X-Client: ios(14.0;iPhone12,3)<br>X-Session: -----YOUR SESSION ID HERE-----<br>Accept: */*<br>X-Timezone: 8.0<br>F-Session: -----SAME AS SESSION ID-----<br>Accept-Language: en-US;q=1, zh-Hans-US;q=0.9<br>Accept-Encoding: gzip, deflate<br>X-Api-Version: 7.18.1<br>Content-Type: application/x-www-form-urlencoded<br>User-Agent: PETKIT/7.18.1 (iPhone; iOS 14.0; Scale/3.00)<br>X-TimezoneId: Asia/Shanghai<br>X-Locale: en_US</code>"
+                },
+                {
+                    "key": "headers",
+                    "type": "array",
+                    "orderable": false,
+                    "buttonText": "Add Header Set",
+                    "items": [
+                        "headers[].key",
+                        "headers[].value"
+                    ]
+                }
+            ]
+        },
+        {
+            "ref": "infomation",
+            "type": "fieldset",
+            "expandable": true,
+            "expanded": false,
+            "title": "Device infomation settings",
+            "items": [
+                "autoDeviceInfo",
+                "sn",
+                "firmware",
+                "manufacturer",
+                "model"
+            ]
+        },
+        {
+            "ref": "desiccant",
+            "type": "fieldset",
+            "expandable": true,
+            "expanded": false,
+            "title": "Device desiccant settings",
+            "items": [
+                "enable_desiccant",
+                "enable_autoreset_desiccant",
+                "alert_desiccant_threshold",
+                "reset_desiccant_threshold"
+            ]
+        },
+        {
+            "ref": "polling",
+            "type": "fieldset",
+            "expandable": true,
+            "expanded": false,
+            "title": "Polling settings",
+            "items": [
+                "enable_polling",
+                "polling_interval"
+            ]
+        },
+        {
+            "ref": "others",
+            "type": "fieldset",
+            "expandable": true,
+            "expanded": false,
+            "title": "Other settings",
+            "items": [
+                "enable_manualLock",
+                "enable_lightMode",
+                "reverse_foodStorage_indicator",
+                "fast_response"
+            ]
+        }
+    ]
 }
