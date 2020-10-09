@@ -1,6 +1,7 @@
 ## homebridge-petkit-feeder-mini
-
 <p align="center">
+  <img src="https://raw.githubusercontent.com/elfive/homebridge-petkit-feeder-mini/master/images/petkit-feeder-mini.jpg">
+  <br>
   <a href="https://www.npmjs.com/package/homebridge-petkit-feeder-mini">
     <img src="https://flat.badgen.net/npm/v/homebridge-petkit-feeder-mini" alt="NPM Version" />
   </a>
@@ -11,7 +12,7 @@
     <img src="https://flat.badgen.net/badge/homebridge/verified/purple" alt="Verified by Homebridge" />
   </a>
   <br>
-  <strong><a href="#2-before-make-changes-to-homebridge">Quick Start</a> | <a href="#4-how-to-contribute">Contribute</a> </strong>
+  <strong><a href="#2-how-to-setup">Setup Guide</a> | <a href="#4-how-to-contribute">Contribute</a> </strong>
 </p>
 
 ## 1) Description
@@ -20,37 +21,34 @@ control your petkit feeder mini from homekit, get full use of iOS automation.
 
 <div align="center"><img src="https://raw.githubusercontent.com/elfive/homebridge-petkit-feeder-mini/master/images/screenshot.jpg" alt="screenshot" /><img src="https://raw.githubusercontent.com/elfive/homebridge-petkit-feeder-mini/master/images/screenshot2.jpg" alt="screenshot2" /></div>
 <div align="center"><img src="https://raw.githubusercontent.com/elfive/homebridge-petkit-feeder-mini/master/images/screenshot3.jpg" alt="screenshot3" /><img src="https://raw.githubusercontent.com/elfive/homebridge-petkit-feeder-mini/master/images/screenshot4.jpg" alt="screenshot4" /></div>
-- features
-    - what's this plugin can do:
-
-        - uses a fan speed to control the meal amount;
-        - uses a switch to commit the drop;
-        - uses a switch to control the Petkit feeder mini light mode;
-        - uses a switch to control the Petkit feeder mini manual lock;
-        - uses a occupancy to indicate food storage status;
-        - uses a filter maintenance to indicate desiccant status(include auto reset desiccant left days, this may not show in homekit);
-        - uses a battery service to indicate device power status(include power level, charging status and low battery alert in Homekit)
-        - can fetch device info from Petkit server and shows in Homekit.
-
-          
-
-    - what's this plugin can't do:
-
-        - set a timed meal(may never support it, because you can just use homekit automation to do it.);
-        - enable/disable meal plan for the day(may be in the next major version, currently no plan to do it).
-        - ......
 
 
 
+### features
+
+- uses a fan speed to control the meal amount;
+- uses a switch to commit the drop;
+- uses a switch to control the Petkit feeder mini light mode;
+- uses a switch to control the Petkit feeder mini manual lock;
+- uses a occupancy to indicate food storage status;
+- uses a filter maintenance to indicate desiccant status(include auto reset desiccant left days, this may not show in homekit);
+- uses a battery service to indicate device power status(include power level, charging status and low battery alert in Homekit)
+- can fetch device info from Petkit server and shows in Homekit.
+
+
+
+### limitations
+
+- set a timed meal(may never support it, because you can just use homekit automation to do it.);
+- enable/disable meal plan for the day(may be in the next major version, currently no plan to do it).
 - currently this plugin for [homebridge](#https://github.com/homebridge/homebridge) just support [Petkit-feeder-mini (official store link)](#https://petkit.co.uk/product/petkit-element-mini-auto-feeder/), and this plugin currently only tested and works in Asia(include China mainland), other area may or may not working properly.
-
-    ![petkit-feeder-mini](https://raw.githubusercontent.com/elfive/homebridge-petkit-feeder-mini/master/images/petkit-feeder-mini.jpg)
-
 - to continuously use this plugin you should login Petkit app and never logoff, this plugin uses session id from the app and it will change every time you logoff and relogin.
+- ......
 
 
 
-## 2) Before make changes to homebridge
+
+## 2) How to setup
 
 ### Firstly, setup your Petkit mobile app.
 
@@ -95,7 +93,7 @@ you can find X-Session data from the request header area and deviceId in respons
 
 
 
-## 3) Edit homebridge config.json
+## 3) Configure
 
 ### config.json field
 
