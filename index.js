@@ -1,7 +1,8 @@
 'use strict';
 
-let Service, Characteristic;
+let Service, Characteristic, api;
 
+const fs = require('fs');
 const axios = require('axios');
 const deasyncPromise = require('deasync-promise');
 const event = require('events');
@@ -68,6 +69,7 @@ const batteryPersentPerLevel = 100 / max_batteryLevel;
 module.exports = function(homebridge) {
     Service = homebridge.hap.Service;
     Characteristic = homebridge.hap.Characteristic;
+    api = homebridge;
     homebridge.registerAccessory('homebridge-petkit-feeder-mini', 'petkit_feeder_mini', petkit_feeder_mini_plugin);
 }
 
@@ -133,6 +135,7 @@ class petkit_feeder_mini_plugin {
             this.log('found you just ownd one feeder mini with deviceId: '+ devices);
             this.deviceId = devices;
         }
+        this.storagedConfig = this.readStoragedConfigFromFile();
 
         this.autoDeviceInfo = getConfigValue(config['autoDeviceInfo'], false);
         if (this.dePromise(this.http_getDeviceInfo()) && this.autoDeviceInfo) {
@@ -145,7 +148,7 @@ class petkit_feeder_mini_plugin {
         // basic settings
         this.name = getConfigValue(config['name'], 'PetkitFeederMini');
         // meal, same as petkit app unit. one share stands for 5g or 1/20 cup, ten meal most;
-        this.mealAmount = getConfigValue(config['mealAmount'], 3);
+        this.mealAmount = getConfigValue(this.storagedConfig['mealAmount'], getConfigValue(config['mealAmount'], 3));
         if (this.mealAmount > max_amount) {
             this.log('mealAmount should not greater than ' + max_amount + ', use ' + max_amount + ' instead');
             this.mealAmount = max_amount;
@@ -203,11 +206,7 @@ class petkit_feeder_mini_plugin {
             .on('get', (callback) => callback(null, this.mealAmount != 0));
         this.meal_amount_service.getCharacteristic(Characteristic.RotationSpeed)
             .on('get', (callback) => callback(null, this.mealAmount))
-            .on('set', (value, callback) => {
-                this.mealAmount = value;
-                this.log('set meal amount to ' + value);
-                callback(null);
-            })
+            .on('set', this.hb_mealAmount_set.bind(this))
             .setProps({
                 minValue: min_amount,
                 maxValue: max_amount,
@@ -300,6 +299,55 @@ class petkit_feeder_mini_plugin {
 
         this.log.debug('getServices end');
         return services;
+    }
+
+    readStoragedConfigFromFile(callback = null) {
+        var result = {};
+        try {
+            if (this.deviceId) {
+                const filePath = api.user.storagePath() + '/petkit_feeder_mini.json';
+
+                if (callback) {
+                    if (!fs.existsSync(filePath)) callback({});
+                    fs.readFile(filePath, (error, rawdata) => {
+                        if (error) {
+                            this.log.error('readstoragedConfigFromFile failed: ' + error);
+                        } else {
+                            result = JSON.parse(rawdata);
+                        }
+                    });
+                } else {
+                    if (!fs.existsSync(filePath)) return {};
+                    const rawdata = fs.readFileSync(filePath);
+                    result = JSON.parse(rawdata);
+                }
+            }
+        } catch (error) {
+            this.log.error('readstoragedConfigFromFile failed: ' + error);
+        } finally {
+            if (callback) {
+                callback(result);
+            } else {
+                return result;
+            }
+        }
+    }
+
+    saveStoragedConfigToFile(callback = null) {
+        try {
+            if (this.deviceId) {
+                const filePath = api.user.storagePath() + '/petkit_feeder_mini.json';
+                    const rawdata = JSON.stringify(this.storagedConfig);
+                if (callback) {
+                    fs.writeFile(filePath, rawdata, callback);
+                } else {
+                    fs.writeFileSync(filePath, rawdata);
+                    return true;
+                }
+            }
+        } catch (error) {
+            this.log.warn('saveStoragedConfigToFile failed: ' + error);
+        }
     }
 
     setupPolling() {
@@ -658,7 +706,7 @@ class petkit_feeder_mini_plugin {
                     if (result) this.uploadStatusToHomebridge();
                 })
                 .catch((error) => {})
-                .then(resolve());
+                .then(resolve);
         });
     }
     
@@ -720,6 +768,14 @@ class petkit_feeder_mini_plugin {
                 }
                 this.updataDeviceDetail();
             });
+    }
+
+    hb_mealAmount_set(value, callback) {
+        if (this.fast_response) callback(null);
+        this.mealAmount = value;
+        this.storagedConfig['mealAmount'] = value;
+        this.log('set meal amount to ' + value);
+        this.saveStoragedConfigToFile((this.fast_response ? null : callback));
     }
 
     hb_dropMeal_set(value, callback) {
