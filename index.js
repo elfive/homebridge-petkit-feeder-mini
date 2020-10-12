@@ -11,6 +11,19 @@ const format = require('string-format');
 const dayjs = require('dayjs');
 const pollingtoevent = require('polling-to-event');
 
+const default_headers = Object.freeze({
+    'X-Client': 'ios(14.0;iPhone12,3)',
+    'Accept': '*/*',
+    'X-Timezone': '8.0',
+    'Accept-Language': 'en-US;q=1, zh-Hans-US;q=0.9',
+    'Accept-Encoding': 'gzip, deflate',
+    'X-Api-Version': '7.18.1',
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'User-Agent': 'PETKIT/7.18.1 (iPhone; iOS 14.0; Scale/3.00)',
+    'X-TimezoneId': 'Asia/Shanghai',
+    'X-Locale': 'en_US'
+})
+
 const support_settings = Object.freeze({
     'manualLock' : 'settings.manualLock',      // 1 for off, 0 for on
     'lightMode' : 'settings.lightMode',
@@ -89,7 +102,7 @@ function getConfigValue(original, default_value) {
 class petkit_feeder_mini_plugin {
     constructor(log, config) {
         this.log = log;
-
+        this.headers = {};
         this.lastUpdateTime = 0;
         this.getDeviceDetailEvent = null;
         this.poolToEventEmitter = null;
@@ -114,7 +127,11 @@ class petkit_feeder_mini_plugin {
         this.urls = global_urls[config['location']];
 
         // http request headers
-        this.headers = this.convertHeadersetFormat(config['headers']);
+        if (config['headers'] === undefined) {
+            this.log.error('missing field in config.json file: headers.');
+            return;
+        }
+        this.convertHeadersetFormat(config['headers']);
         if (!this.headers) {
             return;
         }
@@ -150,6 +167,7 @@ class petkit_feeder_mini_plugin {
             this.headers['X-Timezone'] = this.deviceDetailInfo['timezone'] || this.headers['X-Timezone'];
             this.headers['X-TimezoneId'] = this.deviceDetailInfo['locale'] || this.headers['X-Timezone'];
         }
+        this.replaceHeadersetWithDefault();
 
         // meal, same as petkit app unit. one share stands for 5g or 1/20 cup, ten meal most;
         this.mealAmount = getConfigValue(this.storagedConfig['mealAmount'], getConfigValue(config['mealAmount'], 3));
@@ -393,26 +411,33 @@ class petkit_feeder_mini_plugin {
     
     convertHeadersetFormat(config_headers) {
         if (!config_headers) {
-            this.log.error('missing field in config.json file: headers.');
             return false;
         }
 
-        var post_headers = {};
         config_headers.forEach((header, index) => {
-            post_headers[header.key] = header.value;
+            this.headers[header.key] = header.value;
         });
 
-        if (!post_headers['X-Session']) {
+        if (this.headers['X-Session'] === undefined) {
             this.log.error('missing field in config.json file: headers.X-Session.');
             return false;
         }
 
-        if (!post_headers['X-Api-Version']) {
-            post_headers['X-Api-Version'] = '7.18.1';
-            this.log.warn('missing field in config.json file: headers.X-Api-Version, using "' + post_headers['X-Api-Version'] + '" instead.');
+        if (this.headers['X-Session'] !== this.headers['F-Session']) {
+            this.log.debug('header set X-Session should equal to header set F-Session, replace F-Session.');
+            this.headers['F-Session'] = this.headers['X-Session'];
         }
 
-        return post_headers;
+        return true;
+    }
+
+    replaceHeadersetWithDefault() {
+        Object.keys(default_headers).forEach((key) => {
+            if (this.headers[key] === undefined) {
+                this.log.debug('missing header set: "' + key + '", using "' + default_headers[key] + '" instead.');
+                this.headers[key] = default_headers[key];
+            }
+        });
     }
 
     praseGetDeviceResult(jsonObj) {
