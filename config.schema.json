@@ -146,12 +146,6 @@
             "type": "boolean",
             "default": false
         },
-        "enable_autoreset_desiccant": {
-            "title": "enable auto reset desiccant left days.",
-            "required": false,
-            "type": "boolean",
-            "default": false
-        },
         "alert_desiccant_threshold": {
             "title": "shows an alert in homekit when desiccant left days less than this value(days).",
             "required": false,
@@ -159,6 +153,12 @@
             "default": 7,
             "minimum": 1,
             "maximum": 29
+        },
+        "enable_autoreset_desiccant": {
+            "title": "enable auto reset desiccant left days.",
+            "required": false,
+            "type": "boolean",
+            "default": false
         },
         "reset_desiccant_threshold": {
             "title": "auto reset desiccant if desiccant left days reaches this value(days).",
@@ -264,8 +264,8 @@
             "title": "Device desiccant settings",
             "items": [
                 "enable_desiccant",
-                "enable_autoreset_desiccant",
                 "alert_desiccant_threshold",
+                "enable_autoreset_desiccant",
                 "reset_desiccant_threshold"
             ]
         },
