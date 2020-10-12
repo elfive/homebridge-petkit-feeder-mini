@@ -87,7 +87,7 @@
         },
         "autoDeviceInfo": {
             "title": "Automatically retrieve device info from Petkit server",
-            "description": "Only retrieve infomation: timezone, name, sn and firmware version",
+            "description": "Only retrieve infomation: timezone, name, SN and firmware version",
             "required": false,
             "type": "boolean",
             "default": false,
@@ -95,7 +95,7 @@
         },
         "sn": {
             "title": "Serial number shows in homekit app",
-            "description": "If autoDeviceInfo is set to true, it will overwrited with the ns of your device.",
+            "description": "If autoDeviceInfo is set to true, it will overwrited with the SN of your device.",
             "required": false,
             "type": "string",
             "default": "PetkitFeederMini",
@@ -133,7 +133,7 @@
             "placeholder": "true"
         },
         "polling_interval": {
-            "title": "update device status interval from Petkit server(s).",
+            "title": "Update device status interval from Petkit server.",
             "required": false,
             "type": "integer",
             "default": 60,
@@ -146,22 +146,22 @@
             "type": "boolean",
             "default": false
         },
+        "alert_desiccant_threshold": {
+            "title": "shows an alert in homekit when desiccant left days less than this value(days).",
+            "required": false,
+            "type": "integer",
+            "default": 7,
+            "minimum": 1,
+            "maximum": 29
+        },
         "enable_autoreset_desiccant": {
             "title": "enable auto reset desiccant left days.",
             "required": false,
             "type": "boolean",
             "default": false
         },
-        "alert_desiccant_threshold": {
-            "title": "shows an alert in homekit when desiccant left days less than this value of dyas.",
-            "required": false,
-            "type": "integer",
-            "default": 7,
-            "minimum": 2,
-            "maximum": 28
-        },
         "reset_desiccant_threshold": {
-            "title": "auto reset desiccant left days if desiccant left days reaches this value of dyas.",
+            "title": "auto reset desiccant if desiccant left days reaches this value(days).",
             "required": false,
             "type": "integer",
             "default": 5,
@@ -228,7 +228,7 @@
             "items": [
                 {
                     "type": "help",
-                    "helpvalue": "<h5>Description</h5><p>• The HTTP request headers is the key to make this plugin work.<br/>• At least, you must fufill the \"X-Session\" header set.<br/>• You are always supposed to set all the headers you captured, here is a full example:</p><code>X-Client: ios(14.0;iPhone12,3)<br>X-Session: -----YOUR SESSION ID HERE-----<br>Accept: */*<br>X-Timezone: 8.0<br>F-Session: -----SAME AS SESSION ID-----<br>Accept-Language: en-US;q=1, zh-Hans-US;q=0.9<br>Accept-Encoding: gzip, deflate<br>X-Api-Version: 7.18.1<br>Content-Type: application/x-www-form-urlencoded<br>User-Agent: PETKIT/7.18.1 (iPhone; iOS 14.0; Scale/3.00)<br>X-TimezoneId: Asia/Shanghai<br>X-Locale: en_US</code>"
+                    "helpvalue": "<h5>Description</h5><p>• The HTTP request headers is the key to make this plugin work.<br/>• At least, you must fufill the \"X-Session\" header set.<br/>• This plugin will fulfill the headers that you not provide, here is the default headers:</p><code>X-Client: ios(14.0;iPhone12,3)<br>Accept: */*<br>X-Timezone: 8.0<br>F-Session: -----SAME AS X-Session-----<br>Accept-Language: en-US;q=1, zh-Hans-US;q=0.9<br>Accept-Encoding: gzip, deflate<br>X-Api-Version: 7.18.1<br>Content-Type: application/x-www-form-urlencoded<br>User-Agent: PETKIT/7.18.1 (iPhone; iOS 14.0; Scale/3.00)<br>X-TimezoneId: Asia/Shanghai<br>X-Locale: en_US</code>"
                 },
                 {
                     "key": "headers",
@@ -236,8 +236,14 @@
                     "orderable": false,
                     "buttonText": "Add Header Set",
                     "items": [
-                        "headers[].key",
-                        "headers[].value"
+                        {
+                            "type": "flex",
+                            "flex-flow": "row wrap",
+                            "items": [
+                              "headers[].key",
+                              "headers[].value"
+                            ]
+                        }
                     ]
                 }
             ]
@@ -264,8 +270,8 @@
             "title": "Device desiccant settings",
             "items": [
                 "enable_desiccant",
-                "enable_autoreset_desiccant",
                 "alert_desiccant_threshold",
+                "enable_autoreset_desiccant",
                 "reset_desiccant_threshold"
             ]
         },

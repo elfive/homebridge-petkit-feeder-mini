@@ -1,13 +1,28 @@
 'use strict';
 
-let Service, Characteristic;
+let Service, Characteristic, api;
 
+const fs = require('fs');
+const packageConfig = require('./package.json')
 const axios = require('axios');
 const deasyncPromise = require('deasync-promise');
 const event = require('events');
 const format = require('string-format');
 const dayjs = require('dayjs');
 const pollingtoevent = require('polling-to-event');
+
+const default_headers = Object.freeze({
+    'X-Client': 'ios(14.0;iPhone12,3)',
+    'Accept': '*/*',
+    'X-Timezone': '8.0',
+    'Accept-Language': 'en-US;q=1, zh-Hans-US;q=0.9',
+    'Accept-Encoding': 'gzip, deflate',
+    'X-Api-Version': '7.18.1',
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'User-Agent': 'PETKIT/7.18.1 (iPhone; iOS 14.0; Scale/3.00)',
+    'X-TimezoneId': 'Asia/Shanghai',
+    'X-Locale': 'en_US'
+})
 
 const support_settings = Object.freeze({
     'manualLock' : 'settings.manualLock',      // 1 for off, 0 for on
@@ -16,7 +31,7 @@ const support_settings = Object.freeze({
 
 const global_urls = Object.freeze({
     'cn': {
-        'owndevices': 'http://api.petkit.cn/6/discovery/device_roster',
+        'owndevices': 'http://api.petkit.cn/6/feedermini/owndevices',
         'deviceState': 'http://api.petkit.cn/6/feedermini/devicestate?id={}',
         'deviceDetail': 'http://api.petkit.cn/6/feedermini/device_detail?id={}',
         'saveDailyFeed': 'http://api.petkit.cn/6/feedermini/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
@@ -28,7 +43,7 @@ const global_urls = Object.freeze({
         'updateSettings': 'http://api.petkit.cn/6/feedermini/update?id={}&kv={}',
     },
     'asia':{
-        'owndevices': 'http://api.petktasia.com/latest/discovery/device_roster',
+        'owndevices': 'http://api.petktasia.com/latest/feedermini/owndevices',
         'deviceState': 'http://api.petktasia.com/latest/feedermini/devicestate?id={}',
         'deviceDetail': 'http://api.petktasia.com/latest/feedermini/device_detail?id={}',
         'saveDailyFeed': 'http://api.petktasia.com/latest/feedermini/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
@@ -40,7 +55,7 @@ const global_urls = Object.freeze({
         'updateSettings': 'http://api.petktasia.com/latest/feedermini/update?id={}&kv={}',
     },
     'north_america':{
-        'owndevices': 'http://api.petkt.com/latest/discovery/device_roster',
+        'owndevices': 'http://api.petkt.com/latest/feedermini/owndevices',
         'deviceState': 'http://api.petkt.com/latest/feedermini/devicestate?id={}',
         'deviceDetail': 'http://api.petkt.com/latest/feedermini/device_detail?id={}',
         'saveDailyFeed': 'http://api.petkt.com/latest/feedermini/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
@@ -68,6 +83,7 @@ const batteryPersentPerLevel = 100 / max_batteryLevel;
 module.exports = function(homebridge) {
     Service = homebridge.hap.Service;
     Characteristic = homebridge.hap.Characteristic;
+    api = homebridge;
     homebridge.registerAccessory('homebridge-petkit-feeder-mini', 'petkit_feeder_mini', petkit_feeder_mini_plugin);
 }
 
@@ -86,7 +102,7 @@ function getConfigValue(original, default_value) {
 class petkit_feeder_mini_plugin {
     constructor(log, config) {
         this.log = log;
-
+        this.headers = {};
         this.lastUpdateTime = 0;
         this.getDeviceDetailEvent = null;
         this.poolToEventEmitter = null;
@@ -97,9 +113,6 @@ class petkit_feeder_mini_plugin {
             'desiccantLeftDays' : 0,
             'manualLock': 0,
             'lightMode': 0,
-            'name': undefined,
-            'sn': undefined,
-            'firmware': undefined,
             'meals': {}
         };
 
@@ -114,12 +127,16 @@ class petkit_feeder_mini_plugin {
         this.urls = global_urls[config['location']];
 
         // http request headers
-        this.headers = this.convertHeadersetFormat(config['headers']);
+        if (config['headers'] === undefined) {
+            this.log.error('missing field in config.json file: headers.');
+            return;
+        }
+        this.convertHeadersetFormat(config['headers']);
         if (!this.headers) {
             return;
         }
 
-        // device id
+        // device id && device detail info
         this.deviceId = config['deviceId'];
         const devices = this.praseGetDeviceResult(this.dePromise(this.http_getOwnDevice()));
         if (!devices) {
@@ -133,11 +150,27 @@ class petkit_feeder_mini_plugin {
             this.log('found you just ownd one feeder mini with deviceId: '+ devices);
             this.deviceId = devices;
         }
+        this.storagedConfig = this.readStoragedConfigFromFile();
 
-        // basic settings
+        // device information settings
         this.name = getConfigValue(config['name'], 'PetkitFeederMini');
+        this.serialNumber = getConfigValue(config['sn'], 'PetkitFeederMini');
+        this.firmware = getConfigValue(config['firmware'], getConfigValue(packageConfig['version'], '1.0.0'));
+        this.manufacturer = getConfigValue(config['manufacturer'], 'Petkit');
+        this.model = getConfigValue(config['model'], 'Petkit feeder mini');
+
+        this.autoDeviceInfo = getConfigValue(config['autoDeviceInfo'], false);
+        if (this.autoDeviceInfo && this.dePromise(this.http_getDeviceInfo())) {
+            this.name = this.deviceDetailInfo['name'] || this.name;
+            this.serialNumber = this.deviceDetailInfo['sn'] || this.serialNumber;
+            this.firmware = this.deviceDetailInfo['firmware'] || this.firmware;
+            this.headers['X-Timezone'] = this.deviceDetailInfo['timezone'] || this.headers['X-Timezone'];
+            this.headers['X-TimezoneId'] = this.deviceDetailInfo['locale'] || this.headers['X-Timezone'];
+        }
+        this.replaceHeadersetWithDefault();
+
         // meal, same as petkit app unit. one share stands for 5g or 1/20 cup, ten meal most;
-        this.mealAmount = getConfigValue(config['mealAmount'], 3);
+        this.mealAmount = getConfigValue(this.storagedConfig['mealAmount'], getConfigValue(config['mealAmount'], 3));
         if (this.mealAmount > max_amount) {
             this.log('mealAmount should not greater than ' + max_amount + ', use ' + max_amount + ' instead');
             this.mealAmount = max_amount;
@@ -145,13 +178,6 @@ class petkit_feeder_mini_plugin {
             this.log('mealAmount should not less than ' + min_amount + ', use ' + min_amount + ' instead');
             this.mealAmount = min_amount;
         }
-
-        // device information settings
-        this.autoDeviceInfo = getConfigValue(config['autoDeviceInfo'], false);
-        this.serialNumber = getConfigValue(config['sn'], 'PetkitFeederMini');
-        this.firmware = getConfigValue(config['firmware'], '1.0.0')
-        this.manufacturer = getConfigValue(config['manufacturer'], 'Petkit');
-        this.model = getConfigValue(config['model'], 'Petkit feeder mini');
 
         // device desiccant settings
         this.enable_desiccant = getConfigValue(config['enable_desiccant'], false);
@@ -176,20 +202,11 @@ class petkit_feeder_mini_plugin {
         this.reverse_foodStorage_indicator = getConfigValue(config['reverse_foodStorage_indicator'], false);
         this.fast_response = getConfigValue(config['fast_response'], false);
 
-        // refreash device detail info
-        this.dePromise(this.http_getDeviceInfo());
-        if (this.autoDeviceInfo) {
-            this.name = this.deviceDetailInfo['name'] || this.name;
-            this.serialNumber = this.deviceDetailInfo['sn'] || this.serialNumber;
-            this.firmware = this.deviceDetailInfo['firmware'] || this.firmware;
-            this.headers['X-Timezone'] = this.deviceDetailInfo['timezone'] || this.headers['X-Timezone'];
-        }
-
         this.log('petkit feeder mini loaded successfully.');
     }
 
     getServices() {
-        this.log.debug('getServices start');
+        this.log.debug('begin to initialize homebridge service.');
         var services = [];
 
         // meal drop service
@@ -205,11 +222,7 @@ class petkit_feeder_mini_plugin {
             .on('get', (callback) => callback(null, this.mealAmount != 0));
         this.meal_amount_service.getCharacteristic(Characteristic.RotationSpeed)
             .on('get', (callback) => callback(null, this.mealAmount))
-            .on('set', (value, callback) => {
-                this.mealAmount = value;
-                this.log('set meal amount to ' + value);
-                callback(null);
-            })
+            .on('set', this.hb_mealAmount_set.bind(this))
             .setProps({
                 minValue: min_amount,
                 maxValue: max_amount,
@@ -298,6 +311,62 @@ class petkit_feeder_mini_plugin {
         services.push(this.info_service);
 
         // polling
+        this.setupPolling();
+
+        this.log.debug('homebridge service initialize success.');
+        return services;
+    }
+
+    readStoragedConfigFromFile(callback = null) {
+        var result = {};
+        try {
+            if (this.deviceId) {
+                const filePath = api.user.storagePath() + '/petkit_feeder_mini.json';
+
+                if (callback) {
+                    if (!fs.existsSync(filePath)) callback({});
+                    fs.readFile(filePath, (error, rawdata) => {
+                        if (error) {
+                            this.log.error('readstoragedConfigFromFile failed: ' + error);
+                        } else {
+                            result = JSON.parse(rawdata);
+                        }
+                    });
+                } else {
+                    if (!fs.existsSync(filePath)) return {};
+                    const rawdata = fs.readFileSync(filePath);
+                    result = JSON.parse(rawdata);
+                }
+            }
+        } catch (error) {
+            this.log.error('readstoragedConfigFromFile failed: ' + error);
+        } finally {
+            if (callback) {
+                callback(result);
+            } else {
+                return result;
+            }
+        }
+    }
+
+    saveStoragedConfigToFile(callback = null) {
+        try {
+            if (this.deviceId) {
+                const filePath = api.user.storagePath() + '/petkit_feeder_mini.json';
+                    const rawdata = JSON.stringify(this.storagedConfig);
+                if (callback) {
+                    fs.writeFile(filePath, rawdata, callback);
+                } else {
+                    fs.writeFileSync(filePath, rawdata);
+                    return true;
+                }
+            }
+        } catch (error) {
+            this.log.warn('saveStoragedConfigToFile failed: ' + error);
+        }
+    }
+
+    setupPolling() {
         if (this.enable_polling) {
             if (this.polling_interval < min_pollint_interval) {
                 this.log.warn('polling interval should greater than ' + min_pollint_interval + '(' + min_pollint_interval / 60 +' min), change to ' + min_pollint_interval + '.');
@@ -311,22 +380,22 @@ class petkit_feeder_mini_plugin {
                 interval: this.polling_interval * 1000,
                 longpollEventName: 'deviceStatusUpdatePoll'
             };
-            this.poolToEventEmitter = pollingtoevent((done) => {
-                this.log('polling start...');
-                this.http_getDeviceDetailStatus()
-                .then((result) => {
-                    done(null, result);
-                    this.log('polling end...');
-                }).catch((error) => {});
-            }, polling_options);
 
-            this.poolToEventEmitter.on('deviceStatusUpdatePoll', (result) => {
-                this.uploadStatusToHomebridge();
-            });
+            setTimeout(() => {
+                this.poolToEventEmitter = pollingtoevent((done) => {
+                    this.log('polling start...');
+                    this.http_getDeviceDetailStatus()
+                    .then((result) => {
+                        done(null, result);
+                        this.log('polling end...');
+                    }).catch((error) => {});
+                }, polling_options);
+    
+                this.poolToEventEmitter.on('deviceStatusUpdatePoll', (result) => {
+                    this.uploadStatusToHomebridge();
+                });
+            }, this.polling_interval * 1000)
         }
-
-        this.log.debug('getServices end');
-        return services;
     }
 
     dePromise(promise) {
@@ -342,27 +411,33 @@ class petkit_feeder_mini_plugin {
     
     convertHeadersetFormat(config_headers) {
         if (!config_headers) {
-            this.log.error('missing field in config.json file: headers.');
             return false;
         }
 
-        var post_headers = {};
         config_headers.forEach((header, index) => {
-            post_headers[header.key] = header.value;
+            this.headers[header.key] = header.value;
         });
 
-        if (!post_headers['X-Session']) {
+        if (this.headers['X-Session'] === undefined) {
             this.log.error('missing field in config.json file: headers.X-Session.');
             return false;
         }
 
-        if (!post_headers['X-Api-Version']) {
-            post_headers['X-Api-Version'] = '7.18.1';
-            this.log.warn('missing field in config.json file: headers.X-Api-Version, using "' + post_headers['X-Api-Version'] + '" instead.');
+        if (this.headers['X-Session'] !== this.headers['F-Session']) {
+            this.log.debug('header set X-Session should equal to header set F-Session, replace F-Session.');
+            this.headers['F-Session'] = this.headers['X-Session'];
         }
 
-        this.log.debug(post_headers);
-        return post_headers;
+        return true;
+    }
+
+    replaceHeadersetWithDefault() {
+        Object.keys(default_headers).forEach((key) => {
+            if (this.headers[key] === undefined) {
+                this.log.debug('missing header set: "' + key + '", using "' + default_headers[key] + '" instead.');
+                this.headers[key] = default_headers[key];
+            }
+        });
     }
 
     praseGetDeviceResult(jsonObj) {
@@ -370,35 +445,19 @@ class petkit_feeder_mini_plugin {
             this.log.warn('praseGetDeviceResult error: jsonObj is nothing.');
             return false;
         }
-        this.log.debug(JSON.stringify(jsonObj));
+        const jsonStr = JSON.stringify(jsonObj);
+        this.log.debug(jsonStr);
 
-        if (!jsonObj.hasOwnProperty('result')) {
-            this.log.warn('JSON.parse error with:' + jsonObj);
+        if (!jsonObj['result']) {
+            this.log.warn('JSON.parse error with:' + jsonStr);
             return false;
         }
 
-        if (!jsonObj.result.hasOwnProperty('devices')) {
-            this.log.warn('JSON.parse error with:' + jsonObj);
-            return false;
-        }
-
-        if (jsonObj.result.devices.length === 0) {
-            this.log('seems you\'re not owned a device.');
-            return false;
-        }
-
-        var devices = [];
-        jsonObj.result.devices.forEach((item, index) => {
-            if (item.type == 'FeederMini' && item.data) {
-                devices.push(item.data);
-            }
-        });
-
+        const devices = jsonObj['result'];
         if (devices.length === 0) {
-            this.log('seems you does not owned a Petkit feeder mini, this plugin only works for Petkit feeder mini, sorry.');
+            this.log.error('seems you doesn\'t owned a Petkit feeder mini, this plugin only works for Petkit feeder mini, sorry.');
             return false;
         } else if (devices.length === 1) {
-            this.log.debug(JSON.stringify(devices[0]));
             return devices[0].id;
         } else {
             const devicesIds = devices.map((device) => {
@@ -415,23 +474,40 @@ class petkit_feeder_mini_plugin {
             this.log.warn('praseGetDeviceDetailInfo error: jsonObj is nothing.');
             return false;
         }
-        this.log.debug(JSON.stringify(jsonObj));
+        const jsonStr = JSON.stringify(jsonObj);
+        this.log.debug(jsonStr);
 
-        if (jsonObj['name'] !== undefined) this.deviceDetailInfo['name'] = jsonObj['name'];
-        if (jsonObj['sn'] !== undefined) this.deviceDetailInfo['sn'] = jsonObj['sn'];
-        if (jsonObj['firmware'] !== undefined) this.deviceDetailInfo['firmware'] = jsonObj['firmware'];
-        if (jsonObj['timezone'] !== undefined) this.deviceDetailInfo['timezone'] = jsonObj['timezone'];
+        if (this.deviceDetailInfo['name'] === undefined && jsonObj['name'] !== undefined)
+            this.deviceDetailInfo['name'] = jsonObj['name'];
+
+        if (this.deviceDetailInfo['sn'] === undefined && jsonObj['sn'] !== undefined)
+            this.deviceDetailInfo['sn'] = jsonObj['sn'];
+        
+        if (this.deviceDetailInfo['firmware'] === undefined && jsonObj['firmware'] !== undefined)
+            this.deviceDetailInfo['firmware'] = jsonObj['firmware'];
+        
+        if (this.deviceDetailInfo['timezone'] === undefined && jsonObj['timezone'] !== undefined)
+            this.deviceDetailInfo['timezone'] = jsonObj['timezone'];
+        
+        if (this.deviceDetailInfo['locale'] === undefined && jsonObj['locale'] !== undefined)
+            this.deviceDetailInfo['locale'] = jsonObj['locale'];
 
         if (jsonObj['state']) {
             const state = jsonObj['state'];
 
             // 1 for statue ok, 0 for empty
             if (state['food'] !== undefined) this.deviceDetailInfo['food'] = state['food'] ? 1 : 0;
+            this.log.debug('device food storage status is: ' + (this.deviceDetailInfo['food'] ? 'Ok' : 'Empty'));
+
             if (state['batteryPower'] !== undefined) this.deviceDetailInfo['batteryPower'] = state['batteryPower'] * batteryPersentPerLevel;
+            this.log.debug('device battery level is: ' + this.deviceDetailInfo['batteryPower']);
 
             // 0 for charging mode, 1 for battery mode
             if (state['batteryStatus'] !== undefined) this.deviceDetailInfo['batteryStatus'] = state['batteryStatus'];
+            this.log.debug('device battery status is: ' + (this.deviceDetailInfo['batteryStatus'] ? 'not charging' : 'charging'));
+
             if (state['desiccantLeftDays'] !== undefined) this.deviceDetailInfo['desiccantLeftDays'] = state['desiccantLeftDays'];
+            this.log.debug('device desiccant remain: ' + (this.deviceDetailInfo['desiccantLeftDays'] + ' day(s)'));
         }
         
         if (jsonObj['settings']) {
@@ -439,9 +515,11 @@ class petkit_feeder_mini_plugin {
 
             // on for off, off for on, same behavior with Petkit app.
             if (settings['manualLock'] !== undefined) this.deviceDetailInfo['manualLock'] = settings['manualLock'] ? 0 : 1;
+            this.log.debug('device manual lock status is: ' + (this.deviceDetailInfo['manualLock'] ? 'locked' : 'unlocked'));
 
             // 1 for lignt on, 0 for light off
             if (settings['lightMode'] !== undefined) this.deviceDetailInfo['lightMode'] = settings['lightMode'] ? 1 : 0;
+            this.log.debug('device light status is: ' + (this.deviceDetailInfo['lightMode'] ? 'on' : 'off'));
         }
 
         return true;
@@ -452,7 +530,8 @@ class petkit_feeder_mini_plugin {
             this.log.warn('praseUpdateDeviceSettingsResult error: jsonObj is nothing.');
             return false;
         }
-        this.log.debug(JSON.stringify(jsonObj));
+        const jsonStr = JSON.stringify(jsonObj);
+        this.log.debug(jsonStr);
 
         if (jsonObj.hasOwnProperty('error')) {
             this.log.warn(jsonObj.error.msg);
@@ -472,7 +551,8 @@ class petkit_feeder_mini_plugin {
             this.log.warn('praseSaveDailyFeedResult error: jsonObj is nothing.');
             return false;
         }
-        this.log.debug(JSON.stringify(jsonObj));
+        const jsonStr = JSON.stringify(jsonObj);
+        this.log.debug(jsonStr);
 
         if (jsonObj.hasOwnProperty('error')) {
             this.log.warn(jsonObj.error.msg);
@@ -480,7 +560,7 @@ class petkit_feeder_mini_plugin {
         }
 
         if (!jsonObj.hasOwnProperty('result')) {
-            this.log.warn('JSON.parse error with:' + JSON.stringify(jsonObj));
+            this.log.warn('JSON.parse error with:' + jsonStr);
             return false;
         }
 
@@ -492,56 +572,57 @@ class petkit_feeder_mini_plugin {
     }
 
     notifyHomebridgeInfoUpdated() {
-        setTimeout(() => {
-            try {
-                // if desiccantLeftDays less than {reset_desiccant_threshold} day, auto reset it.
-                if (this.enable_desiccant) {
-                    if (this.enable_autoreset_desiccant) {
-                        if (this.deviceDetailInfo.desiccantLeftDays < this.reset_desiccant_threshold) {
-                            this.log('desiccant only ' + this.deviceDetailInfo.desiccantLeftDays + 'days left, reset it.');
-                            this.hb_desiccantLeftDays_reset(null);
-                        } else {
-                            this.log('desiccant has '+ this.deviceDetailInfo.desiccantLeftDays +' days left, no need to reset.');
-                        }
+        try {
+            // if desiccantLeftDays less than {reset_desiccant_threshold} day, auto reset it.
+            if (this.enable_desiccant) {
+                if (this.enable_autoreset_desiccant) {
+                    if (this.deviceDetailInfo.desiccantLeftDays < this.reset_desiccant_threshold) {
+                        this.log('desiccant only ' + this.deviceDetailInfo.desiccantLeftDays + 'days left, reset it.');
+                        this.hb_desiccantLeftDays_reset(null);
                     } else {
-                        this.log.debug('desiccant auto reset function is disabled.');
+                        this.log('desiccant has '+ this.deviceDetailInfo.desiccantLeftDays +' days left, no need to reset.');
                     }
+                } else {
+                    this.log.debug('desiccant auto reset function is disabled.');
                 }
-            } catch(err) {
-                this.log('notifyHomebridgeInfoUpdated error: ' + err);
             }
-        }, 200);
+        } catch(err) {
+            this.log('notifyHomebridgeInfoUpdated error: ' + err);
+        } finally {
+
+        }
     }
 
     http_post(url) {
-        var result = false;
         const options = {
             url: url,
             method: 'POST',
             headers: this.headers
         };
-        return new Promise(async (resolve, reject) => {
-            const response = await axios.request(options);
-            try {
-                if (response.status != 200) {
-                    const error = 'post request success, but received a invalid response code: ' + response.status;
-                    this.log.error(error);
-                    reject(error);
-                } else {
-                    this.log.debug('post request success')
-                    resolve(response.data);
-                }
-            } catch(error) {
-                this.log.error('post request failed: ' + error);
-                reject(error);
-            }
-
+        return new Promise((resolve) => {
+            var result = false;
+            axios.request(options)
+                .then((response) => {
+                    if (response.status != 200) {
+                        const error = 'post request success, but received a invalid response code: ' + response.status;
+                        this.log.error(error);
+                    } else {
+                        this.log.debug('post request success')
+                        result = response.data;
+                    }
+                })
+                .catch((error) => {
+                    this.log.error('post request failed: ' + error);
+                })
+                .then(() => {
+                    resolve(result);
+                });
         });
     }
 
     http_getDeviceInfo() {
         var result = false;
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             this.http_post(format(this.urls.deviceDetail, this.deviceId))
                 .then((data) => {
                     if (data) {
@@ -552,6 +633,7 @@ class petkit_feeder_mini_plugin {
                     }
                 })
                 .catch((error) => {
+                    this.log.error("http_getDeviceInfo failed: " + error);
                 })
                 .then(() => {
                     resolve(result);
@@ -561,7 +643,7 @@ class petkit_feeder_mini_plugin {
 
     http_getDeviceDailyFeeds() {
         var result = false;
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             const date = getDataString();
             this.http_post(format(this.urls.dailyfeeds, this.deviceId, date))
                 .then((data) => {
@@ -572,6 +654,7 @@ class petkit_feeder_mini_plugin {
                     }
                 })
                 .catch((error) => {
+                    this.log.error("http_getDeviceDailyFeeds failed: " + error);
                 })
                 .then(() => {
                     resolve(result);
@@ -615,10 +698,10 @@ class petkit_feeder_mini_plugin {
                 })
                 .then(() => {
                     this.lastUpdateTime = currentTimestamp;
-                    this.notifyHomebridgeInfoUpdated();
                     this.getDeviceDetailEvent.emit('finished', getDeviceDetailResult);
                     this.getDeviceDetailEvent = null;
                     resolve(getDeviceDetailResult);
+                    setTimeout(this.notifyHomebridgeInfoUpdated, 200);
                 });
             } else {
                 this.log.debug('too close to last update time, pass');
@@ -636,40 +719,42 @@ class petkit_feeder_mini_plugin {
     // key see support_settings.
     async http_updateDeviceSettings(key, value) {
         var data = {};
-        data[support_settings[key]] = value;
-        return await this.http_post(format(this.urls.updateSettings, this.deviceId, JSON.stringify(data)));
+        if (support_settings[key]) {
+            data[support_settings[key]] = value;
+            return await this.http_post(format(this.urls.updateSettings, this.deviceId, JSON.stringify(data)));
+        } else {
+            this.log.warn('unsupport setting: ' + key);
+            return false;
+        }
     }
 
     async http_resetDesiccant() {
         return await this.http_post(format(this.urls.resetDesiccant, this.deviceId));
     }
-
-    updataDeviceDetail() {
-        return new Promise((resolve, reject) => {
-            this.http_getDeviceDetailStatus()
-                .then((result) => {
-                    if (result) this.uploadStatusToHomebridge();
-                })
-                .catch((error) => {})
-                .then(resolve());
-        });
-    }
     
     uploadStatusToHomebridge() {
-        var status = this.deviceDetailInfo['food'];
-        this.log('device food storage status is: ' + (status ? 'Ok' : 'Empty'));
-        if (this.reverse_foodStorage_indicator)
-            status = !status;
+        var status = (this.reverse_foodStorage_indicator ? !this.deviceDetailInfo['food'] : this.deviceDetailInfo['food']);
         this.food_storage_service.setCharacteristic(Characteristic.OccupancyDetected, status);
 
         if (this.enable_desiccant) {
-            const desiccantLeftDays = this.deviceDetailInfo['desiccantLeftDays'];
-            this.log('desiccant days remain: ' + desiccantLeftDays + ' day(s)');
-            status = desiccantLeftDays < this.alert_desiccant_threshold ? 
+            status = this.deviceDetailInfo['desiccantLeftDays'] < this.alert_desiccant_threshold ? 
                 Characteristic.FilterChangeIndication.CHANGE_FILTER :
                 Characteristic.FilterChangeIndication.FILTER_OK;
             this.desiccant_level_service.setCharacteristic(Characteristic.FilterChangeIndication, status);
         }
+    }
+
+    updataDeviceDetail() {
+        return new Promise((resolve) => {
+            this.http_getDeviceDetailStatus()
+                .then((result) => {
+                    if (result) this.uploadStatusToHomebridge();
+                })
+                .catch((error) => {
+                    this.log.error("updataDeviceDetail failed: " + error);
+                })
+                .then(resolve);
+        });
     }
 
     waitForSignal(sig, callback) {
@@ -696,11 +781,10 @@ class petkit_feeder_mini_plugin {
         }
     }
 
-    hb_handle_set_deviceSettings(settingName, status, status_converter, callback = null) {
+    hb_handle_set_deviceSettings(settingName, status, callback = null) {
         this.log.debug('set ' + settingName + ' to: ' + status);
         var result = false;
-        const petkit_status = status_converter ? status_converter(status) : status;
-        this.http_updateDeviceSettings(settingName, petkit_status)
+        this.http_updateDeviceSettings(settingName, status)
             .then((data) => {
                 if (!data) {
                     this.log.error('failed to commuciate with server.');
@@ -719,6 +803,14 @@ class petkit_feeder_mini_plugin {
                 }
                 this.updataDeviceDetail();
             });
+    }
+
+    hb_mealAmount_set(value, callback) {
+        if (this.fast_response) callback(null);
+        this.mealAmount = value;
+        this.storagedConfig['mealAmount'] = value;
+        this.log('set meal amount to ' + value);
+        this.saveStoragedConfigToFile((this.fast_response ? null : callback));
     }
 
     hb_dropMeal_set(value, callback) {
@@ -758,16 +850,13 @@ class petkit_feeder_mini_plugin {
     hb_desiccantIndicator_get(callback) {
         this.hb_handle_get('hb_desiccantIndicator_get', (results) => {
             const status = (this.deviceDetailInfo['desiccantLeftDays'] < this.alert_desiccant_threshold ? 1 : 0);
-            this.log('device desiccant status indicator status: ' + status);
             callback(null, status);
         });
     }
 
     hb_desiccantLeftDays_get(callback) {
         this.hb_handle_get('hb_desiccantLeftDays_get', (results) => {
-            const status = this.deviceDetailInfo['desiccantLeftDays'];
-            this.log('device desiccant days remain: ' + status + ' day(s)');
-            callback(null, status);
+            callback(null, this.deviceDetailInfo['desiccantLeftDays']);
         });
     }
 
@@ -794,30 +883,19 @@ class petkit_feeder_mini_plugin {
 
     hb_foodStorageStatus_get(callback) {
         this.hb_handle_get('hb_foodStorageStatus_get', (results) => {
-            var status = this.deviceDetailInfo['food']
-            this.log('device food storage status is: ' + (status ? 'Ok' : 'Empty'));
-            if (this.reverse_foodStorage_indicator) {
-                status = !status;
-            }
-            callback(null, status);
+            callback(null, (this.reverse_foodStorage_indicator ? !this.deviceDetailInfo['food'] : this.deviceDetailInfo['food']));
         });
     }
 
     hb_manualLockStatus_get(callback) {
         this.hb_handle_get('hb_manualLockStatus_get', (results) => {
-            // on for off, off for on, same behavior with Petkit app.
-            const status = this.deviceDetailInfo['manualLock'];
-            this.log('device manual lock status is: ' + status);
-            callback(null, status);
+            callback(null, this.deviceDetailInfo['manualLock']);
         });
     }
 
     hb_manualLockStatus_set(value, callback) {
         if (this.fast_response) callback(null);
-        this.hb_handle_set_deviceSettings('manualLock', value, (value) => {
-            // on for off, off for on, same behavior with Petkit app.
-            return value ? 0 : 1;
-        }, (result) => {
+        this.hb_handle_set_deviceSettings('manualLock', (value ? 0 : 1), (result) => {
             if (!this.fast_response) callback(null);
         });
     }
@@ -832,16 +910,14 @@ class petkit_feeder_mini_plugin {
 
     hb_lightModeStatus_set(value, callback) {
         if (this.fast_response) callback(null);
-        this.hb_handle_set_deviceSettings('lightMode', value, null, (result) => {
+        this.hb_handle_set_deviceSettings('lightMode', value, (result) => {
             if (!this.fast_response) callback(null);
         });
     }
 
     hb_deviceBatteryLevel_get(callback) {
         this.hb_handle_get('hb_deviceBatteryLevel_get', (results) => {
-            var status = this.deviceDetailInfo['batteryPower'];
-            this.log('device battery level status is: ' + status);
-            callback(null, status);
+            callback(null, this.deviceDetailInfo['batteryPower']);
         });
     }
 
@@ -850,7 +926,6 @@ class petkit_feeder_mini_plugin {
             const status = (this.deviceDetailInfo['batteryStatus'] == 0 ?
                 Characteristic.ChargingState.CHARGING :
                 Characteristic.ChargingState.NOT_CHARGING);
-            this.log('device charging state status is: ' + status);
             callback(null, status);
         });
     }
@@ -858,10 +933,9 @@ class petkit_feeder_mini_plugin {
     hb_deviceStatusLowBattery_get(callback) {
         this.hb_handle_get('hb_deviceStatusLowBattery_get', (results) => {
             var status = Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
-            if (this.deviceDetailInfo['batteryPower'] <= 50) {
+            if (this.deviceDetailInfo['batteryPower'] < 50) {
                 status = Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
             }
-            this.log('device statue low battery is: ' + status);
             callback(null, status);
         });
     }
