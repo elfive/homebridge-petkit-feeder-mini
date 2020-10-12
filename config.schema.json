@@ -228,7 +228,7 @@
             "items": [
                 {
                     "type": "help",
-                    "helpvalue": "<h5>Description</h5><p>• The HTTP request headers is the key to make this plugin work.<br/>• At least, you must fufill the \"X-Session\" header set.<br/>• You are always supposed to set all the headers you captured, here is a full example:</p><code>X-Client: ios(14.0;iPhone12,3)<br>X-Session: -----YOUR SESSION ID HERE-----<br>Accept: */*<br>X-Timezone: 8.0<br>F-Session: -----SAME AS SESSION ID-----<br>Accept-Language: en-US;q=1, zh-Hans-US;q=0.9<br>Accept-Encoding: gzip, deflate<br>X-Api-Version: 7.18.1<br>Content-Type: application/x-www-form-urlencoded<br>User-Agent: PETKIT/7.18.1 (iPhone; iOS 14.0; Scale/3.00)<br>X-TimezoneId: Asia/Shanghai<br>X-Locale: en_US</code>"
+                    "helpvalue": "<h5>Description</h5><p>• The HTTP request headers is the key to make this plugin work.<br/>• At least, you must fufill the \"X-Session\" header set.<br/>• This plugin will fulfill the headers that you not provide, here is the default headers:</p><code>X-Client: ios(14.0;iPhone12,3)<br>Accept: */*<br>X-Timezone: 8.0<br>F-Session: -----SAME AS X-Session-----<br>Accept-Language: en-US;q=1, zh-Hans-US;q=0.9<br>Accept-Encoding: gzip, deflate<br>X-Api-Version: 7.18.1<br>Content-Type: application/x-www-form-urlencoded<br>User-Agent: PETKIT/7.18.1 (iPhone; iOS 14.0; Scale/3.00)<br>X-TimezoneId: Asia/Shanghai<br>X-Locale: en_US</code>"
                 },
                 {
                     "key": "headers",
