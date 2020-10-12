@@ -133,7 +133,7 @@
             "placeholder": "true"
         },
         "polling_interval": {
-            "title": "update device status interval from Petkit server(s).",
+            "title": "Update device status interval from Petkit server.",
             "required": false,
             "type": "integer",
             "default": 60,
@@ -236,8 +236,14 @@
                     "orderable": false,
                     "buttonText": "Add Header Set",
                     "items": [
-                        "headers[].key",
-                        "headers[].value"
+                        {
+                            "type": "flex",
+                            "flex-flow": "row wrap",
+                            "items": [
+                              "headers[].key",
+                              "headers[].value"
+                            ]
+                        }
                     ]
                 }
             ]
