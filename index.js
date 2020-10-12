@@ -170,7 +170,7 @@ class petkit_feeder_mini_plugin {
         this.replaceHeadersetWithDefault();
 
         // meal, same as petkit app unit. one share stands for 5g or 1/20 cup, ten meal most;
-        this.mealAmount = getConfigValue(this.storagedConfig['mealAmount'], getConfigValue(config['mealAmount'], 3));
+        this.mealAmount = getConfigValue(this.storagedConfig['mealAmount'], 3);
         if (this.mealAmount > max_amount) {
             this.log('mealAmount should not greater than ' + max_amount + ', use ' + max_amount + ' instead');
             this.mealAmount = max_amount;

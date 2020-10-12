@@ -76,15 +76,6 @@
             "required": false,
             "type": "string"
         },
-        "mealAmount": {
-            "title": "default meals amount after Homekit restart",
-            "description": "A meal stands for about 5g or 1/20 cup of food.",
-            "required": false,
-            "type": "integer",
-            "default": 3,
-            "minimum": 1,
-            "maximum": 10
-        },
         "autoDeviceInfo": {
             "title": "Automatically retrieve device info from Petkit server",
             "description": "Only retrieve infomation: timezone, name, SN and firmware version",
@@ -212,7 +203,6 @@
                     "flex-flow": "column",
                     "items": [
                         "name",
-                        "mealAmount",
                         "location",
                         "deviceId"
                     ]
