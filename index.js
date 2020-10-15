@@ -106,6 +106,9 @@ class petkit_feeder_mini_plugin {
         this.lastUpdateTime = 0;
         this.getDeviceDetailEvent = null;
         this.poolToEventEmitter = null;
+        this.storagedConfig = {
+            'mealAmount': 3
+        };
         this.deviceDetailInfo = {
             'food' : 0,
             'batteryPower': 0,
@@ -470,7 +473,7 @@ class petkit_feeder_mini_plugin {
     }
 
     praseGetDeviceDetailInfo(jsonObj) {
-        if (!jsonObj) {
+        if (jsonObj === undefined) {
             this.log.warn('praseGetDeviceDetailInfo error: jsonObj is nothing.');
             return false;
         }
