@@ -117,6 +117,20 @@ you can find X-Session data from the request header area and deviceId in respons
 
 
 
+### service name field
+
+| field name          |  type  | required |                  default                   | description                                                  |
+| :------------------ | :----: | :------: | :----------------------------------------: | ------------------------------------------------------------ |
+| DropMeal_name       | string |  false   |                 'DropMeal'                 | name of DropMeal switch in HomeKit.                          |
+| MealAmount_name     | string |  false   |                'MealAmount'                | name of MealAmount fan speed in HomeKit.                     |
+| FoodStorage_name    | string |  false   | 'FoodStorage_Empty'<br>or<br>'FoodStorage' | name of FoodStorage indicator in HomeKit.<br>Note: if reverse_foodStorage_indicator value is set to true, then the default name is 'FoodStorage_Empty', otherwise 'FoodStorage' |
+| DesiccantLevel_name | string |  false   |              'DesiccantLevel'              | name of DesiccantLevel indicator in HomeKit.                 |
+| ManualLock_name     | string |  false   |                'ManualLock'                | name of ManualLock switch in HomeKit.                        |
+| LightMode_name      | string |  false   |                'LightMode'                 | name of LightMode switch in HomeKit.                         |
+| Battery_name        | string |  false   |                 'Battery'                  | name of Battery indicator in HomeKit.                        |
+
+
+
 ### headers field
 
 | field   name  |  type  | required | default  |   range   | description                                                                                                                                                                                                       |
