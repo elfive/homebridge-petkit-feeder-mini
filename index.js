@@ -942,7 +942,6 @@ class petkit_feeder_mini_plugin {
     hb_lightModeStatus_get(callback) {
         this.hb_handle_get('hb_lightModeStatus_get', (results) => {
             const status = this.deviceDetailInfo['lightMode'];
-            this.log('device light mode status is: ' + status);
             callback(null, status);
         });
     }
