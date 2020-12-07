@@ -202,13 +202,13 @@ class petkit_feeder_mini_plugin {
         // service names
         this.service_names = 
         {
-            'DropMeal': config['DropMeal_name'] || 'DropMeal',
-            'MealAmount': config['MealAmount_name'] || 'MealAmount',
-            'FoodStorage': config['FoodStorage_name'] || (this.reverse_foodStorage_indicator ? 'FoodStorage_Empty': 'FoodStorage'),
-            'DesiccantLevel': config['DesiccantLevel_name'] || 'DesiccantLevel',
-            'ManualLock': config['ManualLock_name'] || 'ManualLock',
-            'LightMode': config['LightMode_name'] || 'LightMode',
-            'Battery': config['Battery_name'] || 'Battery'
+            'DropMeal': getConfigValue(config['DropMeal_name'], 'DropMeal'),
+            'MealAmount': getConfigValue(config['MealAmount_name'], 'MealAmount'),
+            'FoodStorage': getConfigValue(config['FoodStorage_name'], (this.reverse_foodStorage_indicator ? 'FoodStorage_Empty': 'FoodStorage')),
+            'DesiccantLevel': getConfigValue(config['DesiccantLevel_name'], 'DesiccantLevel'),
+            'ManualLock': getConfigValue(config['ManualLock_name'], 'ManualLock'),
+            'LightMode': getConfigValue(config['LightMode_name'], 'LightMode'),
+            'Battery': getConfigValue(config['Battery_name'], 'Battery')
         };
 
         // other settings
