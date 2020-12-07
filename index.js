@@ -120,7 +120,7 @@ class petkit_feeder_mini_plugin {
         };
 
         this.log('begin to initialize petkit feeder mini.');
-        
+
         // location
         if (!config['location'] || !global_urls[config['location']]) {
             this.log.error('wrong value in config.json file: location.');
@@ -199,6 +199,18 @@ class petkit_feeder_mini_plugin {
             this.mealAmount = min_pollint_interval;
         }
 
+        // service names
+        this.service_names = 
+        {
+            'DropMeal': config['DropMeal_name'] || 'DropMeal',
+            'MealAmount': config['MealAmount_name'] || 'MealAmount',
+            'FoodStorage': config['FoodStorage_name'] || (this.reverse_foodStorage_indicator ? 'FoodStorage_Empty': 'FoodStorage'),
+            'DesiccantLevel': config['DesiccantLevel_name'] || 'DesiccantLevel',
+            'ManualLock': config['ManualLock_name'] || 'ManualLock',
+            'LightMode': config['LightMode_name'] || 'LightMode',
+            'Battery': config['Battery_name'] || 'Battery'
+        };
+
         // other settings
         this.enable_manualLock = getConfigValue(config['enable_manualLock'], false);
         this.enable_lightMode = getConfigValue(config['enable_lightMode'], false);
@@ -212,15 +224,19 @@ class petkit_feeder_mini_plugin {
         this.log.debug('begin to initialize homebridge service.');
         var services = [];
 
+        var service_name = null;
+
         // meal drop service
-        this.drop_meal_service = new Service.Switch('DropMeal', 'DropMeal');
+        service_name = this.service_names['DropMeal'];
+        this.drop_meal_service = new Service.Switch(service_name, service_name);
         this.drop_meal_service.getCharacteristic(Characteristic.On)
             .on('get', (callback) => callback(null, 0))
             .on('set', this.hb_dropMeal_set.bind(this));
         services.push(this.drop_meal_service);
 
         // meal amount setting
-        this.meal_amount_service = new Service.Fan('MealAmount', 'MealAmount');
+        service_name = this.service_names['MealAmount'];
+        this.meal_amount_service = new Service.Fan(service_name, service_name);
         this.meal_amount_service.getCharacteristic(Characteristic.On)
             .on('get', (callback) => callback(null, this.mealAmount != 0));
         this.meal_amount_service.getCharacteristic(Characteristic.RotationSpeed)
@@ -234,8 +250,8 @@ class petkit_feeder_mini_plugin {
         services.push(this.meal_amount_service);
 
         // food storage indicator
-        const food_storage_service_name = this.reverse_foodStorage_indicator ? 'FoodStorage_Empty': 'FoodStorage';
-        this.food_storage_service = new Service.OccupancySensor(food_storage_service_name, food_storage_service_name);
+        service_name = this.service_names['FoodStorage'];
+        this.food_storage_service = new Service.OccupancySensor(service_name, service_name);
         this.food_storage_service.setCharacteristic(Characteristic.OccupancyDetected, this.deviceDetailInfo['food'])
         this.food_storage_service.getCharacteristic(Characteristic.OccupancyDetected)
             .on('get', this.hb_foodStorageStatus_get.bind(this));
@@ -243,7 +259,8 @@ class petkit_feeder_mini_plugin {
 
         // desiccant left days
         if (this.enable_desiccant) {
-            this.desiccant_level_service = new Service.FilterMaintenance('DesiccantLevel', 'DesiccantLevel');
+            service_name = this.service_names['DesiccantLevel'];
+            this.desiccant_level_service = new Service.FilterMaintenance(service_name, service_name);
             this.desiccant_level_service.setCharacteristic(Characteristic.FilterChangeIndication, (this.deviceDetailInfo['desiccantLeftDays'] < this.alert_desiccant_threshold ? 1 : 0));
             this.desiccant_level_service.getCharacteristic(Characteristic.FilterChangeIndication)
                 .on('get', this.hb_desiccantIndicator_get.bind(this));
@@ -264,7 +281,8 @@ class petkit_feeder_mini_plugin {
 
         // manualLock setting
         if (this.enable_manualLock) {
-            this.manualLock_service = new Service.Switch('ManualLock', 'ManualLock');
+            service_name = this.service_names['ManualLock'];
+            this.manualLock_service = new Service.Switch(service_name, service_name);
             this.manualLock_service.setCharacteristic(Characteristic.On, this.deviceDetailInfo['manualLock']);
             this.manualLock_service.getCharacteristic(Characteristic.On)
                 .on('get', this.hb_manualLockStatus_get.bind(this))
@@ -274,7 +292,8 @@ class petkit_feeder_mini_plugin {
 
         // lightMode setting
         if (this.enable_lightMode) {
-            this.lightMode_service = new Service.Switch('LightMode', 'LightMode');
+            service_name = this.service_names['LightMode'];
+            this.lightMode_service = new Service.Switch(service_name, service_name);
             this.lightMode_service.setCharacteristic(Characteristic.On, this.deviceDetailInfo['manualLock']);
             this.lightMode_service.getCharacteristic(Characteristic.On)
                 .on('get', this.hb_lightModeStatus_get.bind(this))
@@ -283,7 +302,8 @@ class petkit_feeder_mini_plugin {
         }
 
         // battery status
-        this.battery_status_service = new Service.BatteryService('Battery', 'Battery');
+        service_name = this.service_names['Battery'];
+        this.battery_status_service = new Service.BatteryService(service_name, service_name);
         this.battery_status_service.setCharacteristic(Characteristic.BatteryLevel, this.deviceDetailInfo['batteryPower']);
         this.battery_status_service.getCharacteristic(Characteristic.BatteryLevel)
             .on('get', this.hb_deviceBatteryLevel_get.bind(this));
