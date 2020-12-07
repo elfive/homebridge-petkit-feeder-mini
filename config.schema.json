@@ -12,6 +12,55 @@
             "default": "PetkitFeederMini",
             "placeholder": "PetkitFeederMini"
         },
+        "DropMeal_name": {
+            "title": "DropMeal Service name shows in HomeKit",
+            "required": false,
+            "type": "string",
+            "default": "DropMeal",
+            "placeholder": "DropMeal"
+        },
+        "MealAmount_name": {
+            "title": "MealAmount Service name shows in HomeKit",
+            "required": false,
+            "type": "string",
+            "default": "MealAmount",
+            "placeholder": "MealAmount"
+        },
+        "FoodStorage_name": {
+            "title": "FoodStorage Service name shows in HomeKit",
+            "required": false,
+            "type": "string",
+            "default": "FoodStorage",
+            "placeholder": "FoodStorage"
+        },
+        "DesiccantLevel_name": {
+            "title": "DesiccantLevel Service name shows in HomeKit",
+            "required": false,
+            "type": "string",
+            "default": "DesiccantLevel",
+            "placeholder": "DesiccantLevel"
+        },
+        "ManualLock_name": {
+            "title": "ManualLock Service name shows in HomeKit",
+            "required": false,
+            "type": "string",
+            "default": "ManualLock",
+            "placeholder": "ManualLock"
+        },
+        "LightMode_name": {
+            "title": "LightMode Service name shows in HomeKit",
+            "required": false,
+            "type": "string",
+            "default": "LightMode",
+            "placeholder": "LightMode"
+        },
+        "Battery_name": {
+            "title": "Battery Service name shows in HomeKit",
+            "required": false,
+            "type": "string",
+            "default": "Battery",
+            "placeholder": "Battery"
+        },
         "location": {
             "title": "Server location, set this value corrent is very important becaus user data are not shared between servers.!",
             "description": "• for China mainland users, select 'China mainland'.<br/>• for Asia users select 'Asia'.<br/>• for North America users select 'North America'",
@@ -205,6 +254,28 @@
                         "name",
                         "location",
                         "deviceId"
+                    ]
+                }
+            ]
+        },
+        {
+            "ref": "service_name",
+            "type": "fieldset",
+            "expandable": true,
+            "expanded": true,
+            "title": "Service name settings",
+            "items": [
+                {
+                    "type": "flex",
+                    "flex-flow": "column",
+                    "items": [
+                        "DropMeal_name",
+                        "MealAmount_name",
+                        "FoodStorage_name",
+                        "DesiccantLevel_name",
+                        "ManualLock_name",
+                        "LightMode_name",
+                        "Battery_name"
                     ]
                 }
             ]
