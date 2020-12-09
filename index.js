@@ -30,41 +30,81 @@ const support_settings = Object.freeze({
 });
 
 const global_urls = Object.freeze({
-    'cn': {
-        'owndevices': 'http://api.petkit.cn/6/discovery/device_roster',
-        'deviceState': 'http://api.petkit.cn/6/feedermini/devicestate?id={}',
-        'deviceDetail': 'http://api.petkit.cn/6/feedermini/device_detail?id={}',
-        'saveDailyFeed': 'http://api.petkit.cn/6/feedermini/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
-        'removeDailyFeed': 'http://api.petkit.cn/6/feedermini/remove_dailyfeed?deviceId={}&day={}&id=d{}',
-        'dailyfeeds': 'http://api.petkit.cn/6/feedermini/dailyfeeds?deviceId={}&days={}',
-        'restoreDailyFeeds': 'http://api.petkit.cn/6/feedermini/restore_dailyfeed?deviceId={}&day={}&id=s{}',
-        'disableDailyFeeds': 'http://api.petkit.cn/6/feedermini/remove_dailyfeed?deviceId={}&day={}&id=s{}',
-        'resetDesiccant': 'http://api.petkit.cn/6/feedermini/desiccant_reset?deviceId={}',
-        'updateSettings': 'http://api.petkit.cn/6/feedermini/update?id={}&kv={}',
+    'Petkit feeder mini': {
+        'cn': {
+            'owndevices': 'http://api.petkit.cn/6/discovery/device_roster',
+            'deviceState': 'http://api.petkit.cn/6/feedermini/devicestate?id={}',
+            'deviceDetail': 'http://api.petkit.cn/6/feedermini/device_detail?id={}',
+            'saveDailyFeed': 'http://api.petkit.cn/6/feedermini/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
+            'removeDailyFeed': 'http://api.petkit.cn/6/feedermini/remove_dailyfeed?deviceId={}&day={}&id=d{}',
+            'dailyfeeds': 'http://api.petkit.cn/6/feedermini/dailyfeeds?deviceId={}&days={}',
+            'restoreDailyFeeds': 'http://api.petkit.cn/6/feedermini/restore_dailyfeed?deviceId={}&day={}&id=s{}',
+            'disableDailyFeeds': 'http://api.petkit.cn/6/feedermini/remove_dailyfeed?deviceId={}&day={}&id=s{}',
+            'resetDesiccant': 'http://api.petkit.cn/6/feedermini/desiccant_reset?deviceId={}',
+            'updateSettings': 'http://api.petkit.cn/6/feedermini/update?id={}&kv={}',
+        },
+        'asia':{
+            'owndevices': 'http://api.petktasia.com/latest/discovery/device_roster',
+            'deviceState': 'http://api.petktasia.com/latest/feedermini/devicestate?id={}',
+            'deviceDetail': 'http://api.petktasia.com/latest/feedermini/device_detail?id={}',
+            'saveDailyFeed': 'http://api.petktasia.com/latest/feedermini/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
+            'removeDailyFeed': 'http://api.petktasia.com/latest/feedermini/remove_dailyfeed?deviceId={}&day={}&id=d{}',
+            'dailyfeeds': 'http://api.petktasia.com/latest/feedermini/dailyfeeds?deviceId={}&days={}',
+            'restoreDailyFeeds': 'http://api.petktasia.com/latest/feedermini/restore_dailyfeed?deviceId={}&day={}&id=s{}',
+            'disableDailyFeeds': 'http://api.petktasia.com/latest/feedermini/remove_dailyfeed?deviceId={}&day={}&id=s{}',
+            'resetDesiccant': 'http://api.petktasia.com/latest/feedermini/desiccant_reset?deviceId={}',
+            'updateSettings': 'http://api.petktasia.com/latest/feedermini/update?id={}&kv={}',
+        },
+        'north_america':{
+            'owndevices': 'http://api.petkt.com/latest/discovery/device_roster',
+            'deviceState': 'http://api.petkt.com/latest/feedermini/devicestate?id={}',
+            'deviceDetail': 'http://api.petkt.com/latest/feedermini/device_detail?id={}',
+            'saveDailyFeed': 'http://api.petkt.com/latest/feedermini/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
+            'removeDailyFeed': 'http://api.petkt.com/latest/feedermini/remove_dailyfeed?deviceId={}&day={}&id=d{}',
+            'dailyfeeds': 'http://api.petkt.com/latest/feedermini/dailyfeeds?deviceId={}&days={}',
+            'restoreDailyFeeds': 'http://api.petkt.com/latest/feedermini/restore_dailyfeed?deviceId={}&day={}&id=s{}',
+            'disableDailyFeeds': 'http://api.petkt.com/latest/feedermini/remove_dailyfeed?deviceId={}&day={}&id=s{}',
+            'resetDesiccant': 'http://api.petkt.com/latest/feedermini/desiccant_reset?deviceId={}',
+            'updateSettings': 'http://api.petkt.com/latest/feedermini/update?id={}&kv={}',
+        }
     },
-    'asia':{
-        'owndevices': 'http://api.petktasia.com/latest/discovery/device_roster',
-        'deviceState': 'http://api.petktasia.com/latest/feedermini/devicestate?id={}',
-        'deviceDetail': 'http://api.petktasia.com/latest/feedermini/device_detail?id={}',
-        'saveDailyFeed': 'http://api.petktasia.com/latest/feedermini/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
-        'removeDailyFeed': 'http://api.petktasia.com/latest/feedermini/remove_dailyfeed?deviceId={}&day={}&id=d{}',
-        'dailyfeeds': 'http://api.petktasia.com/latest/feedermini/dailyfeeds?deviceId={}&days={}',
-        'restoreDailyFeeds': 'http://api.petktasia.com/latest/feedermini/restore_dailyfeed?deviceId={}&day={}&id=s{}',
-        'disableDailyFeeds': 'http://api.petktasia.com/latest/feedermini/remove_dailyfeed?deviceId={}&day={}&id=s{}',
-        'resetDesiccant': 'http://api.petktasia.com/latest/feedermini/desiccant_reset?deviceId={}',
-        'updateSettings': 'http://api.petktasia.com/latest/feedermini/update?id={}&kv={}',
-    },
-    'north_america':{
-        'owndevices': 'http://api.petkt.com/latest/discovery/device_roster',
-        'deviceState': 'http://api.petkt.com/latest/feedermini/devicestate?id={}',
-        'deviceDetail': 'http://api.petkt.com/latest/feedermini/device_detail?id={}',
-        'saveDailyFeed': 'http://api.petkt.com/latest/feedermini/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
-        'removeDailyFeed': 'http://api.petkt.com/latest/feedermini/remove_dailyfeed?deviceId={}&day={}&id=d{}',
-        'dailyfeeds': 'http://api.petkt.com/latest/feedermini/dailyfeeds?deviceId={}&days={}',
-        'restoreDailyFeeds': 'http://api.petkt.com/latest/feedermini/restore_dailyfeed?deviceId={}&day={}&id=s{}',
-        'disableDailyFeeds': 'http://api.petkt.com/latest/feedermini/remove_dailyfeed?deviceId={}&day={}&id=s{}',
-        'resetDesiccant': 'http://api.petkt.com/latest/feedermini/desiccant_reset?deviceId={}',
-        'updateSettings': 'http://api.petkt.com/latest/feedermini/update?id={}&kv={}',
+    'Petkit element feeder': {
+        'cn': {
+            'owndevices': 'http://api.petkit.cn/6/discovery/device_roster',
+            'deviceState': 'http://api.petkit.cn/6/feeder/devicestate?id={}',
+            'deviceDetail': 'http://api.petkit.cn/6/feeder/device_detail?id={}',
+            'saveDailyFeed': 'http://api.petkit.cn/6/feeder/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
+            'removeDailyFeed': 'http://api.petkit.cn/6/feeder/remove_dailyfeed?deviceId={}&day={}&id=d{}',
+            'dailyfeeds': 'http://api.petkit.cn/6/feeder/dailyfeeds?deviceId={}&days={}',
+            'restoreDailyFeeds': 'http://api.petkit.cn/6/feeder/restore_dailyfeed?deviceId={}&day={}&id=s{}',
+            'disableDailyFeeds': 'http://api.petkit.cn/6/feeder/remove_dailyfeed?deviceId={}&day={}&id=s{}',
+            'resetDesiccant': 'http://api.petkit.cn/6/feeder/desiccant_reset?deviceId={}',
+            'updateSettings': 'http://api.petkit.cn/6/feeder/update?id={}&kv={}',
+        },
+        'asia':{
+            'owndevices': 'http://api.petktasia.com/latest/discovery/device_roster',
+            'deviceState': 'http://api.petktasia.com/latest/feedermini/devicestate?id={}',
+            'deviceDetail': 'http://api.petktasia.com/latest/feedermini/device_detail?id={}',
+            'saveDailyFeed': 'http://api.petktasia.com/latest/feedermini/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
+            'removeDailyFeed': 'http://api.petktasia.com/latest/feedermini/remove_dailyfeed?deviceId={}&day={}&id=d{}',
+            'dailyfeeds': 'http://api.petktasia.com/latest/feedermini/dailyfeeds?deviceId={}&days={}',
+            'restoreDailyFeeds': 'http://api.petktasia.com/latest/feedermini/restore_dailyfeed?deviceId={}&day={}&id=s{}',
+            'disableDailyFeeds': 'http://api.petktasia.com/latest/feedermini/remove_dailyfeed?deviceId={}&day={}&id=s{}',
+            'resetDesiccant': 'http://api.petktasia.com/latest/feedermini/desiccant_reset?deviceId={}',
+            'updateSettings': 'http://api.petktasia.com/latest/feedermini/update?id={}&kv={}',
+        },
+        'north_america':{
+            'owndevices': 'http://api.petkt.com/latest/discovery/device_roster',
+            'deviceState': 'http://api.petkt.com/latest/feedermini/devicestate?id={}',
+            'deviceDetail': 'http://api.petkt.com/latest/feedermini/device_detail?id={}',
+            'saveDailyFeed': 'http://api.petkt.com/latest/feedermini/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
+            'removeDailyFeed': 'http://api.petkt.com/latest/feedermini/remove_dailyfeed?deviceId={}&day={}&id=d{}',
+            'dailyfeeds': 'http://api.petkt.com/latest/feedermini/dailyfeeds?deviceId={}&days={}',
+            'restoreDailyFeeds': 'http://api.petkt.com/latest/feedermini/restore_dailyfeed?deviceId={}&day={}&id=s{}',
+            'disableDailyFeeds': 'http://api.petkt.com/latest/feedermini/remove_dailyfeed?deviceId={}&day={}&id=s{}',
+            'resetDesiccant': 'http://api.petkt.com/latest/feedermini/desiccant_reset?deviceId={}',
+            'updateSettings': 'http://api.petkt.com/latest/feedermini/update?id={}&kv={}',
+        }
     }
 });
 
@@ -119,15 +159,25 @@ class petkit_feeder_mini_plugin {
             'meals': {}
         };
 
-        this.log('begin to initialize petkit feeder mini.');
+        // model
+        this.model = getConfigValue(config['model'], 'Petkit feeder mini');
+        if (!global_urls[this.model])
+        {
+            this.log.error('wrong value in config.json file: model.');
+            return;
+        }
+        this.log('begin to initialize ' + this.model);
 
         // location
-        if (!config['location'] || !global_urls[config['location']]) {
+        if (!config['location'] ||
+            !global_urls[this.model][config['location']]) {
             this.log.error('wrong value in config.json file: location.');
             return;
         }
         this.location = config['location'];
-        this.urls = global_urls[config['location']];
+
+        // urls
+        this.urls = global_urls[this.model][this.location];
 
         // http request headers
         if (config['headers'] === undefined) {
@@ -160,7 +210,6 @@ class petkit_feeder_mini_plugin {
         this.serialNumber = getConfigValue(config['sn'], 'PetkitFeederMini');
         this.firmware = getConfigValue(config['firmware'], getConfigValue(packageConfig['version'], '1.0.0'));
         this.manufacturer = getConfigValue(config['manufacturer'], 'Petkit');
-        this.model = getConfigValue(config['model'], 'Petkit feeder mini');
 
         this.autoDeviceInfo = getConfigValue(config['autoDeviceInfo'], false);
         if (this.autoDeviceInfo && this.dePromise(this.http_getDeviceInfo())) {
@@ -217,7 +266,7 @@ class petkit_feeder_mini_plugin {
         this.reverse_foodStorage_indicator = getConfigValue(config['reverse_foodStorage_indicator'], false);
         this.fast_response = getConfigValue(config['fast_response'], false);
 
-        this.log('petkit feeder mini loaded successfully.');
+        this.log(this.model + ' loaded successfully.');
     }
 
     getServices() {
@@ -468,7 +517,7 @@ class petkit_feeder_mini_plugin {
             this.log.warn('praseGetDeviceResult error: jsonObj is nothing.');
             return false;
         }
-        this.log.debug(JSON.stringify(jsonObj));
+        this.log(JSON.stringify(jsonObj));
 
         if (!jsonObj.hasOwnProperty('result')) {
             this.log.warn('JSON.parse error with:' + jsonObj);
@@ -487,13 +536,25 @@ class petkit_feeder_mini_plugin {
 
         var devices = [];
         jsonObj.result.devices.forEach((item, index) => {
-            if (item.type == 'FeederMini' && item.data) {
-                devices.push(item.data);
+            this.log('server return a device model name: ' + item.type);
+            if (this.model == 'Petkit element feeder')
+            {
+                // TODO currently don't know the device model
+                if (item.type == 'Feeder' && item.data) {
+                    devices.push(item.data);
+                }
             }
+            else if (this.model == 'Petkit feeder mini')
+            {
+                if (item.type == 'FeederMini' && item.data) {
+                    devices.push(item.data);
+                }
+            }
+
         });
 
         if (devices.length === 0) {
-            this.log('seems you does not owned a Petkit feeder mini, this plugin only works for Petkit feeder mini, sorry.');
+            this.log('seems you does not owned a ' + this.model + ', sorry.');
             return false;
         } else if (devices.length === 1) {
             this.log.debug(JSON.stringify(devices[0]));
@@ -502,7 +563,7 @@ class petkit_feeder_mini_plugin {
             const devicesIds = devices.map((device) => {
                 return { 'id': device.id, 'name': device.name };
             });
-            this.log.error('seems that you ownd more than one feeder mini');
+            this.log.error('seems that you ownd more than one ' + this.model);
             this.log.error('do you mean one of this: ' + JSON.stringify(devicesIds));
             return false;
         }
