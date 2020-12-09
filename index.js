@@ -30,7 +30,7 @@ const support_settings = Object.freeze({
 });
 
 const global_urls = Object.freeze({
-    'Petkit feeder mini': {
+    'Petkit Feeder mini': {
         'cn': {
             'owndevices': 'http://api.petkit.cn/6/discovery/device_roster',
             'deviceState': 'http://api.petkit.cn/6/feedermini/devicestate?id={}',
@@ -68,7 +68,7 @@ const global_urls = Object.freeze({
             'updateSettings': 'http://api.petkt.com/latest/feedermini/update?id={}&kv={}',
         }
     },
-    'Petkit element feeder': {
+    'Petkit Element Feeder': {
         'cn': {
             'owndevices': 'http://api.petkit.cn/6/discovery/device_roster',
             'deviceState': 'http://api.petkit.cn/6/feeder/devicestate?id={}',
@@ -142,6 +142,7 @@ function getConfigValue(original, default_value) {
 class petkit_feeder_mini_plugin {
     constructor(log, config) {
         this.log = log;
+        this.init_ok = false;
         this.headers = {};
         this.lastUpdateTime = 0;
         this.getDeviceDetailEvent = null;
@@ -160,7 +161,7 @@ class petkit_feeder_mini_plugin {
         };
 
         // model
-        this.model = getConfigValue(config['model'], 'Petkit feeder mini');
+        this.model = getConfigValue(config['model'], 'Petkit Feeder mini');
         if (!global_urls[this.model])
         {
             this.log.error('wrong value in config.json file: model.');
@@ -267,9 +268,13 @@ class petkit_feeder_mini_plugin {
         this.fast_response = getConfigValue(config['fast_response'], false);
 
         this.log(this.model + ' loaded successfully.');
+        this.init_ok = true;
     }
 
     getServices() {
+        if (!this.init_ok)
+            return;
+
         this.log.debug('begin to initialize homebridge service.');
         var services = [];
 
@@ -537,14 +542,14 @@ class petkit_feeder_mini_plugin {
         var devices = [];
         jsonObj.result.devices.forEach((item, index) => {
             this.log('server return a device model name: ' + item.type);
-            if (this.model == 'Petkit element feeder')
+            if (this.model == 'Petkit Element Feeder')
             {
                 // TODO currently don't know the device model
                 if (item.type == 'Feeder' && item.data) {
                     devices.push(item.data);
                 }
             }
-            else if (this.model == 'Petkit feeder mini')
+            else if (this.model == 'Petkit Feeder mini')
             {
                 if (item.type == 'FeederMini' && item.data) {
                     devices.push(item.data);

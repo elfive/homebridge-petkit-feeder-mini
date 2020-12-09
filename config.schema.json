@@ -162,11 +162,11 @@
             "description": "• for Petkit Element feeder users, select 'Petkit-Element-Feeder'.<br/>• for Petkit Feeder mini users select 'Petkit-Feeder-Mini'",
             "required": true,
             "type": "string",
-            "default": "Petkit feeder mini",
+            "default": "Petkit Feeder mini",
             "placeholder": "Petkit-Feeder-Mini",
             "oneOf": [
-                { "title": "Petkit-Element-Feeder", "enum": ["Petkit element feeder"] },
-                { "title": "Petkit-Feeder-Mini", "enum": ["Petkit feeder mini"] }
+                { "title": "Petkit-Element-Feeder", "enum": ["Petkit Element Feeder"] },
+                { "title": "Petkit-Feeder-Mini", "enum": ["Petkit Feeder mini"] }
             ]
         },
         "enable_polling": {
