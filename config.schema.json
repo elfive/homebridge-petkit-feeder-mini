@@ -12,18 +12,6 @@
             "default": "PetkitFeederMini",
             "placeholder": "PetkitFeederMini"
         },
-        "deviceModel": {
-            "title": "Petkit feeder model(test version only)",
-            "description": "• for Petkit Element feeder users, select 'Petkit-Element-Feeder'.<br/>• for Petkit Feeder mini users select 'Petkit-Feeder-Mini'",
-            "required": true,
-            "type": "string",
-            "default": "element",
-            "placeholder": "Petkit-Element-Feeder",
-            "oneOf": [
-                { "title": "Petkit-Element-Feeder", "enum": ["element"] },
-                { "title": "Petkit-Feeder-Mini", "enum": ["mini"] }
-            ]
-        },
         "DropMeal_name": {
             "title": "DropMeal Service name shows in HomeKit",
             "required": false,
@@ -170,12 +158,16 @@
             "placeholder": "1.0.0"
         },
         "model": {
-            "title": "Model shows in homekit app",
-            "description": "The model of your device.",
-            "required": false,
+            "title": "Petkit feeder model, also shows in homekit app(test version only)",
+            "description": "• for Petkit Element feeder users, select 'Petkit-Element-Feeder'.<br/>• for Petkit Feeder mini users select 'Petkit-Feeder-Mini'",
+            "required": true,
             "type": "string",
             "default": "Petkit feeder mini",
-            "placeholder": "1.0.0"
+            "placeholder": "Petkit-Feeder-Mini",
+            "oneOf": [
+                { "title": "Petkit-Element-Feeder", "enum": ["Petkit element feeder"] },
+                { "title": "Petkit-Feeder-Mini", "enum": ["Petkit feeder mini"] }
+            ]
         },
         "enable_polling": {
             "title": "Automatically update device status from Petkit server",
@@ -264,7 +256,7 @@
                     "flex-flow": "column",
                     "items": [
                         "name",
-                        "deviceModel",
+                        "model",
                         "location",
                         "deviceId"
                     ]
@@ -332,8 +324,7 @@
                 "autoDeviceInfo",
                 "sn",
                 "firmware",
-                "manufacturer",
-                "model"
+                "manufacturer"
             ]
         },
         {
