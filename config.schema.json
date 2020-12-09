@@ -12,6 +12,18 @@
             "default": "PetkitFeederMini",
             "placeholder": "PetkitFeederMini"
         },
+        "deviceModel": {
+            "title": "Petkit feeder model(test version only)",
+            "description": "• for Petkit Element feeder users, select 'Petkit-Element-Feeder'.<br/>• for Petkit Feeder mini users select 'Petkit-Feeder-Mini'",
+            "required": true,
+            "type": "string",
+            "default": "element",
+            "placeholder": "Petkit-Element-Feeder",
+            "oneOf": [
+                { "title": "Petkit-Element-Feeder", "enum": ["element"] },
+                { "title": "Petkit-Feeder-Mini", "enum": ["mini"] }
+            ]
+        },
         "DropMeal_name": {
             "title": "DropMeal Service name shows in HomeKit",
             "required": false,
@@ -252,6 +264,7 @@
                     "flex-flow": "column",
                     "items": [
                         "name",
+                        "deviceModel",
                         "location",
                         "deviceId"
                     ]
