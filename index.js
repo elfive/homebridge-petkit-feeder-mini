@@ -740,7 +740,7 @@ class petkit_feeder_mini_plugin {
                     this.getDeviceDetailEvent.emit('finished', getDeviceDetailResult);
                     this.getDeviceDetailEvent = null;
                     resolve(getDeviceDetailResult);
-                    setTimeout(this.notifyHomebridgeInfoUpdated, 200);
+                    setTimeout(this.notifyHomebridgeInfoUpdated.bind(this), 200);
                 });
             } else {
                 this.log.debug('too close to last update time, pass');
@@ -879,9 +879,9 @@ class petkit_feeder_mini_plugin {
                 this.log('drop food with zero amount, pass.');
             }
             
-            setTimeout(function() {
+            setTimeout(() => {
                 this.drop_meal_service.setCharacteristic(Characteristic.On, false);
-            }.bind(this), 200);
+            }, 200);
         }
         this.updataDeviceDetail();
     }
@@ -942,7 +942,6 @@ class petkit_feeder_mini_plugin {
     hb_lightModeStatus_get(callback) {
         this.hb_handle_get('hb_lightModeStatus_get', (results) => {
             const status = this.deviceDetailInfo['lightMode'];
-            this.log('device light mode status is: ' + status);
             callback(null, status);
         });
     }
