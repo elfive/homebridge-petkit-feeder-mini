@@ -725,6 +725,7 @@ class petkit_feeder_mini_plugin {
             if (currentTimestamp - this.lastUpdateTime > min_fetch_status_interval &&
                 this.getDeviceDetailEvent === null) {
                 this.getDeviceDetailEvent = new event.EventEmitter();
+                this.getDeviceDetailEvent.setMaxListeners(0);
                 Promise.all([
                     this.http_getDeviceInfo(),
                     // this.http_getDeviceDailyFeeds()
