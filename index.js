@@ -343,6 +343,16 @@ class petkit_feeder_mini_plugin {
     readStoragedConfigFromFile(callback = null) {
         var result = {};
         try {
+            var parse_rawdata = (rawdata) => {
+                result = JSON.parse(rawdata);
+                if (result[this.deviceId] !== undefined) {
+                    result = result[this.deviceId];
+                } else {
+                    result = {};
+                }
+                return result;
+            };
+
             if (this.deviceId) {
                 const filePath = api.user.storagePath() + '/petkit_feeder_mini.json';
 
@@ -352,13 +362,13 @@ class petkit_feeder_mini_plugin {
                         if (error) {
                             this.log.error('readstoragedConfigFromFile failed: ' + error);
                         } else {
-                            result = JSON.parse(rawdata);
+                            result = parse_rawdata(rawdata);
                         }
                     });
                 } else {
                     if (!fs.existsSync(filePath)) return {};
                     const rawdata = fs.readFileSync(filePath);
-                    result = JSON.parse(rawdata);
+                    result = parse_rawdata(rawdata);
                 }
             }
         } catch (error) {
@@ -373,19 +383,34 @@ class petkit_feeder_mini_plugin {
     }
 
     saveStoragedConfigToFile(callback = null) {
+        var result = false;
         try {
             if (this.deviceId) {
                 const filePath = api.user.storagePath() + '/petkit_feeder_mini.json';
-                    const rawdata = JSON.stringify(this.storagedConfig);
+                var data = {};
+                data[this.deviceId] = this.storagedConfig;
+                const rawdata = JSON.stringify(data);
                 if (callback) {
-                    fs.writeFile(filePath, rawdata, callback);
+                    fs.writeFile(filePath, rawdata, (err) => {
+                        if (!err) {
+                            result = true;
+                        } else {
+                            this.log.error('saveStoragedConfigToFile failed: ' + err);
+                        }
+                    });
                 } else {
                     fs.writeFileSync(filePath, rawdata);
-                    return true;
+                    result = true;
                 }
             }
         } catch (error) {
             this.log.warn('saveStoragedConfigToFile failed: ' + error);
+        } finally {
+            if (callback) {
+                callback(result);
+            } else {
+                return result;
+            }
         }
     }
 
