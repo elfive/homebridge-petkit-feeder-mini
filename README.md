@@ -74,7 +74,7 @@ Goto App Store, download Petkit mobile app, register, login, add device. before 
 - <strong>capture on Windows:</strong><br/>
   sorry guys, I didnot have a widows device...so if you have a good tutorial, please let me know.
 
-
+_you can goto <a href="https://github.com/elfive/homebridge-petkit-feeder-mini/wiki#how-to-capture-http-netflow">this</a> wiki page to find more detail._
 
 ### Finally, retrieve infomation.
 
