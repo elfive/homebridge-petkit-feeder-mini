@@ -490,23 +490,30 @@ class petkit_feeder_mini_plugin {
 
     praseGetDeviceResult(jsonObj) {
         if (!jsonObj) {
-            this.log.warn('praseGetDeviceResult error: jsonObj is nothing.');
+            this.log.error('praseGetDeviceResult error: jsonObj is nothing.');
             return false;
         }
-        this.log.debug(JSON.stringify(jsonObj));
+        const jsonStr = JSON.stringify(jsonObj);
+        this.log.debug(jsonStr);
+
+        if (jsonObj.hasOwnProperty('error')) {
+            this.log.error('server reply an error: ' + JSON.stringify(jsonObj));
+            this.log.error('you may need to check your X-Session and other header configure');
+            return false;
+        }
 
         if (!jsonObj.hasOwnProperty('result')) {
-            this.log.warn('JSON.parse error with:' + jsonObj);
+            this.log.error('JSON.parse error with:' + jsonStr);
             return false;
         }
 
         if (!jsonObj.result.hasOwnProperty('devices')) {
-            this.log.warn('JSON.parse error with:' + jsonObj);
+            this.log.error('JSON.parse error with:' + jsonStr);
             return false;
         }
 
         if (jsonObj.result.devices.length === 0) {
-            this.log('seems you\'re not owned a device.');
+            this.log.error('seems you\'re not owned a device.');
             return false;
         }
 
@@ -518,7 +525,7 @@ class petkit_feeder_mini_plugin {
         });
 
         if (devices.length === 0) {
-            this.log('seems you does not owned a Petkit feeder mini, this plugin only works for Petkit feeder mini, sorry.');
+            this.log.error('seems you does not owned a Petkit feeder mini, this plugin only works for Petkit feeder mini, sorry.');
             return false;
         } else if (devices.length === 1) {
             this.log.debug(JSON.stringify(devices[0]));
@@ -535,11 +542,17 @@ class petkit_feeder_mini_plugin {
 
     praseGetDeviceDetailInfo(jsonObj) {
         if (jsonObj === undefined) {
-            this.log.warn('praseGetDeviceDetailInfo error: jsonObj is nothing.');
+            this.log.error('praseGetDeviceDetailInfo error: jsonObj is nothing.');
             return false;
         }
         const jsonStr = JSON.stringify(jsonObj);
         this.log.debug(jsonStr);
+
+        if (jsonObj.hasOwnProperty('error')) {
+            this.log.error('server reply an error: ' + jsonStr);
+            this.log.error('you may need to check your X-Session and other header configure');
+            return false;
+        }
 
         if (this.deviceDetailInfo['name'] === undefined && jsonObj['name'] !== undefined)
             this.deviceDetailInfo['name'] = jsonObj['name'];
@@ -591,19 +604,20 @@ class petkit_feeder_mini_plugin {
 
     praseUpdateDeviceSettingsResult(jsonObj) {
         if (!jsonObj) {
-            this.log.warn('praseUpdateDeviceSettingsResult error: jsonObj is nothing.');
+            this.log.error('praseUpdateDeviceSettingsResult error: jsonObj is nothing.');
             return false;
         }
         const jsonStr = JSON.stringify(jsonObj);
         this.log.debug(jsonStr);
 
         if (jsonObj.hasOwnProperty('error')) {
-            this.log.warn(jsonObj.error.msg);
+            this.log.error('server reply an error: ' + jsonStr);
+            this.log.error('you may need to check your X-Session and other header configure');
             return false;
         }
 
         if (!jsonObj.hasOwnProperty('result')) {
-            this.log.warn('JSON.parse error with:' + jsonStr);
+            this.log.error('JSON.parse error with:' + jsonStr);
             return false;
         }
 
@@ -612,19 +626,20 @@ class petkit_feeder_mini_plugin {
 
     praseSaveDailyFeedResult(jsonObj) {
         if (!jsonObj) {
-            this.log.warn('praseSaveDailyFeedResult error: jsonObj is nothing.');
+            this.log.error('praseSaveDailyFeedResult error: jsonObj is nothing.');
             return false;
         }
         const jsonStr = JSON.stringify(jsonObj);
         this.log.debug(jsonStr);
 
         if (jsonObj.hasOwnProperty('error')) {
-            this.log.warn(jsonObj.error.msg);
+            this.log.error('server reply an error: ' + jsonStr);
+            this.log.error('you may need to check your X-Session and other header configure');
             return false;
         }
 
         if (!jsonObj.hasOwnProperty('result')) {
-            this.log.warn('JSON.parse error with:' + jsonStr);
+            this.log.error('JSON.parse error with:' + jsonStr);
             return false;
         }
 
@@ -641,10 +656,10 @@ class petkit_feeder_mini_plugin {
             if (this.enable_desiccant) {
                 if (this.enable_autoreset_desiccant) {
                     if (this.deviceDetailInfo.desiccantLeftDays < this.reset_desiccant_threshold) {
-                        this.log('desiccant only ' + this.deviceDetailInfo.desiccantLeftDays + 'days left, reset it.');
+                        this.log.debug('desiccant only ' + this.deviceDetailInfo.desiccantLeftDays + 'days left, reset it.');
                         this.hb_desiccantLeftDays_reset(null);
                     } else {
-                        this.log('desiccant has '+ this.deviceDetailInfo.desiccantLeftDays +' days left, no need to reset.');
+                        this.log.debug('desiccant has '+ this.deviceDetailInfo.desiccantLeftDays +' days left, no need to reset.');
                     }
                 } else {
                     this.log.debug('desiccant auto reset function is disabled.');
