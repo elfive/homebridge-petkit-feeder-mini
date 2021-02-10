@@ -531,8 +531,8 @@ class petkit_feeder_mini_plugin {
             this.log.debug(JSON.stringify(devices[0]));
             return devices[0].id;
         } else {
-            let match_id = devices.find(device => device.id == this.deviceId);
-            if (undefined === match_id) {
+            let match_device = devices.find(device => device.id == this.deviceId);
+            if (undefined === match_device) {
                 const devicesIds = devices.map((device) => {
                     return { 'id': device.id, 'name': device.name };
                 });
@@ -540,7 +540,7 @@ class petkit_feeder_mini_plugin {
                 this.log.error('do you mean one of this: ' + JSON.stringify(devicesIds));
                 return false;
             }
-            return match_id;
+            return match_device.id;
         }
     }
 
