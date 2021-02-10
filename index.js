@@ -531,12 +531,16 @@ class petkit_feeder_mini_plugin {
             this.log.debug(JSON.stringify(devices[0]));
             return devices[0].id;
         } else {
-            const devicesIds = devices.map((device) => {
-                return { 'id': device.id, 'name': device.name };
-            });
-            this.log.error('seems that you ownd more than one feeder mini');
-            this.log.error('do you mean one of this: ' + JSON.stringify(devicesIds));
-            return false;
+            let match_id = devices.find(device => device.id == this.deviceId);
+            if (undefined === match_id) {
+                const devicesIds = devices.map((device) => {
+                    return { 'id': device.id, 'name': device.name };
+                });
+                this.log.error('seems that you ownd more than one feeder mini, but the device id you set is not here.');
+                this.log.error('do you mean one of this: ' + JSON.stringify(devicesIds));
+                return false;
+            }
+            return match_id;
         }
     }
 
