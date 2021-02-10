@@ -1,10 +1,11 @@
 {
   "name": "homebridge-petkit-feeder-mini",
-  "version": "1.10.0",
+  "version": "1.10.1",
   "description": "control your petkit feeder mini to feed your lovely pet.",
   "main": "index.js",
   "scripts": {
-    "test": "./node_modules/homebridge/bin/homebridge -P ./ -I -U ./.homebridge"
+    "test-homebridge": "/usr/bin/homebridge -P ./ -I -U /var/lib/homebridge",
+    "test": "echo Ok."
   },
   "keywords": [
     "petkit",
