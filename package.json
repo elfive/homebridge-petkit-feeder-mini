@@ -1,6 +1,6 @@
 {
   "name": "homebridge-petkit-feeder-mini",
-  "version": "1.10.3",
+  "version": "1.10.4",
   "description": "control your petkit feeder mini to feed your lovely pet.",
   "main": "index.js",
   "scripts": {
@@ -36,7 +36,7 @@
   },
   "homepage": "https://github.com/elfive/homebridge-petkit-feeder-mini#readme",
   "funding": {
-    "type" : "paypal",
-    "url" : "https://paypal.me/iamelfive"
+    "type": "paypal",
+    "url": "https://paypal.me/iamelfive"
   }
 }
