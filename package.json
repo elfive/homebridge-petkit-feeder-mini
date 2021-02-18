@@ -34,5 +34,9 @@
   "bugs": {
     "url": "https://github.com/elfive/homebridge-petkit-feeder-mini/issues"
   },
-  "homepage": "https://github.com/elfive/homebridge-petkit-feeder-mini#readme"
+  "homepage": "https://github.com/elfive/homebridge-petkit-feeder-mini#readme",
+  "funding": {
+    "type" : "paypal",
+    "url" : "https://paypal.me/iamelfive"
+  }
 }
