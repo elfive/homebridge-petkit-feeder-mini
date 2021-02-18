@@ -65,16 +65,7 @@ Goto App Store, download Petkit mobile app, register, login, add device. before 
 
 ### Secondly, prepare to capture Petkit app http request.
 
-- <strong>Capture on mobile:</strong><br/>
-  you could use iOS app like "Quantumult X" or other app you like which can capture http netflow.
-
-- <strong>capture on Mac:</strong><br/>
-  I did not do this on my Mac, Mac capture tutorial may available laterly. but at this time, you could just find some webpage which will help you get it done, like <a href="https://learning.postman.com/docs/sending-requests/capturing-request-data/capturing-http-requests/">this one</a>.
-
-- <strong>capture on Windows:</strong><br/>
-  sorry guys, I didnot have a widows device...so if you have a good tutorial, please let me know.
-
-_you can goto <a href="https://github.com/elfive/homebridge-petkit-feeder-mini/wiki#how-to-capture-http-netflow">this</a> wiki page to find more detail._
+Please goto <a href="https://github.com/elfive/homebridge-petkit-feeder-mini/wiki#how-to-capture-http-netflow">this</a> wiki page to find more detail.
 
 ### Finally, retrieve infomation.
 
