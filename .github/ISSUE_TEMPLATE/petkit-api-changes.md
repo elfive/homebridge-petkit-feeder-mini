@@ -1,5 +1,5 @@
 ---
-name: Peikit API changes
+name: Petkit API changes
 about: Possiable when Petkit chages it's API and causes this plugin failes
 title: Petkit API changes. [update needed]
 labels: help wanted
