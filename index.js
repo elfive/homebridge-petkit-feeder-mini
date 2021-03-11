@@ -11,6 +11,9 @@ const format = require('string-format');
 const dayjs = require('dayjs');
 const pollingtoevent = require('polling-to-event');
 
+const logUtil = require('./utils/log');
+const configUtil = require('./utils/config');
+
 const default_headers = Object.freeze({
     'X-Client': 'ios(14.0;iPhone12,3)',
     'Accept': '*/*',
@@ -101,7 +104,9 @@ function getConfigValue(original, default_value) {
 
 class petkit_feeder_mini_plugin {
     constructor(log, config) {
-        this.log = log;
+        // this.config = new configUtil(config);
+        this.log = new logUtil(log, this.config.fulfill('log_level', logUtil.LOGLV_INFO));
+
         this.headers = {};
         this.lastUpdateTime = 0;
         this.getDeviceDetailEvent = null;
@@ -119,7 +124,7 @@ class petkit_feeder_mini_plugin {
             'meals': {}
         };
 
-        this.log('begin to initialize petkit feeder mini.');
+        this.log.info('begin to initialize petkit feeder mini.');
 
         // location
         if (!config['location'] || !global_urls[config['location']]) {
@@ -150,7 +155,7 @@ class petkit_feeder_mini_plugin {
             this.log.warn('use '+ devices + ' instead of ' + this.deviceId);
             this.deviceId = devices;
         } else {
-            this.log('found you just ownd one feeder mini with deviceId: '+ devices);
+            this.log.info('found you just ownd one feeder mini with deviceId: '+ devices);
             this.deviceId = devices;
         }
         this.storagedConfig = this.readStoragedConfigFromFile();
@@ -175,10 +180,10 @@ class petkit_feeder_mini_plugin {
         // meal, same as petkit app unit. one share stands for 5g or 1/20 cup, ten meal most;
         this.mealAmount = getConfigValue(this.storagedConfig['mealAmount'], 3);
         if (this.mealAmount > max_amount) {
-            this.log('mealAmount should not greater than ' + max_amount + ', use ' + max_amount + ' instead');
+            this.log.info('mealAmount should not greater than ' + max_amount + ', use ' + max_amount + ' instead');
             this.mealAmount = max_amount;
         } else if (this.mealAmount < min_amount) {
-            this.log('mealAmount should not less than ' + min_amount + ', use ' + min_amount + ' instead');
+            this.log.info('mealAmount should not less than ' + min_amount + ', use ' + min_amount + ' instead');
             this.mealAmount = min_amount;
         }
 
@@ -192,10 +197,10 @@ class petkit_feeder_mini_plugin {
         this.enable_polling = getConfigValue(config['enable_polling'], true);
         this.polling_interval = getConfigValue(config['polling_interval'], min_pollint_interval);
         if (this.polling_interval > max_pollint_interval) {
-            this.log('mealAmount should not greater than ' + max_pollint_interval + ', use ' + max_pollint_interval + ' instead');
+            this.log.info('mealAmount should not greater than ' + max_pollint_interval + ', use ' + max_pollint_interval + ' instead');
             this.mealAmount = max_pollint_interval;
         } else if (this.polling_interval < min_pollint_interval) {
-            this.log('mealAmount should not less than ' + min_pollint_interval + ', use ' + min_pollint_interval + ' instead');
+            this.log.info('mealAmount should not less than ' + min_pollint_interval + ', use ' + min_pollint_interval + ' instead');
             this.mealAmount = min_pollint_interval;
         }
 
@@ -217,7 +222,7 @@ class petkit_feeder_mini_plugin {
         this.reverse_foodStorage_indicator = getConfigValue(config['reverse_foodStorage_indicator'], false);
         this.fast_response = getConfigValue(config['fast_response'], false);
 
-        this.log('petkit feeder mini loaded successfully.');
+        this.log.info('petkit feeder mini loaded successfully.');
     }
 
     getServices() {
@@ -431,11 +436,11 @@ class petkit_feeder_mini_plugin {
 
             setTimeout(() => {
                 this.poolToEventEmitter = pollingtoevent((done) => {
-                    this.log('polling start...');
+                    this.log.info('polling start...');
                     this.http_getDeviceDetailStatus()
                     .then((result) => {
                         done(null, result);
-                        this.log('polling end...');
+                        this.log.info('polling end...');
                     }).catch((error) => {});
                 }, polling_options);
     
@@ -451,7 +456,7 @@ class petkit_feeder_mini_plugin {
         try {
             result = deasyncPromise(promise);
         } catch(err) {
-            this.log('dePromise error: ' + err);
+            this.log.info('dePromise error: ' + err);
         } finally {
             return result;
         }
@@ -670,7 +675,7 @@ class petkit_feeder_mini_plugin {
                 }
             }
         } catch(err) {
-            this.log('notifyHomebridgeInfoUpdated error: ' + err);
+            this.log.info('notifyHomebridgeInfoUpdated error: ' + err);
         } finally {
 
         }
@@ -881,7 +886,7 @@ class petkit_feeder_mini_plugin {
             }).then(() => {
                 if (callback) callback(result);
                 if (result) {
-                    this.log('set ' + settingName + ' to: ' + status + ', success');
+                    this.log.info('set ' + settingName + ' to: ' + status + ', success');
                 } else {
                     this.log.warn('set ' + settingName + ' to: ' + status + ', failed');
                 }
@@ -893,7 +898,7 @@ class petkit_feeder_mini_plugin {
         if (this.fast_response) callback(null);
         this.mealAmount = value;
         this.storagedConfig['mealAmount'] = value;
-        this.log('set meal amount to ' + value);
+        this.log.info('set meal amount to ' + value);
         this.saveStoragedConfigToFile((this.fast_response ? null : callback));
     }
 
@@ -902,7 +907,7 @@ class petkit_feeder_mini_plugin {
         this.log.debug('hb_dropMeal_set');
         if (value) {
             if (this.mealAmount) {
-                this.log('drop food:' + this.mealAmount + ' meal(s)');
+                this.log.info('drop food:' + this.mealAmount + ' meal(s)');
 
                 var result = false;
                 this.http_saveDailyFeed(this.mealAmount, -1)
@@ -911,7 +916,7 @@ class petkit_feeder_mini_plugin {
                             this.log.error('failed to commuciate with server.');
                         } else {
                             result = this.praseSaveDailyFeedResult(data);
-                            this.log('food drop result: ' + result ? 'success' : 'failed');
+                            this.log.info('food drop result: ' + result ? 'success' : 'failed');
                         }
                     })
                     .catch((error) => {
@@ -921,7 +926,7 @@ class petkit_feeder_mini_plugin {
                         if (!this.fast_response) callback(null);
                     });
             } else {
-                this.log('drop food with zero amount, pass.');
+                this.log.info('drop food with zero amount, pass.');
             }
             
             setTimeout(() => {
@@ -952,9 +957,9 @@ class petkit_feeder_mini_plugin {
             .then((data) => {
                 if (data && data['result']) {
                     this.deviceDetailInfo['desiccantLeftDays'] = data['result'];
-                    this.log('reset desiccant left days success, left days reset to ' + data['result'] + ' days');
+                    this.log.info('reset desiccant left days success, left days reset to ' + data['result'] + ' days');
                 } else {
-                    this.log('reset desiccant left days with a unrecognized return.');
+                    this.log.info('reset desiccant left days with a unrecognized return.');
                 }
             })
             .catch((error) => {
