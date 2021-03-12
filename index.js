@@ -3,6 +3,7 @@
 let PlatformAccessory, Accessory, Service, Characteristic, UUIDGen;
 
 const format = require('string-format');
+const axios = require('axios');
 const logUtil = require('./utils/log');
 const configUtil = require('./utils/config');
 
@@ -44,7 +45,7 @@ const globalVariables = Object.freeze({
         'cn': {
             'owndevices': 'http://api.petkit.cn/6/discovery/device_roster',
             'deviceState': 'http://api.petkit.cn/6/feedermini/devicestate?id={}',
-            'deviceDetail': 'http://api.petkit.cn/6/feedermini/device_detail?id={}',
+            'deviceInfo': 'http://api.petkit.cn/6/feedermini/device_detail?id={}',
             'saveDailyFeed': 'http://api.petkit.cn/6/feedermini/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
             'removeDailyFeed': 'http://api.petkit.cn/6/feedermini/remove_dailyfeed?deviceId={}&day={}&id=d{}',
             'dailyfeeds': 'http://api.petkit.cn/6/feedermini/dailyfeeds?deviceId={}&days={}',
@@ -56,7 +57,7 @@ const globalVariables = Object.freeze({
         'asia':{
             'owndevices': 'http://api.petktasia.com/latest/discovery/device_roster',
             'deviceState': 'http://api.petktasia.com/latest/feedermini/devicestate?id={}',
-            'deviceDetail': 'http://api.petktasia.com/latest/feedermini/device_detail?id={}',
+            'deviceInfo': 'http://api.petktasia.com/latest/feedermini/device_detail?id={}',
             'saveDailyFeed': 'http://api.petktasia.com/latest/feedermini/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
             'removeDailyFeed': 'http://api.petktasia.com/latest/feedermini/remove_dailyfeed?deviceId={}&day={}&id=d{}',
             'dailyfeeds': 'http://api.petktasia.com/latest/feedermini/dailyfeeds?deviceId={}&days={}',
@@ -68,7 +69,7 @@ const globalVariables = Object.freeze({
         'north_america':{
             'owndevices': 'http://api.petkt.com/latest/discovery/device_roster',
             'deviceState': 'http://api.petkt.com/latest/feedermini/devicestate?id={}',
-            'deviceDetail': 'http://api.petkt.com/latest/feedermini/device_detail?id={}',
+            'deviceInfo': 'http://api.petkt.com/latest/feedermini/device_detail?id={}',
             'saveDailyFeed': 'http://api.petkt.com/latest/feedermini/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
             'removeDailyFeed': 'http://api.petkt.com/latest/feedermini/remove_dailyfeed?deviceId={}&day={}&id=d{}',
             'dailyfeeds': 'http://api.petkt.com/latest/feedermini/dailyfeeds?deviceId={}&days={}',
@@ -163,7 +164,6 @@ class petkit_feeder_mini_plugin {
             }
         }
 
-        // optional configure items
         for (const [key, value] of Object.entries(globalVariables.default_headers)) {
             fulfill_headerset(config_headers, key, value);
         }
@@ -175,6 +175,10 @@ class petkit_feeder_mini_plugin {
         });
         conf.set('headers', http_headers)
 
+        // urls
+        conf.set('urls', globalVariables.global_urls[location]);
+
+        // optional configure items
         conf.fulfill('name', 'PetkitFeederMini');
         conf.fulfill('autoDeviceInfo', false);
         conf.fulfill('sn', 'PetkitFeederMini');
@@ -226,8 +230,6 @@ class petkit_feeder_mini_plugin {
         let accessory = accessoryData.accessory;
         let config = accessoryData.config;  // instance of configUtil
         let service_name = undefined;
-
-
 
         // setup meal drop service
         if (true) {
@@ -451,12 +453,229 @@ class petkit_feeder_mini_plugin {
             });
         }
 
-        let accessory = accessoryData.accessory;
-        if (this.setupAccessory(accessoryData)) {
-            // all service setup success, now update accessory
-            this.accessories.set(uuid, accessory);
-            this.api.registerPlatformAccessories(pluginName, platformName, [accessory]);
+        // get deviceId from server
+        let validDeviceId = undefined;
+        this.http_getOwnDevice(accessoryData)
+            .then(raw_data => {
+                const user_deviceId = accessoryData.config.get('deviceId');
+                const owned_devices = this.praseGetOwnedDevice(raw_data);
+                if (owned_devices.length === 0) {
+                    this.log.error('seems you does not owned a Petkit feeder mini, this plugin only works for Petkit feeder mini, sorry.');
+                } else if (owned_devices.length === 1) {
+                    if (!user_deviceId || owned_devices[0].id === user_deviceId) {
+                        this.log.info('found you ownd one feeder mini with deviceId: '+ owned_devices[0].id);
+                    } else {
+                        this.log.warn('found you just ownd one feeder mini with deviceId: '+ owned_devices[0].id);
+                        this.log.warn('which is not the same with the deviceId you set: '+ user_deviceId);
+                        this.log.warn('will use '+ owned_devices[0].id + ' instead');
+                    }
+                    validDeviceId = owned_devices[0].id;
+                } else {
+                    let match_device = owned_devices.find(device => user_deviceId && device.id === user_deviceId);
+                    if (undefined === match_device) {
+                        const devicesIds = owned_devices.map((device) => {
+                            return { 'id': device.id, 'name': device.name };
+                        });
+                        this.log.error('seems that you ownd more than one feeder mini, but the device id you set is not here.');
+                        this.log.error('do you mean one of this: ' + JSON.stringify(devicesIds));
+                    } else {
+                        this.log.info('found you ownd one feeder mini with deviceId: '+ match_device.id);
+                        validDeviceId = match_device.id;
+                    }
+                }
+            })
+            .catch((err) => {
+                this.log.error('unable to determine whether the deviceId you set is valid: ' + err);
+            })
+            .then(() => {
+                if (validDeviceId) {
+                    accessoryData.config.set('deviceId', validDeviceId);
+                    if (this.setupAccessory(accessoryData)) {
+                        // all service setup success, now update accessory
+                        if (!this.accessories.get(uuid)) {
+                            this.api.registerPlatformAccessories(pluginName, platformName, [accessoryData.accessory]);
+                        }
+                        this.accessories.set(uuid, accessoryData.accessory);
+                    }
+                }
+            });
+
+
+    }
+    
+    praseGetOwnedDevice(jsonObj) {
+        if (!jsonObj) {
+            this.log.error('praseGetOwnedDevice error: jsonObj is nothing.');
+            return false;
         }
+        const jsonStr = JSON.stringify(jsonObj);
+        this.log.debug(jsonStr);
+
+        if (jsonObj.hasOwnProperty('error')) {
+            this.log.error('server reply an error: ' + JSON.stringify(jsonObj));
+            this.log.error('you may need to check your X-Session and other header configure');
+            return false;
+        }
+
+        if (!jsonObj.hasOwnProperty('result')) {
+            this.log.error('JSON.parse error with:' + jsonStr);
+            return false;
+        }
+
+        if (!jsonObj.result.hasOwnProperty('devices')) {
+            this.log.error('JSON.parse error with:' + jsonStr);
+            return false;
+        }
+
+        if (jsonObj.result.devices.length === 0) {
+            this.log.error('seems you\'re not owned a device.');
+            return false;
+        }
+
+        var valid_devices = [];
+        jsonObj.result.devices.forEach((item, index) => {
+            if (item.type == 'FeederMini' && item.data) {
+                valid_devices.push(item.data);
+            }
+        });
+
+        return valid_devices;
+    }
+
+    async http_post(options) {
+        return new Promise((resolve) => {
+            var result = false;
+            axios.request(options)
+                .then((response) => {
+                    if (response.status != 200) {
+                        const error = 'post request success, but received a invalid response code: ' + response.status;
+                        this.log.error(error);
+                    } else {
+                        this.log.debug('post request success')
+                        result = response.data;
+                    }
+                })
+                .catch((error) => {
+                    this.log.error('post request failed: ' + error);
+                })
+                .then(() => {
+                    resolve(result);
+                });
+        });
+    }
+
+    async http_getOwnDevice(accessoryData) {
+        const url = accessoryData.config.get('urls').owndevices;
+        const options = {
+            url: url,
+            method: 'POST',
+            headers: accessoryData.config.get('headers'),
+            responseType: 'json'
+        };
+        return await this.http_post(options);
+    }
+
+    async http_getDeviceInfo(accessoryData) {
+        const deviceId = accessoryData.config.get('deviceId');
+        const url_template = accessoryData.config.get('urls').deviceInfo;
+        const url = format(url_template, deviceId);
+        const options = {
+            url: url,
+            method: 'POST',
+            headers: accessoryData.config.get('headers'),
+            responseType: 'json'
+        };
+        return await this.http_post(options);
+    }
+
+    async http_getDeviceDailyFeeds(accessoryData) {
+        const date = getDataString();
+        const deviceId = accessoryData.config.get('deviceId');
+        const url_template = accessoryData.config.get('urls').dailyfeeds;
+        const url = format(url_template, deviceId, date);
+        const options = {
+            url: url,
+            method: 'POST',
+            headers: accessoryData.config.get('headers'),
+            responseType: 'json'
+        };
+        return await this.http_post(options);
+    }
+
+    async http_getDeviceState(accessoryData) {
+        // {
+        //     "result": {
+        //         "batteryPower":4,"batteryStatus":0,"desiccantLeftDays":6,
+        //         "errorPriority":0,"feeding":0,"food":1,"ota":0,"overall":1,
+        //         "pim":1,"runtime":49677,"wifi":{
+        //             "bssid":"xxxxxxxxxxxx","rsq":-37,"ssid":"xxxxxxxxxx"
+        //         }
+        //     }
+        // }
+        const deviceId = accessoryData.config.get('deviceId');
+        const url_template = accessoryData.config.get('urls').deviceState;
+        const url = format(url_template, deviceId);
+        const options = {
+            url: url,
+            method: 'POST',
+            headers: accessoryData.config.get('headers'),
+            responseType: 'json'
+        };
+        return await this.http_post(options);
+    }
+
+    async http_getDeviceDetailStatus(accessoryData) {
+        const data = await Promise.all([this.http_getDeviceInfo(accessoryData), this.http_getDeviceDailyFeeds(accessoryData)])
+        return {'deviceInfo': data[0], 'dailyfeeds': data[1]};
+    }
+
+    // date：20200920、time: 68400(-1 stand for current)、amount in app unit，1 for 5g, 10 is max(50g)
+    async http_saveDailyFeed(accessoryData, amount, time) {
+        const date = getDataString();
+        const deviceId = accessoryData.config.get('deviceId');
+        const url_template = accessoryData.config.get('urls').saveDailyFeed;
+        const url = format(url_template, deviceId, date, time, amount * 5);
+        const options = {
+            url: url,
+            method: 'POST',
+            headers: accessoryData.config.get('headers'),
+            responseType: 'json'
+        };
+        return await this.http_post(options);
+    }
+
+    // key see support_settings.
+    async http_updateDeviceSettings(accessoryData, key, value) {
+        const setting_key = globalVariables.support_settings[key];
+        if (setting_key !== undefined) {
+            const data = {setting_key: value};
+            const deviceId = accessoryData.config.get('deviceId');
+            const url_template = accessoryData.config.get('urls').updateSettings;
+            const url = format(url_template, deviceId, JSON.stringify(data));
+            const options = {
+                url: url,
+                method: 'POST',
+                headers: accessoryData.config.get('headers'),
+                responseType: 'json'
+            };
+            return await this.http_post(options);
+        } else {
+            this.log.warn('unsupport setting: ' + key);
+            return false;
+        }
+    }
+
+    async http_resetDesiccant() {
+        const deviceId = accessoryData.config.get('deviceId');
+        const url_template = accessoryData.config.get('urls').resetDesiccant;
+        const url = format(url_template, deviceId);
+        const options = {
+            url: url,
+            method: 'POST',
+            headers: accessoryData.config.get('headers'),
+            responseType: 'json'
+        };
+        return await this.http_post(options);
     }
     
     hb_mealAmount_set(accessoryData, value, callback) {
