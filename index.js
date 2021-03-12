@@ -5,25 +5,75 @@ let PlatformAccessory, Accessory, Service, Characteristic, UUIDGen;
 
 const logUtil = require('./utils/log');
 const configUtil = require('./utils/config');
-const petkit_feeder_mini = require('./device/petkit_feeder_mini');
 
-module.exports = function (homebridge) {
-    PlatformAccessory = homebridge.platformAccessory;
-    Accessory = homebridge.hap.Accessory;
-    Service = homebridge.hap.Service;
-    Characteristic = homebridge.hap.Characteristic;
-    UUIDGen = homebridge.hap.uuid;
+const pluginName = 'homebridge-petkit-feeder-mini';
+const platformName = 'petkit_feeder_mini';
 
-    homebridge.registerPlatform('homebridge-petkit-feeder-mini', 'petkit_feeder_mini', petkit_feeder_mini_plugin, true);
-}
-
-function getTimestamp() {
-    return Math.floor(Date.now() / 1000);
-}
-
-function getDataString() {
-    return dayjs(new Date()).format('YYYYMMDD');
-}
+const globalVariables = Object.freeze({
+    'default_headers': {
+        'X-Client': 'ios(14.0;iPhone12,3)',
+        'Accept': '*/*',
+        'X-Timezone': '8.0',
+        'Accept-Language': 'en-US;q=1, zh-Hans-US;q=0.9',
+        'Accept-Encoding': 'gzip, deflate',
+        'X-Api-Version': '7.18.1',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'PETKIT/7.18.1 (iPhone; iOS 14.0; Scale/3.00)',
+        'X-TimezoneId': 'Asia/Shanghai',
+        'X-Locale': 'en_US'
+    },
+    'support_settings': {
+        'manualLock' : 'settings.manualLock',      // 1 for off, 0 for on
+        'lightMode' : 'settings.lightMode',
+    },
+    'global_urls': {
+        'cn': {
+            'owndevices': 'http://api.petkit.cn/6/discovery/device_roster',
+            'deviceState': 'http://api.petkit.cn/6/feedermini/devicestate?id={}',
+            'deviceDetail': 'http://api.petkit.cn/6/feedermini/device_detail?id={}',
+            'saveDailyFeed': 'http://api.petkit.cn/6/feedermini/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
+            'removeDailyFeed': 'http://api.petkit.cn/6/feedermini/remove_dailyfeed?deviceId={}&day={}&id=d{}',
+            'dailyfeeds': 'http://api.petkit.cn/6/feedermini/dailyfeeds?deviceId={}&days={}',
+            'restoreDailyFeeds': 'http://api.petkit.cn/6/feedermini/restore_dailyfeed?deviceId={}&day={}&id=s{}',
+            'disableDailyFeeds': 'http://api.petkit.cn/6/feedermini/remove_dailyfeed?deviceId={}&day={}&id=s{}',
+            'resetDesiccant': 'http://api.petkit.cn/6/feedermini/desiccant_reset?deviceId={}',
+            'updateSettings': 'http://api.petkit.cn/6/feedermini/update?id={}&kv={}',
+        },
+        'asia':{
+            'owndevices': 'http://api.petktasia.com/latest/discovery/device_roster',
+            'deviceState': 'http://api.petktasia.com/latest/feedermini/devicestate?id={}',
+            'deviceDetail': 'http://api.petktasia.com/latest/feedermini/device_detail?id={}',
+            'saveDailyFeed': 'http://api.petktasia.com/latest/feedermini/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
+            'removeDailyFeed': 'http://api.petktasia.com/latest/feedermini/remove_dailyfeed?deviceId={}&day={}&id=d{}',
+            'dailyfeeds': 'http://api.petktasia.com/latest/feedermini/dailyfeeds?deviceId={}&days={}',
+            'restoreDailyFeeds': 'http://api.petktasia.com/latest/feedermini/restore_dailyfeed?deviceId={}&day={}&id=s{}',
+            'disableDailyFeeds': 'http://api.petktasia.com/latest/feedermini/remove_dailyfeed?deviceId={}&day={}&id=s{}',
+            'resetDesiccant': 'http://api.petktasia.com/latest/feedermini/desiccant_reset?deviceId={}',
+            'updateSettings': 'http://api.petktasia.com/latest/feedermini/update?id={}&kv={}',
+        },
+        'north_america':{
+            'owndevices': 'http://api.petkt.com/latest/discovery/device_roster',
+            'deviceState': 'http://api.petkt.com/latest/feedermini/devicestate?id={}',
+            'deviceDetail': 'http://api.petkt.com/latest/feedermini/device_detail?id={}',
+            'saveDailyFeed': 'http://api.petkt.com/latest/feedermini/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
+            'removeDailyFeed': 'http://api.petkt.com/latest/feedermini/remove_dailyfeed?deviceId={}&day={}&id=d{}',
+            'dailyfeeds': 'http://api.petkt.com/latest/feedermini/dailyfeeds?deviceId={}&days={}',
+            'restoreDailyFeeds': 'http://api.petkt.com/latest/feedermini/restore_dailyfeed?deviceId={}&day={}&id=s{}',
+            'disableDailyFeeds': 'http://api.petkt.com/latest/feedermini/remove_dailyfeed?deviceId={}&day={}&id=s{}',
+            'resetDesiccant': 'http://api.petkt.com/latest/feedermini/desiccant_reset?deviceId={}',
+            'updateSettings': 'http://api.petkt.com/latest/feedermini/update?id={}&kv={}',
+        }
+    },
+    'min_amount': 0,                   // in meal(same in app)
+    'max_amount': 10,                  // in meal(same in app)
+    'min_desiccantLeftDays': 0,        // in day
+    'max_desiccantLeftDays': 30,       // in day
+    'min_batteryLevel': 0,             // level(same in app)
+    'max_batteryLevel': 4,             // level(same in app)
+    'min_pollint_interval': 60,        // in second
+    'max_pollint_interval': 3600,      // in second
+    'min_fetch_status_interval': 10,   // in second
+});
 
 class petkit_feeder_mini_plugin {
     constructor(log, config, api) {
@@ -43,13 +93,15 @@ class petkit_feeder_mini_plugin {
         this.api = api;
         this.accessories = new Map();
 
-        // Listen to event "didFinishLaunching", this means homebridge already finished loading cached accessories.
-        // Platform Plugin should only register new accessory that doesn't exist in homebridge after this event.
-        // Or start discover new accessories.
+        // When this event is fired, homebridge restored all cached accessories from disk and did call their respective
+        // `configureAccessory` method for all of them. Dynamic Platform plugins should only register new accessories
+        // after this event was fired, in order to ensure they weren't added to homebridge already.
+        // This event can also be used to start discovery of new accessories.
         this.api.on('didFinishLaunching', () => {
             // check config usability
             config.devices.forEach((device_config) => {
-                const config = this.configDeviceCheck(device_config);
+                // probably parse config or something here
+                const config = this.configCheck(device_config);
                 if (config) {
                     this.initializeAccessory(config);
                 }
@@ -59,76 +111,47 @@ class petkit_feeder_mini_plugin {
         this.log.info('petkit feeder platform loaded successfully.');
     }
 
-    // REQUIRED - Homebridge will call the "configureAccessory" method once for every cached accessory restored
-    configureAccessory(accessory) {
-        this.log.info('Configuring cached accessory: [' + accessory.displayName + '] ' + ' ' + accessory.UUID + '');
-        this.accessories.set(accessory.UUID, accessory);
+    // check and modify configure value
+    // @prama config: config Object from config.json
+    // @return: if success return instance of configUtil or failed return undefined;
+    configCheck(config) {
+        const conf = new configUtil(config);
+        
+
+
+        return conf;
     }
 
-    // configure example
-    // {
-    //     "name": "小佩喂食器",
-    //     "DropMeal_name": "出粮",
-    //     "MealAmount_name": "出粮数量",
-    //     "FoodStorage_name": "余量",
-    //     "DesiccantLevel_name": "干燥剂指示器",
-    //     "ManualLock_name": "手动出粮锁",
-    //     "LightMode_name": "灯光",
-    //     "Battery_name": "电池状态",
-    //     "location": "cn",
-    //     "headers": [
-    //         {
-    //             "key": "X-Session",
-    //             "value": "a9b3cde11db74b23bf7649fbac0db526XskdkHA4AOmFe9JU0slG"
-    //         },
-    //         {
-    //             "key": "X-Timezone",
-    //             "value": "8.0"
-    //         }
-    //     ],
-    //     "autoDeviceInfo": true,
-    //     "sn": "PetkitFeederMini",
-    //     "firmware": "1.0.0",
-    //     "manufacturer": "Petkit",
-    //     "model": "Petkit feeder mini",
-    //     "enable_polling": true,
-    //     "polling_interval": 60,
-    //     "enable_desiccant": true,
-    //     "alert_desiccant_threshold": 7,
-    //     "enable_autoreset_desiccant": true,
-    //     "reset_desiccant_threshold": 5,
-    //     "enable_manualLock": true,
-    //     "enable_lightMode": true,
-    //     "reverse_foodStorage_indicator": true,
-    //     "fast_response": true,
-    //     "accessory": "petkit_feeder_mini"
-    // }
+    // REQUIRED - Homebridge will call the "configureAccessory" method once for every cached accessory restored
+    // This function is invoked when homebridge restores cached accessories from disk at startup.
+    // It should be used to setup event handlers for characteristics and update respective values.
+    configureAccessory(accessory) {
+        this.log.info('Configuring cached accessory: [' + accessory.displayName + ']  ' + accessory.UUID);
+        const accessoryData = {
+            'accessory': accessory,
+            'config' : undefined,
+            'status': undefined
+        };
+        this.accessories.set(accessory.UUID, accessoryData);
+    }
 
-    // initialize one accessory
-    initializeAccessory(config) {
-        this.log.debug('Initializing petkit device: ' + config.name);
+    setupAccessory(accessoryData) {
+        let accessory = accessoryData.accessory;
+        let config = accessoryData.config;  // instance of configUtil
+        let status = accessoryData.status;
 
-        const uuid = UUIDGen.generate(config.name);
-        let accessory = this.accessories.get(uuid);
-
-        if (!accessory) {
-            // accessory not exists, create accessory
-            accessory = new this.api.platformAccessory(config.name, uuid, config.name);
-            if (!accessory) {
-                this.log.error('petkit device service create failed: accessory');
-                return;
-            }
-        }
+        let service_name = undefined;
 
         // setup meal drop service
         if (true) {
-            let drop_meal_service = accessory.getService(config.DropMeal_name);
+            service_name = config.get('DropMeal_name');
+            let drop_meal_service = accessory.getService(service_name);
             if (!drop_meal_service) {
                 // service not exist, create service
-                drop_meal_service = accessory.addService(Service.Switch, config.DropMeal_name, config.DropMeal_name);
+                drop_meal_service = accessory.addService(Service.Switch, service_name, service_name);
                 if (!drop_meal_service) {
                     this.log.error('petkit device service create failed: drop_meal_service');
-                    return;
+                    return false;
                 }
             }
 
@@ -139,13 +162,14 @@ class petkit_feeder_mini_plugin {
 
         // setup meal amount service
         if (true) {
-            let meal_amount_service = accessory.getService(config.MealAmount_name);
+            service_name = config.get('MealAmount_name');
+            let meal_amount_service = accessory.getService(service_name);
             if (!meal_amount_service) {
                 // service not exist, create service
-                meal_amount_service = accessory.addService(Service.Fan, config.MealAmount_name, config.MealAmount_name);
+                meal_amount_service = accessory.addService(Service.Fan, service_name, service_name);
                 if (!meal_amount_service) {
                     this.log.error('petkit device service create failed: meal_amount_service');
-                    return;
+                    return false;
                 }
             }
 
@@ -155,21 +179,22 @@ class petkit_feeder_mini_plugin {
                 .on('get', (callback) => callback(null, this.mealAmount))
                 .on('set', this.hb_mealAmount_set.bind(this))
                 .setProps({
-                    minValue: min_amount,
-                    maxValue: max_amount,
+                    minValue: globalVariables.min_amount,
+                    maxValue: globalVariables.max_amount,
                     minStep: 1
                 });
         }
 
         // setup food storage indicator service
         if (true) {
-            let food_storage_service = accessory.getService(config.FoodStorage_name);
+            service_name = config.get('FoodStorage_name');
+            let food_storage_service = accessory.getService(service_name);
             if (!food_storage_service) {
                 // service not exist, create service
-                food_storage_service = accessory.addService(Service.OccupancySensor, config.FoodStorage_name, config.FoodStorage_name);
+                food_storage_service = accessory.addService(Service.OccupancySensor, service_name, service_name);
                 if (!food_storage_service) {
                     this.log.error('petkit device service create failed: food_storage_service');
-                    return;
+                    return false;
                 }
             }
 
@@ -179,44 +204,46 @@ class petkit_feeder_mini_plugin {
         }
 
         // setup desiccant left days service
-        if (config.enable_desiccant) {
-            let desiccant_level_service = accessory.getService(config.DesiccantLevel_name);
+        if (config.get('enable_desiccant')) {
+            service_name = config.get('DesiccantLevel_name');
+            let desiccant_level_service = accessory.getService(service_name);
             if (!desiccant_level_service) {
                 // service not exist, create service
-                desiccant_level_service = accessory.addService(Service.FilterMaintenance, config.DesiccantLevel_name, config.DesiccantLevel_name);
+                desiccant_level_service = accessory.addService(Service.FilterMaintenance, service_name, service_name);
                 if (!desiccant_level_service) {
                     this.log.error('petkit device service create failed: desiccant_level_service');
-                    return;
+                    return false;
                 }
             }
-    
+
             desiccant_level_service.setCharacteristic(Characteristic.FilterChangeIndication,
                 (this.deviceDetailInfo['desiccantLeftDays'] < this.alert_desiccant_threshold ? 1 : 0));
             desiccant_level_service.getCharacteristic(Characteristic.FilterChangeIndication)
                 .on('get', this.hb_desiccantIndicator_get.bind(this));
-            
+
             desiccant_level_service.setCharacteristic(Characteristic.FilterLifeLevel, this.deviceDetailInfo['desiccantLeftDays']);
             desiccant_level_service.getCharacteristic(Characteristic.FilterLifeLevel)
                 .on('get', this.hb_desiccantLeftDays_get.bind(this))
                 .setProps({
-                    minValue: min_desiccantLeftDays,
-                    maxValue: max_desiccantLeftDays,
+                    minValue: globalVariables.min_desiccantLeftDays,
+                    maxValue: globalVariables.max_desiccantLeftDays,
                     minStep: 1
                 });
-            
+
             desiccant_level_service.getCharacteristic(Characteristic.ResetFilterIndication)
                 .on('set', this.hb_desiccantLeftDays_reset.bind(this));
         }
 
         // setup manualLock setting service
-        if (config.enable_manualLock) {
-            let manualLock_service = accessory.getService(config.ManualLock_name);
+        if (config.get('enable_manualLock')) {
+            service_name = config.get('ManualLock_name');
+            let manualLock_service = accessory.getService(service_name);
             if (!manualLock_service) {
                 // service not exist, create service
-                manualLock_service = accessory.addService(Service.Switch, config.ManualLock_name, config.ManualLock_name);
+                manualLock_service = accessory.addService(Service.Switch, service_name, service_name);
                 if (!manualLock_service) {
                     this.log.error('petkit device service create failed: manualLock_service');
-                    return;
+                    return false;
                 }
             }
 
@@ -227,17 +254,18 @@ class petkit_feeder_mini_plugin {
         }
 
         // setup lightMode setting service
-        if (config.enable_lightMode) {
-            let lightMode_service = accessory.getService(config.LightMode_name);
+        if (config.get('enable_lightMode')) {
+            service_name = config.get('LightMode_name');
+            let lightMode_service = accessory.getService(service_name);
             if (!lightMode_service) {
                 // service not exist, create service
-                lightMode_service = accessory.addService(Service.OccupancySensor, config.LightMode_name, config.LightMode_name);
+                lightMode_service = accessory.addService(Service.OccupancySensor, service_name, service_name);
                 if (!lightMode_service) {
                     this.log.error('petkit device service create failed: lightMode_service');
-                    return;
+                    return false;
                 }
             }
-            
+
             lightMode_service.setCharacteristic(Characteristic.On, this.deviceDetailInfo['manualLock']);
             lightMode_service.getCharacteristic(Characteristic.On)
                 .on('get', this.hb_manualLockStatus_get.bind(this))
@@ -246,42 +274,44 @@ class petkit_feeder_mini_plugin {
 
         // setup battery status service
         if (true) {
-            let battery_status_service = accessory.getService(config.Battery_name);
+            service_name = config.get('Battery_name');
+            let battery_status_service = accessory.getService(service_name);
             if (!battery_status_service) {
                 // service not exist, create service
-                battery_status_service = accessory.addService(Service.OccupancySensor, config.Battery_name, config.Battery_name);
+                battery_status_service = accessory.addService(Service.OccupancySensor, service_name, service_name);
                 if (!battery_status_service) {
                     this.log.error('petkit device service create failed: battery_status_service');
-                    return;
+                    return false;
                 }
             }
-            
+
             battery_status_service.setCharacteristic(Characteristic.BatteryLevel, this.deviceDetailInfo['batteryPower']);
             battery_status_service.getCharacteristic(Characteristic.BatteryLevel)
                 .on('get', this.hb_deviceBatteryLevel_get.bind(this));
-            
+
             battery_status_service.setCharacteristic(Characteristic.ChargingState, (this.deviceDetailInfo['batteryStatus'] == 0 ?
-                    Characteristic.ChargingState.CHARGING :
-                    Characteristic.ChargingState.NOT_CHARGING));
+                Characteristic.ChargingState.CHARGING :
+                Characteristic.ChargingState.NOT_CHARGING));
             battery_status_service.getCharacteristic(Characteristic.ChargingState)
                 .on('get', this.hb_deviceChargingState_get.bind(this));
-    
+
             battery_status_service.setCharacteristic(Characteristic.StatusLowBattery, (this.deviceDetailInfo['batteryPower'] <= 50 ?
-                    Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW :
-                    Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL));
+                Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW :
+                Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL));
             battery_status_service.getCharacteristic(Characteristic.StatusLowBattery)
                 .on('get', this.hb_deviceStatusLowBattery_get.bind(this));
         }
 
         // setup divice information service
         if (true) {
-            let info_service = accessory.getService('info_service');
+            service_name = 'info_service';
+            let info_service = accessory.getService(service_name);
             if (!info_service) {
                 // service not exist, create service
-                info_service = accessory.addService(Service.AccessoryInformation, 'info_service', 'info_service');
+                info_service = accessory.addService(Service.AccessoryInformation, service_name, service_name);
                 if (!info_service) {
                     this.log.error('petkit device service create failed: info_service');
-                    return;
+                    return false;
                 }
             }
 
@@ -294,17 +324,56 @@ class petkit_feeder_mini_plugin {
                 .setCharacteristic(Characteristic.Name, config.name)
                 .setCharacteristic(Characteristic.FirmwareRevision, config.firmware);
         }
-
-        // all service setup success, now update accessory
-        this.accessories.set(uuid, accessory);
-        this.api.registerPlatformAccessories('homebridge-petkit-feeder-mini', 'petkit_feeder_mini', [accessory]);
     }
 
-    // config usability check
-    // return valid config or null
-    configDeviceCheck(config) {
-        config.name = getConfigValue(config.name, 'PetkitFeederMini');
+    // initialize one accessory
+    // @param config: instance of configUtil
+    initializeAccessory(config) {
+        // uuid must be generated from a unique but not changing data source,
+        // name should not be used in the most cases. But works in this specific example.
+        const accessoryName = config.get('name');
+        const uuid = UUIDGen.generate(accessoryName);
+        let accessoryData = this.accessories.get(uuid);
+        if (!accessoryData) {
+            // accessoryData not exists, create accessoryData and accessory
+            let accessory = new this.api.platformAccessory(accessoryName, uuid, accessoryName);
+            if (!accessory) {
+                this.log.error('petkit device service create failed: accessory');
+                return;
+            }
 
-        return config;
+            accessoryData = {
+                'accessory': accessory,
+                'config' : config,
+                'status': undefined
+            }
+        } else if (!accessoryData.accessory) {
+            // accessory not exists, create accessory
+            let accessory = new this.api.platformAccessory(accessoryName, uuid, accessoryName);
+            if (!accessory) {
+                this.log.error('petkit device service create failed: accessory');
+                return;
+            }
+            accessoryData.accessory = accessory;
+            accessoryData.config = config;
+        } else {
+            accessoryData.config = config;
+        }
+
+        if (this.setupAccessory(accessoryData)) {
+            // all service setup success, now update accessory
+            this.accessories.set(uuid, accessory);
+            this.api.registerPlatformAccessories(pluginName, platformName, [accessory]);
+        }
     }
+}
+
+module.exports = function (homebridge) {
+    PlatformAccessory = homebridge.platformAccessory;
+    Accessory = homebridge.hap.Accessory;
+    Service = homebridge.hap.Service;
+    Characteristic = homebridge.hap.Characteristic;
+    UUIDGen = homebridge.hap.uuid;
+
+    homebridge.registerPlatform(pluginName, platformName, petkit_feeder_mini_plugin, true);
 }
