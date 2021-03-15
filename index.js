@@ -5,6 +5,7 @@ let PlatformAccessory, Accessory, Service, Characteristic, UUIDGen;
 const format = require('string-format');
 const axios = require('axios');
 const dayjs = require('dayjs');
+const pollingtoevent = require('polling-to-event');
 
 const logUtil = require('./utils/log');
 const configUtil = require('./utils/config');
@@ -85,6 +86,9 @@ class AccessoryData {
     constructor() {
         let accessory = undefined;
         this.config = undefined;
+        this.events = {
+            'polling_event': undefined
+        }
         this.services = {
             'drop_meal_service': undefined,
             'meal_amount_service': undefined,
@@ -559,30 +563,18 @@ class petkit_feeder_mini_plugin {
                         accessoryData.config = config;
                     }
 
-                    this.http_getDeviceInfo(accessoryData)
-                        .then(device_detail_raw => {
-                            const deviceDetailInfo = this.praseGetDeviceDetailInfo(device_detail_raw);
-                            if (deviceDetailInfo) {
-                                this.log.debug(JSON.stringify(deviceDetailInfo));
-                                accessoryData.config.set('sn', deviceDetailInfo.sn);
-                                accessoryData.config.set('firmware', deviceDetailInfo.firmware);
-                                // accessoryData.config.set('timezone', deviceDetailInfo.timezone);
-                                accessoryData.status = Object.assign(accessoryData.status, deviceDetailInfo.status);
-                                accessoryData.status.lastUpdate = getTimestamp();
+                    this.http_getDeviceDetailStatus(accessoryData, () => {
+                        if (this.setupAccessory(accessoryData)) {
+                            // all service setup success, now update accessory
+                            if (!this.accessories.get(uuid)) {
+                                this.api.registerPlatformAccessories(pluginName, platformName, [accessoryData.accessory]);
                             }
-                        })
-                        .catch(err => {
-                            this.log.error(format('unable to get device({}) status: {}', accessoryData.config.get('deviceId'), err));
-                        })
-                        .then(() => {
-                            if (this.setupAccessory(accessoryData)) {
-                                // all service setup success, now update accessory
-                                if (!this.accessories.get(uuid)) {
-                                    this.api.registerPlatformAccessories(pluginName, platformName, [accessoryData.accessory]);
-                                }
-                                this.accessories.set(uuid, accessoryData.accessory);
-                            }
-                        });
+                            this.accessories.set(uuid, accessoryData.accessory);
+
+                            // polling
+                            this.setupPolling(accessoryData);
+                        }
+                    });
                 }
             });
     }
@@ -845,11 +837,6 @@ class petkit_feeder_mini_plugin {
         return await this.http_post(options);
     }
 
-    async http_getDeviceDetailStatus(accessoryData) {
-        const data = await Promise.all([this.http_getDeviceInfo(accessoryData), this.http_getDeviceDailyFeeds(accessoryData)])
-        return {'deviceDetailInfo': data[0], 'dailyfeeds': data[1]};
-    }
-
     // date：20200920、time: 68400(-1 stand for current)、amount in app unit，1 for 5g, 10 is max(50g)
     async http_saveDailyFeed(accessoryData, amount, time) {
         const date = getDataString();
@@ -898,6 +885,84 @@ class petkit_feeder_mini_plugin {
             responseType: 'json'
         };
         return await this.http_post(options);
+    }
+
+    async http_getDeviceDetailStatus(accessoryData, callback) {
+        this.http_getDeviceInfo(accessoryData)
+        .then(device_detail_raw => {
+            const deviceDetailInfo = this.praseGetDeviceDetailInfo(device_detail_raw);
+            if (deviceDetailInfo) {
+                this.log.debug(JSON.stringify(deviceDetailInfo));
+                accessoryData.config.set('sn', deviceDetailInfo.sn);
+                accessoryData.config.set('firmware', deviceDetailInfo.firmware);
+                // accessoryData.config.set('timezone', deviceDetailInfo.timezone);
+                accessoryData.status = Object.assign(accessoryData.status, deviceDetailInfo.status);
+                accessoryData.status.lastUpdate = getTimestamp();
+            }
+        })
+        .catch(err => {
+            this.log.error(format('unable to get device({}) status: {}', accessoryData.config.get('deviceId'), err));
+        })
+        .then(callback);
+    }
+    
+    uploadStatusToHomebridge(accessoryData) {
+        let service = undefined;
+        let service_status = undefined;
+
+        // food
+        service = accessoryData.services.food_storage_service;
+        if (accessoryData.status.food) {    // have food
+            service_status = (accessoryData.config.get('reverse_foodStorage_indicator') ? 0 : 1);
+        } else { // no food left
+            service_status = (accessoryData.config.get('reverse_foodStorage_indicator') ? 1 : 0);
+            this.log.warn('there is not enough food left !!!');
+        }
+        service.setCharacteristic(Characteristic.OccupancyDetected, service_status);
+
+        // desiccant
+        if (accessoryData.config.get('enable_desiccant')) {
+            service = accessoryData.services.desiccant_level_service;
+            if (accessoryData.status.desiccantLeftDays < accessoryData.config.get('alert_desiccant_threshold')) {
+                if (accessoryData.config.get('enable_autoreset_desiccant')) {
+                    service_status = Characteristic.FilterChangeIndication.CHANGE_FILTER;
+                    this.log.debug(format('desiccant only {} day(s) left, reset it.', accessoryData.status.desiccantLeftDays));
+                    this.hb_desiccantLeftDays_reset(accessoryData, () => {
+                        service.setCharacteristic(Characteristic.FilterChangeIndication, Characteristic.FilterChangeIndication.FILTER_OK);
+                    });
+                } else {
+                    this.log.debug('desiccant auto reset function is disabled.');
+                }
+            } else {
+                this.log.info(format('desiccant has {} days left, no need to reset.', accessoryData.status.desiccantLeftDays));
+                service_status = Characteristic.FilterChangeIndication.FILTER_OK;
+            }
+            service.setCharacteristic(Characteristic.FilterChangeIndication, service_status);
+        } else {
+            this.log.debug('desiccant service is disabled');
+        }
+    }
+
+    setupPolling(accessoryData) {
+        if (accessoryData.config.get('enable_polling')) {
+            const polling_interval_ms = accessoryData.config.get('polling_interval') * 1000;
+            const polling_options = {
+                longpolling: true,
+                interval: polling_interval_ms,
+                longpollEventName: 'deviceStatusUpdatePoll'
+            };
+    
+            setTimeout(() => {
+                accessoryData.events.polling_event = pollingtoevent((done) => {
+                    this.log.info('polling start...');
+                    this.http_getDeviceDetailStatus(accessoryData, () => {
+                        this.uploadStatusToHomebridge(accessoryData);
+                        this.log.info('polling end...');
+                        done();
+                    });
+                }, polling_options);
+            }, polling_interval_ms)
+        }
     }
 
     hb_handle_set_deviceSettings(accessoryData, settingName, status, callback = null) {
@@ -981,14 +1046,13 @@ class petkit_feeder_mini_plugin {
     hb_desiccantLeftDays_reset(accessoryData, callback) {
         const fast_response = accessoryData.config.get('fast_response');
         if (fast_response && callback) {callback(null);}
-        this.log.debug('hb_desiccantLeftDays_reset');
         this.http_resetDesiccant(accessoryData)
             .then((data) => {
                 if (data && data['result']) {
                     accessoryData.status['desiccantLeftDays'] = data['result'];
                     this.log.info('reset desiccant left days success, left days reset to ' + data['result'] + ' days');
                 } else {
-                    this.log.info('reset desiccant left days with a unrecognized return.');
+                    this.log.warn('reset desiccant left days with a unrecognized return.');
                 }
             })
             .catch((error) => {
