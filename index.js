@@ -4,6 +4,7 @@ let PlatformAccessory, Accessory, Service, Characteristic, UUIDGen;
 
 const format = require('string-format');
 const axios = require('axios');
+const dayjs = require('dayjs');
 const logUtil = require('./utils/log');
 const configUtil = require('./utils/config');
 
@@ -157,6 +158,10 @@ class AccessoryData {
 function getTimestamp() {
     return Math.floor(Date.now() / 1000);
 };
+
+function getDataString() {
+    return dayjs(new Date()).format('YYYYMMDD');
+}
 
 class petkit_feeder_mini_plugin {
     constructor(log, config, api) {
@@ -957,7 +962,7 @@ class petkit_feeder_mini_plugin {
                 this.log.info('drop food:' + accessoryData.savedData.mealAmount + ' meal(s)');
 
                 var result = false;
-                this.http_saveDailyFeed(accessoryData.savedData.mealAmount, -1)
+                this.http_saveDailyFeed(accessoryData, accessoryData.savedData.mealAmount, -1)
                     .then((data) => {
                         if (!data) {
                             this.log.error('failed to commuciate with server.');
@@ -1021,7 +1026,7 @@ class petkit_feeder_mini_plugin {
     }
 
     hb_manualLockStatus_get(accessoryData, callback) {
-        const status = accessoryData.status.manualLock;
+        const status = accessoryData.status.manualLock ? 0 : 1;
         callback(null, status);
     }
 
