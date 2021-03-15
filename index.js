@@ -79,15 +79,17 @@ const globalVariables = Object.freeze({
             'updateSettings': 'http://api.petkt.com/latest/feedermini/update?id={}&kv={}',
         }
     },
-    'min_amount': 0,                   // in meal(same in app)
-    'max_amount': 10,                  // in meal(same in app)
-    'min_desiccantLeftDays': 0,        // in day
-    'max_desiccantLeftDays': 30,       // in day
-    'min_batteryLevel': 0,             // level(same in app)
-    'max_batteryLevel': 4,             // level(same in app)
-    'min_pollint_interval': 60,        // in second
-    'max_pollint_interval': 3600,      // in second
-    'min_fetch_status_interval': 10,   // in second
+    'config': {
+        'min_amount': 0,                   // in meal(same in app)
+        'max_amount': 10,                  // in meal(same in app)
+        'min_desiccantLeftDays': 0,        // in day
+        'max_desiccantLeftDays': 30,       // in day
+        'min_batteryLevel': 0,             // level(same in app)
+        'max_batteryLevel': 4,             // level(same in app)
+        'min_pollint_interval': 60,        // in second
+        'max_pollint_interval': 3600,      // in second
+        'min_fetch_status_interval': 10,   // in second
+    }
 });
 
 class petkit_feeder_mini_plugin {
@@ -188,12 +190,14 @@ class petkit_feeder_mini_plugin {
         conf.fulfill('enable_polling', true);
 
         const polling_interval = conf.get('polling_interval');
-        if (polling_interval < globalVariables.min_pollint_interval) {
-            this.log.warn(format('value of polling_interval({0}) should great than {1}, now using {1} instead', polling_interval, globalVariables.min_pollint_interval));
-            conf.set('polling_interval', globalVariables.min_pollint_interval);
-        } else if (polling_interval > globalVariables.max_pollint_interval) {
-            this.log.warn(format('value of polling_interval({0}) should smaller than {1}, now using {1} instead', polling_interval, globalVariables.max_pollint_interval));
-            conf.set('polling_interval', globalVariables.max_pollint_interval);
+        const min_polling_interval = globalVariables.config.min_pollint_interval;
+        const max_polling_interval = globalVariables.config.max_pollint_interval;
+        if (polling_interval < min_polling_interval) {
+            this.log.warn(format('value of polling_interval({0}) should great than {1}, now using {1} instead', polling_interval, min_polling_interval));
+            conf.set('polling_interval', min_polling_interval);
+        } else if (polling_interval > max_polling_interval) {
+            this.log.warn(format('value of polling_interval({0}) should smaller than {1}, now using {1} instead', polling_interval, max_polling_interval));
+            conf.set('polling_interval', max_polling_interval);
         }
 
         conf.fulfill('enable_manualLock', false);
@@ -268,8 +272,8 @@ class petkit_feeder_mini_plugin {
                 .on('get', (callback) => callback(null, this.mealAmount))
                 .on('set', this.hb_mealAmount_set.bind(this, accessoryData))
                 .setProps({
-                    minValue: globalVariables.min_amount,
-                    maxValue: globalVariables.max_amount,
+                    minValue: globalVariables.config.min_amount,
+                    maxValue: globalVariables.config.max_amount,
                     minStep: 1
                 });
         }
@@ -314,8 +318,8 @@ class petkit_feeder_mini_plugin {
             desiccant_level_service.getCharacteristic(Characteristic.FilterLifeLevel)
                 .on('get', this.hb_desiccantLeftDays_get.bind(this, accessoryData))
                 .setProps({
-                    minValue: globalVariables.min_desiccantLeftDays,
-                    maxValue: globalVariables.max_desiccantLeftDays,
+                    minValue: globalVariables.config.min_desiccantLeftDays,
+                    maxValue: globalVariables.config.max_desiccantLeftDays,
                     minStep: 1
                 });
 
