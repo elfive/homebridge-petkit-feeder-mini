@@ -5,6 +5,7 @@ let PlatformAccessory, Accessory, Service, Characteristic, UUIDGen;
 const format = require('string-format');
 const axios = require('axios');
 const dayjs = require('dayjs');
+
 const logUtil = require('./utils/log');
 const configUtil = require('./utils/config');
 
@@ -129,28 +130,6 @@ class AccessoryData {
     load() {
         if (this.accessory && this.accessory.context) {
             this.savedData = Object.assign(this.savedData, this.accessory.context);
-        }
-    }
-
-    petkitStatusToHbStatus(name, petkitStatus) {
-        let status = undefined;
-        switch (name) {
-            case 'food':
-                status = (this.config.get('reverse_foodStorage_indicator') ? !petkitStatus : petkitStatus);
-                break;
-            default:
-                break;
-        }
-    }
-
-    hbStatusToPetkitStatus(name, hbStatus) {
-        let status = undefined;
-        switch (name) {
-            case 'food':
-                status = (this.config.get('reverse_foodStorage_indicator') ? !accessoryData.status.food : accessoryData.status.food);
-                break;
-            default:
-                break;
         }
     }
 };
@@ -908,7 +887,7 @@ class petkit_feeder_mini_plugin {
         }
     }
 
-    async http_resetDesiccant() {
+    async http_resetDesiccant(accessoryData) {
         const deviceId = accessoryData.config.get('deviceId');
         const url_template = accessoryData.config.get('urls').resetDesiccant;
         const url = format(url_template, deviceId);
@@ -1003,7 +982,7 @@ class petkit_feeder_mini_plugin {
         const fast_response = accessoryData.config.get('fast_response');
         if (fast_response && callback) {callback(null);}
         this.log.debug('hb_desiccantLeftDays_reset');
-        this.http_resetDesiccant()
+        this.http_resetDesiccant(accessoryData)
             .then((data) => {
                 if (data && data['result']) {
                     accessoryData.status['desiccantLeftDays'] = data['result'];
