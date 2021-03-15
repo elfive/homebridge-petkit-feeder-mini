@@ -133,9 +133,12 @@ class petkit_feeder_mini_plugin {
     // @return: if success return instance of configUtil or failed return undefined;
     configCheck(config) {
         const fulfill_headerset = (headers, key, value) => {
-            let header = headers.find(header => header.key === key);
+            let header = headers.find(header => header.key == key);
             if (undefined === header) {
-                this.log.warn(format('missing header: {0}(note: case sensitive), using \'{1}\' instead.', key, value));
+                this.log.warn(format('missing header: {0}, using \'{1}\' instead.', key, value));
+                headers.push({'key': key, 'value': value});
+            } else if ('' === header) {
+                this.log.warn(format('header \'{0}\' value is empty, using \'{1}\' instead.', key, value));
                 headers.push({'key': key, 'value': value});
             }
         };
