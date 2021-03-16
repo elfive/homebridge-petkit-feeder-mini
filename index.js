@@ -33,6 +33,11 @@ const globalVariables = Object.freeze({
         'X-TimezoneId': 'Asia/Shanghai',
         'X-Locale': 'en_US'
     },
+    'default_http_options': {
+        'method': 'POST',
+        'timeout': 5000,
+        'responseType': 'json'
+    },
     'global_urls': {
         'cn': {
             'owndevices': 'http://api.petkit.cn/6/discovery/device_roster',
@@ -72,6 +77,7 @@ const globalVariables = Object.freeze({
         }
     },
     'config': {
+        'request_retry': 3,                 // http request retry count
         'min_amount': 0,                    // in meal(same in app)
         'max_amount': 10,                   // in meal(same in app)
         'min_desiccantLeftDays': 0,         // in day
@@ -501,35 +507,40 @@ class petkit_feeder_mini_plugin {
         let validDevice = undefined;
         this.http_getOwnDevice(config)
             .then(owned_device_raw => {
-                const user_deviceId = config.get('deviceId');
-                const owned_devices = this.praseGetOwnedDevice(owned_device_raw);
-                if (owned_devices.length === 0) {
-                    this.log.error(format('sorry that this plugin only works with these device type:{}.', JSON.stringify(globalVariables.support_device_type)));
-                } else if (owned_devices.length === 1) {
-                    if (!user_deviceId || owned_devices[0].id === user_deviceId) {
-                        this.log.info(format('found you ownd one {} with deviceId: {}.', owned_devices[0].type, owned_devices[0].id));
+                if (owned_device_raw) {
+                    const user_deviceId = config.get('deviceId');
+                    const owned_devices = this.praseGetOwnedDevice(owned_device_raw);
+                    if (owned_devices.length === 0) {
+                        this.log.error(format('sorry that this plugin only works with these device type:{}.', JSON.stringify(globalVariables.support_device_type)));
+                    } else if (owned_devices.length === 1) {
+                        if (!user_deviceId || owned_devices[0].id === user_deviceId) {
+                            this.log.info(format('found you ownd one {} with deviceId: {}.', owned_devices[0].type, owned_devices[0].id));
+                        } else {
+                            this.log.warn(format('found you just ownd one {} with deviceId: ', owned_devices[0].type , owned_devices[0].id));
+                            this.log.warn(format('which is not the same with the deviceId you set: {}', user_deviceId));
+                            this.log.warn(format('will use {} instead', owned_devices[0].id));
+                        }
+                        validDevice = owned_devices[0];
                     } else {
-                        this.log.warn(format('found you just ownd one {} with deviceId: ', owned_devices[0].type , owned_devices[0].id));
-                        this.log.warn(format('which is not the same with the deviceId you set: {}', user_deviceId));
-                        this.log.warn(format('will use {} instead', owned_devices[0].id));
+                        let match_device = owned_devices.find(device => user_deviceId && device.id === user_deviceId);
+                        if (undefined === match_device) {
+                            const devicesIds = owned_devices.map((device) => {
+                                return { 'id': device.id, 'name': device.name };
+                            });
+                            this.log.error('seems that you ownd more than one feeder, but the device id you set is not here.');
+                            this.log.error(format('do you mean one of this: ', JSON.stringify(devicesIds)));
+                        } else {
+                            this.log.info(format('found you ownd one {} with deviceId: {}', match_device.type, match_device.id));
+                            validDevice = match_device;
+                        }
                     }
-                    validDevice = owned_devices[0];
                 } else {
-                    let match_device = owned_devices.find(device => user_deviceId && device.id === user_deviceId);
-                    if (undefined === match_device) {
-                        const devicesIds = owned_devices.map((device) => {
-                            return { 'id': device.id, 'name': device.name };
-                        });
-                        this.log.error('seems that you ownd more than one feeder, but the device id you set is not here.');
-                        this.log.error(format('do you mean one of this: ', JSON.stringify(devicesIds)));
-                    } else {
-                        this.log.info(format('found you ownd one {} with deviceId: {}', match_device.type, match_device.id));
-                        validDevice = match_device;
-                    }
+                    this.log.error('unable to fetch information from petkit server. skip adding this petkit device.');
                 }
+
             })
-            .catch(err => {
-                this.log.error('unable to determine whether the deviceId you set is valid: ' + err);
+            .catch(error => {
+                this.log.error('unable to determine whether the deviceId you set is valid: ' + error.track);
             })
             .then(() => {
                 if (validDevice) {
@@ -723,50 +734,62 @@ class petkit_feeder_mini_plugin {
         return (jsonObj.result.isExecuted === 1);
     }
 
-    async http_post(options) {
-        return new Promise((resolve) => {
-            let result = undefined;
-            axios.request(options)
-                .then((response) => {
-                    if (response.status != 200) {
-                        const error = 'post request success, but received a invalid response code: ' + response.status;
-                        this.log.error(error);
-                    } else {
-                        this.log.debug('post request success')
-                        result = response.data;
-                    }
-                })
-                .catch((error) => {
-                    this.log.error('post request failed: ' + error);
-                })
-                .then(() => {
-                    resolve(result);
-                });
-        });
+    async http_request(options) {
+        const request_once = async (options) => {
+            return new Promise((resolve) => {
+                let result = undefined;
+                axios.request(options)
+                    .then((response) => {
+                        if (response.status != 200) {
+                            result = {error: 'http request received a invalid response code: ' + response.status};
+                        } else {
+                            this.log.debug('http request success')
+                            result = {data: response.data};
+                        }
+                    })
+                    .catch(error => {
+                        result = {error: 'http request failed: ' + error};
+                    })
+                    .then(() => {
+                        resolve(result);
+                    });
+            });
+        };
+
+        let result = undefined;
+        let retry = 1;
+        const max_retry = globalVariables.config.request_retry;
+        do {
+            result = await request_once(options);
+            if (result.error) {
+                this.log.error(result.error);
+                this.log.error(format('retry http request: {}/{}', retry, max_retry));
+            }
+            retry = retry + 1;
+        } while (!result.data || retry < max_retry);
+        return result.data;
     }
 
     async http_getOwnDevice(config) {
         const url = config.get('urls').owndevices;
-        const options = {
+        const options = Object.assign(globalVariables.default_http_options, {
             url: url,
-            method: 'POST',
             headers: config.get('headers'),
             responseType: 'json'
-        };
-        return await this.http_post(options);
+        });
+        return await this.http_request(options);
     }
 
     async http_getDeviceInfo(petkitDevice) {
         const deviceId = petkitDevice.config.get('deviceId');
         const url_template = petkitDevice.config.get('urls').deviceDetailInfo;
         const url = format(url_template, deviceId);
-        const options = {
+        const options = Object.assign(globalVariables.default_http_options, {
             url: url,
-            method: 'POST',
             headers: petkitDevice.config.get('headers'),
             responseType: 'json'
-        };
-        return await this.http_post(options);
+        });
+        return await this.http_request(options);
     }
 
     async http_getDeviceDailyFeeds(petkitDevice) {
@@ -774,13 +797,12 @@ class petkit_feeder_mini_plugin {
         const deviceId = petkitDevice.config.get('deviceId');
         const url_template = petkitDevice.config.get('urls').dailyfeeds;
         const url = format(url_template, deviceId, date);
-        const options = {
+        const options = Object.assign(globalVariables.default_http_options, {
             url: url,
-            method: 'POST',
             headers: petkitDevice.config.get('headers'),
             responseType: 'json'
-        };
-        return await this.http_post(options);
+        });
+        return await this.http_request(options);
     }
 
     async http_getDeviceState(petkitDevice) {
@@ -796,13 +818,12 @@ class petkit_feeder_mini_plugin {
         const deviceId = petkitDevice.config.get('deviceId');
         const url_template = petkitDevice.config.get('urls').deviceState;
         const url = format(url_template, deviceId);
-        const options = {
+        const options = Object.assign(globalVariables.default_http_options, {
             url: url,
-            method: 'POST',
             headers: petkitDevice.config.get('headers'),
             responseType: 'json'
-        };
-        return await this.http_post(options);
+        });
+        return await this.http_request(options);
     }
 
     // date：20200920、time: 68400(-1 stand for current)、amount in app unit，1 for 5g, 10 is max(50g)
@@ -811,13 +832,12 @@ class petkit_feeder_mini_plugin {
         const deviceId = petkitDevice.config.get('deviceId');
         const url_template = petkitDevice.config.get('urls').saveDailyFeed;
         const url = format(url_template, deviceId, date, time, amount * 5);
-        const options = {
+        const options = Object.assign(globalVariables.default_http_options, {
             url: url,
-            method: 'POST',
             headers: petkitDevice.config.get('headers'),
             responseType: 'json'
-        };
-        return await this.http_post(options);
+        });
+        return await this.http_request(options);
     }
 
     // key see support_settings.
@@ -829,13 +849,12 @@ class petkit_feeder_mini_plugin {
             const deviceId = petkitDevice.config.get('deviceId');
             const url_template = petkitDevice.config.get('urls').updateSettings;
             const url = format(url_template, deviceId, JSON.stringify(data));
-            const options = {
+            const options = Object.assign(globalVariables.default_http_options, {
                 url: url,
-                method: 'POST',
                 headers: petkitDevice.config.get('headers'),
                 responseType: 'json'
-            };
-            return await this.http_post(options);
+            });
+            return await this.http_request(options);
         } else {
             this.log.warn('unsupport setting: ' + key);
             return false;
@@ -846,13 +865,12 @@ class petkit_feeder_mini_plugin {
         const deviceId = petkitDevice.config.get('deviceId');
         const url_template = petkitDevice.config.get('urls').resetDesiccant;
         const url = format(url_template, deviceId);
-        const options = {
+        const options = Object.assign(globalVariables.default_http_options, {
             url: url,
-            method: 'POST',
             headers: petkitDevice.config.get('headers'),
             responseType: 'json'
-        };
-        return await this.http_post(options);
+        });
+        return await this.http_request(options);
     }
 
     async http_getDeviceDetailStatus(petkitDevice, callback) {
@@ -870,8 +888,8 @@ class petkit_feeder_mini_plugin {
                 petkitDevice.status.lastUpdate = getTimestamp();
             }
         })
-        .catch(err => {
-            this.log.error(format('unable to get device({}) status: {}', petkitDevice.config.get('deviceId'), err));
+        .catch(error => {
+            this.log.error(format('unable to get device({}) status: {}', petkitDevice.config.get('deviceId'), error.track));
         })
         .then(callback);
     }
@@ -946,8 +964,8 @@ class petkit_feeder_mini_plugin {
                     result = true;
                     petkitDevice.status[settingName] = status;
                 }
-            }).catch((error) => {
-                this.log.error(error);
+            }).catch(error => {
+                this.log.error(error.track);
             }).then(() => {
                 if (callback) callback(result);
                 // this.updataDeviceDetail();
@@ -980,8 +998,8 @@ class petkit_feeder_mini_plugin {
                             this.log.info('food drop result: ' + result ? 'success' : 'failed');
                         }
                     })
-                    .catch((error) => {
-                        this.log.error('food drop failed: ' + error);
+                    .catch(error => {
+                        this.log.error('food drop failed: ' + error.track);
                     })
                     .then(() => {
                         if (!fast_response) callback(null);
@@ -1020,8 +1038,8 @@ class petkit_feeder_mini_plugin {
                     this.log.warn('reset desiccant left days with a unrecognizable reply.');
                 }
             })
-            .catch((error) => {
-                this.log.error('reset desiccant left days failed: ' + error);
+            .catch(error => {
+                this.log.error('reset desiccant left days failed: ' + error.track);
             })
             .then(() => {
                 if (!fast_response && callback) callback(null);
