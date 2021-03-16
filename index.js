@@ -36,7 +36,11 @@ const globalVariables = Object.freeze({
     'default_http_options': {
         'method': 'POST',
         'timeout': 5000,
-        'responseType': 'json'
+        'responseType': 'json',
+        'retry' : {
+            'enabled': true,
+            'max_retry': 3,                 // http request retry count
+        }
     },
     'global_urls': {
         'cn': {
@@ -77,7 +81,6 @@ const globalVariables = Object.freeze({
         }
     },
     'config': {
-        'request_retry': 3,                 // http request retry count
         'min_amount': 0,                    // in meal(same in app)
         'max_amount': 10,                   // in meal(same in app)
         'min_desiccantLeftDays': 0,         // in day
@@ -620,7 +623,7 @@ class petkit_feeder_mini_plugin {
         }
 
         if (jsonObj.result.devices.length === 0) {
-            this.log.error('seems you\'re not owned a device.');
+            this.log.error('seems you didn\'t owned a petkit feeder device.');
             return false;
         }
 
@@ -757,16 +760,25 @@ class petkit_feeder_mini_plugin {
         };
 
         let result = undefined;
-        let retry = 1;
-        const max_retry = globalVariables.config.request_retry;
-        do {
+        if (options.retry.enabled && options.timeout > 0) {
+            let retry = 1;
+            const max_retry = globalVariables.default_http_options.retry.max_retry;
+            do {
+                result = await request_once(options);
+                if (result.error) {
+                    this.log.error(result.error);
+                    this.log.error(format('retry http request: {}/{}', retry, max_retry));
+                }
+                retry = retry + 1;
+            } while (!result.data || retry < max_retry);
+        } else {
             result = await request_once(options);
             if (result.error) {
                 this.log.error(result.error);
-                this.log.error(format('retry http request: {}/{}', retry, max_retry));
+                this.log.error(format('http request failed: ' + result.error));
             }
-            retry = retry + 1;
-        } while (!result.data || retry < max_retry);
+        }
+
         return result.data;
     }
 
