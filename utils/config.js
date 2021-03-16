@@ -93,6 +93,10 @@ class configUtil {
     set(prop, value) {
         this.config[prop] = value;
     }
+
+    assign(prop, value) {
+        this.config[prop] = Object.assign(this.config[prop], value);
+    }
 }
 
 module.exports = configUtil;
