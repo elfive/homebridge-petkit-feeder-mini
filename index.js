@@ -179,7 +179,7 @@ class petkit_feeder_mini_plugin {
             });
         });
 
-        this.log.info('petkit feeder platform loaded successfully.');
+        this.log.info('petkit feeder platform loaded.');
     }
 
     // check and modify configure value
@@ -277,7 +277,7 @@ class petkit_feeder_mini_plugin {
     // This function is invoked when homebridge restores cached accessories from disk at startup.
     // It should be used to setup event handlers for characteristics and update respective values.
     configureAccessory(accessory) {
-        this.log.info('Configuring cached accessory: [' + accessory.displayName + ']  ' + accessory.UUID);
+        this.log.info(format('Configuring cached accessory({}) with udid {}', accessory.displayName, accessory.UUID));
         const accessoryData = Object.assign(new AccessoryData(), {
             'accessory': accessory,
         });
@@ -299,7 +299,7 @@ class petkit_feeder_mini_plugin {
                 // service not exist, create service
                 drop_meal_service = accessory.addService(Service.Switch, service_name, service_name);
                 if (!drop_meal_service) {
-                    this.log.error('petkit device service create failed: drop_meal_service');
+                    this.log.error('petkit device service create failed: ' + service_name);
                     return false;
                 }
             }
@@ -319,7 +319,7 @@ class petkit_feeder_mini_plugin {
                 // service not exist, create service
                 meal_amount_service = accessory.addService(Service.Fan, service_name, service_name);
                 if (!meal_amount_service) {
-                    this.log.error('petkit device service create failed: meal_amount_service');
+                    this.log.error('petkit device service create failed: ' + service_name);
                     return false;
                 }
             }
@@ -346,7 +346,7 @@ class petkit_feeder_mini_plugin {
                 // service not exist, create service
                 food_storage_service = accessory.addService(Service.OccupancySensor, service_name, service_name);
                 if (!food_storage_service) {
-                    this.log.error('petkit device service create failed: food_storage_service');
+                    this.log.error('petkit device service create failed: ' + service_name);
                     return false;
                 }
             }
@@ -366,17 +366,17 @@ class petkit_feeder_mini_plugin {
                 // service not exist, create service
                 desiccant_level_service = accessory.addService(Service.FilterMaintenance, service_name, service_name);
                 if (!desiccant_level_service) {
-                    this.log.error('petkit device service create failed: desiccant_level_service');
+                    this.log.error('petkit device service create failed: ' + service_name);
                     return false;
                 }
             }
 
             desiccant_level_service.setCharacteristic(Characteristic.FilterChangeIndication,
-                (accessoryData.status['desiccantLeftDays'] < this.alert_desiccant_threshold ? 1 : 0));
+                (accessoryData.status.desiccantLeftDays < this.alert_desiccant_threshold ? 1 : 0));
             desiccant_level_service.getCharacteristic(Characteristic.FilterChangeIndication)
                 .on('get', this.hb_desiccantIndicator_get.bind(this, accessoryData));
 
-            desiccant_level_service.setCharacteristic(Characteristic.FilterLifeLevel, accessoryData.status['desiccantLeftDays']);
+            desiccant_level_service.setCharacteristic(Characteristic.FilterLifeLevel, accessoryData.status.desiccantLeftDays);
             desiccant_level_service.getCharacteristic(Characteristic.FilterLifeLevel)
                 .on('get', this.hb_desiccantLeftDays_get.bind(this, accessoryData))
                 .setProps({
@@ -399,7 +399,7 @@ class petkit_feeder_mini_plugin {
                 // service not exist, create service
                 manualLock_service = accessory.addService(Service.Switch, service_name, service_name);
                 if (!manualLock_service) {
-                    this.log.error('petkit device service create failed: manualLock_service');
+                    this.log.error('petkit device service create failed: ' + service_name);
                     return false;
                 }
             }
@@ -420,7 +420,7 @@ class petkit_feeder_mini_plugin {
                 // service not exist, create service
                 lightMode_service = accessory.addService(Service.Switch, service_name, service_name);
                 if (!lightMode_service) {
-                    this.log.error('petkit device service create failed: lightMode_service');
+                    this.log.error('petkit device service create failed: ' + service_name);
                     return false;
                 }
             }
@@ -441,7 +441,7 @@ class petkit_feeder_mini_plugin {
                 // service not exist, create service
                 battery_status_service = accessory.addService(Service.BatteryService, service_name, service_name);
                 if (!battery_status_service) {
-                    this.log.error('petkit device service create failed: battery_status_service');
+                    this.log.error('petkit device service create failed: ' + service_name);
                     return false;
                 }
             }
@@ -501,14 +501,14 @@ class petkit_feeder_mini_plugin {
                 const user_deviceId = config.get('deviceId');
                 const owned_devices = this.praseGetOwnedDevice(owned_device_raw);
                 if (owned_devices.length === 0) {
-                    this.log.error('seems you does not owned a Petkit feeder mini, this plugin only works for Petkit feeder mini, sorry.');
+                    this.log.error('seems you does not owned a Petkit feeder mini, this plugin only tested for Petkit feeder mini, sorry.');
                 } else if (owned_devices.length === 1) {
                     if (!user_deviceId || owned_devices[0].id === user_deviceId) {
-                        this.log.info('found you ownd one feeder mini with deviceId: '+ owned_devices[0].id);
+                        this.log.info(format('found you ownd one feeder mini with deviceId: {}.', owned_devices[0].id));
                     } else {
-                        this.log.warn('found you just ownd one feeder mini with deviceId: '+ owned_devices[0].id);
-                        this.log.warn('which is not the same with the deviceId you set: '+ user_deviceId);
-                        this.log.warn('will use '+ owned_devices[0].id + ' instead');
+                        this.log.warn(format('found you just ownd one feeder mini with deviceId: ', owned_devices[0].id));
+                        this.log.warn(format('which is not the same with the deviceId you set: {}', user_deviceId));
+                        this.log.warn(format('will use {} instead', owned_devices[0].id));
                     }
                     validDevice = owned_devices[0];
                 } else {
@@ -518,9 +518,9 @@ class petkit_feeder_mini_plugin {
                             return { 'id': device.id, 'name': device.name };
                         });
                         this.log.error('seems that you ownd more than one feeder mini, but the device id you set is not here.');
-                        this.log.error('do you mean one of this: ' + JSON.stringify(devicesIds));
+                        this.log.error(format('do you mean one of this: ', JSON.stringify(devicesIds)));
                     } else {
-                        this.log.info('found you ownd one feeder mini with deviceId: '+ match_device.id);
+                        this.log.info(format('found you ownd one feeder mini with deviceId: {}', match_device.id));
                         validDevice = match_device;
                     }
                 }
@@ -571,6 +571,8 @@ class petkit_feeder_mini_plugin {
                             }
                             this.accessories.set(uuid, accessoryData.accessory);
 
+                            this.log.info(format('Petkit Feeder({}) successfully initialized.', config.get('name')));
+
                             // polling
                             this.setupPolling(accessoryData);
                         }
@@ -588,7 +590,7 @@ class petkit_feeder_mini_plugin {
         this.log.debug(jsonStr);
 
         if (jsonObj.hasOwnProperty('error')) {
-            this.log.error('server reply an error: ' + JSON.stringify(jsonObj));
+            this.log.error('server reply an error: ' + jsonStr);
             this.log.error('you may need to check your X-Session and other header configure');
             return false;
         }
@@ -667,8 +669,7 @@ class petkit_feeder_mini_plugin {
         if (!jsonObj.hasOwnProperty('result') ||
             !jsonObj.result.hasOwnProperty('state') ||
             !jsonObj.result.hasOwnProperty('settings')) {
-            this.log.error('unable to parse device info reply from server with data:');
-            this.log.error(jsonStr);
+            this.log.error('unable to parse device info reply from server with data: ' + jsonStr);
             return false;
         }
 
@@ -967,7 +968,6 @@ class petkit_feeder_mini_plugin {
     }
 
     hb_handle_set_deviceSettings(accessoryData, settingName, status, callback = null) {
-        this.log.debug('set ' + settingName + ' to: ' + status);
         let result = false;
         this.http_updateDeviceSettings(accessoryData, settingName, status)
             .then((data) => {
@@ -981,11 +981,6 @@ class petkit_feeder_mini_plugin {
                 this.log.error(error);
             }).then(() => {
                 if (callback) callback(result);
-                if (result) {
-                    this.log.info('set ' + settingName + ' to: ' + status + ', success');
-                } else {
-                    this.log.warn('set ' + settingName + ' to: ' + status + ', failed');
-                }
                 // this.updataDeviceDetail();
             });
     }
@@ -1004,7 +999,7 @@ class petkit_feeder_mini_plugin {
         if (fast_response) callback(null);
         if (value) {
             if (accessoryData.savedData.mealAmount) {
-                this.log.info('drop food:' + accessoryData.savedData.mealAmount + ' meal(s)');
+                this.log.info(format('drop food:{} meal(s)', accessoryData.savedData.mealAmount));
 
                 var result = false;
                 this.http_saveDailyFeed(accessoryData, accessoryData.savedData.mealAmount, -1)
@@ -1049,11 +1044,11 @@ class petkit_feeder_mini_plugin {
         if (fast_response && callback) {callback(null);}
         this.http_resetDesiccant(accessoryData)
             .then((data) => {
-                if (data && data['result']) {
-                    accessoryData.status['desiccantLeftDays'] = data['result'];
-                    this.log.info('reset desiccant left days success, left days reset to ' + data['result'] + ' days');
+                if (data && data.result) {
+                    accessoryData.status['desiccantLeftDays'] = data.result;
+                    this.log.info(format('reset desiccant left days success, reset to {} days', data.result));
                 } else {
-                    this.log.warn('reset desiccant left days with a unrecognized return.');
+                    this.log.warn('reset desiccant left days with a unrecognized reply.');
                 }
             })
             .catch((error) => {
@@ -1077,7 +1072,15 @@ class petkit_feeder_mini_plugin {
     hb_manualLockStatus_set(accessoryData, value, callback) {
         const fast_response = accessoryData.config.get('fast_response');
         if (fast_response) callback(null);
-        this.hb_handle_set_deviceSettings(accessoryData, 'manualLock', (value ? 0 : 1), (result) => {
+        const settingName = 'manualLock';
+        const settingValue = (value ? 0 : 1);
+        this.log.debug(format('set {} to: {}', settingName, settingValue));
+        this.hb_handle_set_deviceSettings(accessoryData, settingName, settingValue, (result) => {
+            if (result) {
+                this.log.info(format('set {} to: {}, success', settingName, settingValue));
+            } else {
+                this.log.warn(format('set {} to: {}, failed', settingName, settingValue));
+            }
             if (!fast_response) callback(null);
         });
     }
@@ -1095,7 +1098,15 @@ class petkit_feeder_mini_plugin {
     hb_lightModeStatus_set(accessoryData, value, callback) {
         const fast_response = accessoryData.config.get('fast_response');
         if (fast_response) callback(null);
-        this.hb_handle_set_deviceSettings(accessoryData, 'lightMode', value, (result) => {
+        const settingName = 'lightMode';
+        const settingValue = value;
+        this.log.debug(format('set {} to: {}', settingName, settingValue));
+        this.hb_handle_set_deviceSettings(accessoryData, settingName, settingValue, (result) => {
+            if (result) {
+                this.log.info(format('set {} to: {}, success', settingName, settingValue));
+            } else {
+                this.log.warn(format('set {} to: {}, failed', settingName, settingValue));
+            }
             if (!fast_response) callback(null);
         });
     }
