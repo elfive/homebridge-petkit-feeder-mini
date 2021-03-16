@@ -914,6 +914,7 @@ class petkit_feeder_mini_plugin {
         service = accessoryData.services.food_storage_service;
         if (accessoryData.status.food) {    // have food
             service_status = (accessoryData.config.get('reverse_foodStorage_indicator') ? 0 : 1);
+            this.log.info('there is enough food left');
         } else { // no food left
             service_status = (accessoryData.config.get('reverse_foodStorage_indicator') ? 1 : 0);
             this.log.warn('there is not enough food left !!!');
