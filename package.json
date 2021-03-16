@@ -22,8 +22,6 @@
   "dependencies": {
     "axios": "^0.21.1",
     "dayjs": "^1.10.3",
-    "deasync-promise": "^1.0.1",
-    "event": "^1.0.0",
     "polling-to-event": "^2.1.0",
     "string-format": "^2.0.0"
   },
