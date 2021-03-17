@@ -37,6 +37,18 @@
               { "title": "North America", "enum": ["north_america"] }
             ]
           },
+          "model": {
+            "title": "Petkit feeder model, also shows in homekit app(test version only)",
+            "description": "• for Petkit Element feeder users, select 'Petkit-Element-Feeder'.<br/>• for Petkit Feeder mini users select 'Petkit-Feeder-Mini'",
+            "required": true,
+            "type": "string",
+            "default": "FeederMini",
+            "placeholder": "Petkit Feeder Mini",
+            "oneOf": [
+                { "title": "Petkit Feeder Element", "enum": ["Feeder"] },
+                { "title": "Petkit Feeder Mini", "enum": ["FeederMini"] }
+            ]
+          },
           "deviceId": {
             "title": "Petkit feeder Device ID",
             "description": "Buildin your device, will never change.If you just have one Petkit Feeder device, you can ignore this value.",
@@ -254,6 +266,7 @@
           "items": [
             "devices[].location",
             "devices[].deviceId",
+            "devices[].model",
             {
               "type": "section",
               "expandable": true,
