@@ -1,4 +1,15 @@
+## Important note!!!
+
+- if you are aready a plugin user, and have trouble when upgrade to v2.x.x from v1.x.x, please first consider update and double check your config.json
+
+you can find out how to update your config.json [here](https://github.com/elfive/homebridge-petkit-feeder-mini/wiki/How-to-convert-v1.x.x-config-to-v2.x.x).
+
+- if you are a Petkit Feeder Element user and want to use this plugin, plseas install v2.x.x or above, v1.x.x is not compatible with Petkit Feeder Element.
+
+
+
 ## homebridge-petkit-feeder-mini
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/elfive/homebridge-petkit-feeder-mini/master/images/petkit-feeder-mini.jpg">
   <br>
@@ -48,10 +59,10 @@ control your petkit feeder mini from homekit, get full use of iOS automation.
 
 ### limitations
 
-- set a timed meal(may never support it, because you can just use homekit automation to do it.);
 - enable/disable meal plan for the day(may be in the next major version, currently no plan to do it).
-- currently this plugin for <a href="https://github.com/homebridge/homebridge">homebridge</a> just support <a href="https://petkit.co.uk/product/petkit-element-mini-auto-feeder/">Petkit-feeder-mini (official store link)</a>, and this plugin currently only tested and works in Asia(include China mainland) and North America, other area may not working properly.
+- currently this plugin for <a href="https://github.com/homebridge/homebridge">homebridge</a> just tested with <a href="https://petkit.co.uk/product/petkit-element-mini-auto-feeder/">Petkit-feeder-mini (official store link)</a>, and this plugin currently only tested and works in Asia(include China mainland) and North America, other area may need more work.
 - to continuously use this plugin you should login Petkit app and never logoff, this plugin uses session id from the app and it will change every time you logoff and relogin.
+- because version 2.x.x is developed on a dynamic platform plugin, and not implement auto remove deleted device(s), so you may need to delete cached accessories manually.
 - ......
 
 
@@ -93,38 +104,36 @@ you can find X-Session data from the request header area and deviceId in respons
 
 ### config.json field
 
-|           field   name            |  type  | required |       default        |                range                | description                                                                                                                                                                                                                                                          |
-| :-------------------------------: | :----: | :------: | :------------------: | :---------------------------------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|               name                | string |   yes    |  'PetkitFeederMini'  |                 ---                 | device name shows in HomeKit. If autoDeviceInfo is set to true, it will overwrited with the name in your Petkit app. we don't need it, but homebridge need it.                                                                                                       |
-|             location              | string |   yes    |         'cn'         | 'cn',<br>'asia',<br>'north_america' | China users:'cn';<br>Asia users: 'asia';<br>North America users: 'north_america';<br>other location because lack of infomation, not sure it will work.                                                                                                               |
-|              headers              | array  |   yes    |         ---          |                 ---                 | http request headers.see more detail below(headers field)                                                                                                                                                                                                            |
-|             deviceId              | string |   tbd    |         ---          |                 ---                 | your Petkit feeder mini Id, which is buildin your device, will never change. If you just have one Petkit feeder mini, you can ignore this value.                                                                                                                     |
-|            mealAmount             |  int   |    no    |          3           |               0 to 10               | In homekit this shows as a switch, every time you click this switch it will drop mealAmount of meal. This value just for initialize the fan speed after homebridge restart.  A meal stands for about 5g or 1/20 cup of food. Every 10% fan speed equals 1 meal.      |
-|          autoDeviceInfo           |  bool  |    no    |        false         |             true/false              | this plugin supports retrieve device info from Petkit server. Set this value to true, it can retrieve device information (timezone, name, sn, firmware), and shows it in homekit app.                                                                                |
-|                sn                 | string |    no    |  'PetkitFeederMini'  |                 ---                 | serial number shows in homekit app. If autoDeviceInfo is set to true, it will overwrited with the sn of your device.                                                                                                                                                 |
-|             firmware              | string |    no    |       '1.0.0'        |                 ---                 | firmware version shows in homekit app. If autoDeviceInfo is set to true, it will overwrited with the firmware version of your device.                                                                                                                                |
-|           manufacturer            | string |    no    |       'Petkit'       |                 ---                 | the manufacturer of your device.                                                                                                                                                                                                                                     |
-|               model               | string |    no    | 'Petkit feeder mini' |                 ---                 | the model of your device.                                                                                                                                                                                                                                            |
-|          enable_polling           |  bool  |    no    |         true         |             true/false              | Automatically update device info from Petkit server.                                                                                                                                                                                                                 |
-|         polling_interval          |  int   |    no    |          60          |             60 to 3600              | update device info interval from Petkit server(s).                                                                                                                                                                                                                  |
-|         enable_manualLock         |  bool  |    no    |        false         |             true/false              | if enabled, a switch will show in homekit to control the manual lock of the feeder.                                                                                                                                                                                  |
-|         enable_lightMode          |  bool  |    no    |        false         |             true/false              | if enabled, a switch will show in homekit to control the lighe mode of the feeder.                                                                                                                                                                                   |
-| reverse_foodStorage<br>_indicator |  bool  |    no    |        false         |             true/false              | normally, the occupancy will show an alert in homekit when there is enough food in the feeder, in which situation may not so recognizable, so you can reverse the status bu set this value to true, so when there is not much food, it can show an alert in homekit. |
-|           fast_response           |  bool  |    no    |        false         |             true/false              | if set to true, then when received a Homekit set request, return immediately, ignore the result.<br>this is useful when your Petkit device has a bad internet connection.                                                                                            |
+| field   name |  type  | required |       default        |        range         | description                                                  |
+| :----------: | :----: | :------: | :------------------: | :------------------: | :----------------------------------------------------------- |
+|   platform   | string |   yes    | 'petkit_feeder_mini' | 'petkit_feeder_mini' | Must be 'petkit_feeder_mini' in order to use this plugin.    |
+|  log_level   |  int   |    no    |          2           |      1,2,3,4,9       | one of these values:<br/>- 1: Debug<br/>- 2: Info<br/>- 3: Warn<br/>- 4: Error<br/>- 9: None |
+|   devices    | object |   yes    |         ---          |         ---          | Petkit Feeder device config.<br/>See more detail info at [decices field](#devices field) below. |
 
 
 
-### service name field
+### devices field
 
-| field name          |  type  | required |                  default                   | description                                                  |
-| :------------------ | :----: | :------: | :----------------------------------------: | ------------------------------------------------------------ |
-| DropMeal_name       | string |  false   |                 'DropMeal'                 | name of DropMeal switch in HomeKit.                          |
-| MealAmount_name     | string |  false   |                'MealAmount'                | name of MealAmount fan speed in HomeKit.                     |
-| FoodStorage_name    | string |  false   | 'FoodStorage_Empty'<br>or<br>'FoodStorage' | name of FoodStorage indicator in HomeKit.<br>Note: if reverse_foodStorage_indicator value is set to true, then the default name is 'FoodStorage_Empty', otherwise 'FoodStorage' |
-| DesiccantLevel_name | string |  false   |              'DesiccantLevel'              | name of DesiccantLevel indicator in HomeKit.                 |
-| ManualLock_name     | string |  false   |                'ManualLock'                | name of ManualLock switch in HomeKit.                        |
-| LightMode_name      | string |  false   |                'LightMode'                 | name of LightMode switch in HomeKit.                         |
-| Battery_name        | string |  false   |                 'Battery'                  | name of Battery indicator in HomeKit.                        |
+|           field   name            |  type  | required |                  default                   |                range                | description                                                  |
+| :-------------------------------: | :----: | :------: | :----------------------------------------: | :---------------------------------: | ------------------------------------------------------------ |
+|             location              | string |   yes    |                    'cn'                    | 'cn',<br>'asia',<br>'north_america' | China users:'cn';<br>Asia users: 'asia';<br>North America users: 'north_america';<br>other location because lack of infomation, not sure it will work.<br/>You can find more info [here](https://github.com/elfive/homebridge-petkit-feeder-mini/wiki/How-to-choose-server-location). |
+|             deviceId              | string |   tbd    |                    ---                     |                 ---                 | your Petkit feeder mini Id, which is buildin your device, will never change. <br/>If you just have one Petkit feeder device, you can ignore this value.<br/>If you just have more than one Petkit Feeder device, you must set this value. |
+|              headers              | array  |   yes    |                    ---                     |                 ---                 | http request headers.<br/>See more detail info at [headers field](#headers field) below. |
+|         enable_http_retry         |        |    no    |                   false                    |             true/false              | Enable or disable HTTP retry function, useful when your device or homebridge has a bad internet connection. |
+|         http_retry_count          |  int   |    no    |                     3                      |               1 to 5                | max retry times when a http request failed.                  |
+|           DropMeal_name           | string |    no    |                 'DropMeal'                 |                 ---                 | name of DropMeal switch in HomeKit.                          |
+|          MealAmount_name          | string |    no    |                'MealAmount'                |                 ---                 | name of MealAmount fan speed in HomeKit.                     |
+|         FoodStorage_name          | string |    no    | 'FoodStorage_Empty'<br>or<br>'FoodStorage' |                 ---                 | name of FoodStorage indicator in HomeKit.<br>Note: if reverse_foodStorage_indicator value is set to true, then the default name is 'FoodStorage_Empty', otherwise 'FoodStorage' |
+|        DesiccantLevel_name        | string |    no    |              'DesiccantLevel'              |                 ---                 | name of DesiccantLevel indicator in HomeKit.                 |
+|          ManualLock_name          | string |    no    |                'ManualLock'                |                 ---                 | name of ManualLock switch in HomeKit.                        |
+|          LightMode_name           | string |    no    |                'LightMode'                 |                 ---                 | name of LightMode switch in HomeKit.                         |
+|           Battery_name            | string |    no    |                 'Battery'                  |                 ---                 | name of Battery indicator in HomeKit.                        |
+|          enable_polling           |  bool  |    no    |                    true                    |             true/false              | Automatically update device info from Petkit server.         |
+|         polling_interval          |  int   |    no    |                     60                     |             60 to 3600              | update device info interval from Petkit server(s).           |
+|         enable_manualLock         |  bool  |    no    |                   false                    |             true/false              | if enabled, a switch will show in homekit to control the manual lock of the feeder. |
+|         enable_lightMode          |  bool  |    no    |                   false                    |             true/false              | if enabled, a switch will show in homekit to control the lighe mode of the feeder. |
+| reverse_foodStorage<br>_indicator |  bool  |    no    |                   false                    |             true/false              | normally, the occupancy will show an alert in homekit when there is enough food in the feeder, in which situation may not so recognizable, so you can reverse the status bu set this value to true, so when there is not much food, it can show an alert in homekit. |
+|           fast_response           |  bool  |    no    |                   false                    |             true/false              | if set to true, then when received a Homekit set request, return immediately, ignore the result.<br>this is useful when your homebridge or Petkit device has a bad internet connection. |
 
 
 
@@ -143,23 +152,39 @@ we recomand you entered all the headers you captured. If you don't want to do so
 ### example of config.json file
 
 ```json
-"accessories": [{
-    "accessory": "petkit_feeder_mini",
-    "autoDeviceInfo": true,
-    "name": "feeder",
-    "deviceId": "123456",
-    "location": "asia",
-    "reverse_food_storage_indicator": false,
-    "headers": [
-        {
+"platforms": [{
+  "log_level": 2,
+  "devices": [
+      {
+        "headers": [
+          {
             "key": "X-Session",
             "value": "xxxxxx"
-        },
-        {
-            "key": "X-Timezone",
-            "value": "8"
-        }
-    ]
+          }
+        ],
+        "location": "cn",
+        "enable_http_retry": false,
+        "http_retry_count": 3,
+        "DropMeal_name": "DropMeal",
+        "MealAmount_name": "MealAmount",
+        "FoodStorage_name": "FoodStorage",
+        "DesiccantLevel_name": "DesiccantLevel",
+        "ManualLock_name": "ManualLock",
+        "LightMode_name": "LightMode",
+        "Battery_name": "Battery",
+        "enable_polling": true,
+        "polling_interval": 60,
+        "enable_desiccant": true,
+        "alert_desiccant_threshold": 7,
+        "enable_autoreset_desiccant": true,
+        "reset_desiccant_threshold": 5,
+        "enable_manualLock": true,
+        "enable_lightMode": true,
+        "reverse_foodStorage_indicator": true,
+        "fast_response": true
+      }
+  ],
+  "platform": "petkit_feeder_mini"
 }]
 ```
 
@@ -170,3 +195,9 @@ we recomand you entered all the headers you captured. If you don't want to do so
 everyone is welcome to contribute to this plugin. PR/issue/debug all are welcome.
 
 or you can send me an e-mail: elfive@elfive.cn
+
+
+
+## 5) Buy me a coffee
+
+if you think my work helps you, and wanna thank me, please consider donate a coffee to me: https://paypal.me/iamelfive
