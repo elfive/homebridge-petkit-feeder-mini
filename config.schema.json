@@ -9,7 +9,7 @@
       "description": "Only logs level higher than the level selected",
       "required": true,
       "type": "integer",
-      "default": 1,
+      "default": 2,
       "oneOf": [
         { "title": "Debug", "enum": [1] },
         { "title": "Info", "enum": [2] },
