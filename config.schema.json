@@ -38,8 +38,8 @@
             ]
           },
           "model": {
-            "title": "Petkit feeder model, also shows in homekit app(test version only)",
-            "description": "• for Petkit Element feeder users, select 'Petkit-Element-Feeder'.<br/>• for Petkit Feeder mini users select 'Petkit-Feeder-Mini'",
+            "title": "Petkit feeder model",
+            "description": "• for Petkit Feeder Element users, select 'Petkit Feeder Element'.<br/>• for Petkit Feeder Mini users select 'Petkit Feeder Mini'",
             "required": true,
             "type": "string",
             "default": "FeederMini",
