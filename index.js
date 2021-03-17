@@ -990,7 +990,7 @@ class petkit_feeder_mini_plugin {
         service.setCharacteristic(Characteristic.ChargingState, service_status);
         
         // low battery
-        if (petkitDevice.status.batteryPower <= 50) {
+        if (petkitDevice.status.batteryPower * globalVariables.config.batteryPersentPerLevel <= 50) {
             service_status = Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
             this.log.info('battery level status is low');
         } else {
