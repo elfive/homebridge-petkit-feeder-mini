@@ -167,31 +167,31 @@ class petkit_feeder_mini_plugin {
             this.log.error("Homebridge's version is too old, please upgrade!");
             return;
         }
-
-        if (!config) {
-            this.log.warn("no configure found for petkit feeder device.");
-            return;
-        }
-
         this.api = api;
         this.accessories = new Map();
 
-        // When this event is fired, homebridge restored all cached accessories from disk and did call their respective
-        // `configureAccessory` method for all of them. Dynamic Platform plugins should only register new accessories
-        // after this event was fired, in order to ensure they weren't added to homebridge already.
-        // This event can also be used to start discovery of new accessories.
-        this.api.on('didFinishLaunching', () => {
-            // check config usability
-            config.devices.forEach((device_config) => {
-                // probably parse config or something here
-                const config = this.configCheck(device_config);
-                if (config) {
-                    this.initializeAccessory(config);
-                }
+        if (!config || !config.devices) {
+            this.log.error("no configure found for Petkit Feeder device.");
+            this.log.error("you may need to convert old config to new config? or double check your config.json");
+            this.log.error("goto https://github.com/elfive/homebridge-petkit-feeder-mini/wiki/How-to-convert-v1.x.x-config-to-v2.x.x for more detail.");
+            return;
+        } else {
+            // When this event is fired, homebridge restored all cached accessories from disk and did call their respective
+            // `configureAccessory` method for all of them. Dynamic Platform plugins should only register new accessories
+            // after this event was fired, in order to ensure they weren't added to homebridge already.
+            // This event can also be used to start discovery of new accessories.
+            this.api.on('didFinishLaunching', () => {
+                // check config usability
+                config.devices.forEach((device_config) => {
+                    // probably parse config or something here
+                    const config = this.configCheck(device_config);
+                    if (config) {
+                        this.initializeAccessory(config);
+                    }
+                });
             });
-        });
-
-        this.log.info('Petkit Feeder Platform loaded.');
+            this.log.info('Petkit Feeder Platform loaded.');
+        }
     }
 
     // check and modify configure value
@@ -629,7 +629,7 @@ class petkit_feeder_mini_plugin {
         }
 
         if (jsonObj.result.devices.length === 0) {
-            this.log.error('seems you didn\'t owned a petkit feeder device.');
+            this.log.error('seems you didn\'t owned a Petkit Feeder device.');
             return false;
         }
 
