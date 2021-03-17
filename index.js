@@ -14,7 +14,8 @@ const pluginName = 'homebridge-petkit-feeder-mini';
 const platformName = 'petkit_feeder_mini';
 
 const globalVariables = Object.freeze({
-    'support_device_type': [                  // valid petkit feeder device type
+    'support_device_type': [                // valid petkit feeder device type
+        'Feeder',                           // Petkit Feeder Element
         'FeederMini'                        // Petkit Feeder Mini
     ],
     'support_settings': {
