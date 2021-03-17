@@ -1,11 +1,12 @@
 ## Important note!!!
 
-if you are aready a plugin user, and have trouble when upgrade to v2.x.x from v1.x.x, please first consider update and double check your config.json
+- if you are aready a plugin user, and have trouble when upgrade to v2.x.x from v1.x.x, please first consider update and double check your config.json
 
 you can find out how to update your config.json [here](https://github.com/elfive/homebridge-petkit-feeder-mini/wiki/How-to-convert-v1.x.x-config-to-v2.x.x).
 
+- if you are a Petkit Feeder Element user and want to use this plugin, plseas install v2.x.x or above, v1.x.x is not compatible with Petkit Feeder Element.
 
-if you are a Petkit Feeder Element user and want to use this plugin, plseas install v2.x.x, v1.x.x is not compatible with Petkit Feeder Element.
+
 
 ## homebridge-petkit-feeder-mini
 
@@ -55,6 +56,7 @@ control your petkit feeder mini from homekit, get full use of iOS automation.
 - enable/disable meal plan for the day(may be in the next major version, currently no plan to do it).
 - currently this plugin for <a href="https://github.com/homebridge/homebridge">homebridge</a> just tested with <a href="https://petkit.co.uk/product/petkit-element-mini-auto-feeder/">Petkit-feeder-mini (official store link)</a>, and this plugin currently only tested and works in Asia(include China mainland) and North America, other area may need more work.
 - to continuously use this plugin you should login Petkit app and never logoff, this plugin uses session id from the app and it will change every time you logoff and relogin.
+- because version 2.x.x is developed on a dynamic platform plugin, and not implement auto remove deleted device(s), so you may need to delete cached accessories manually.
 - ......
 
 

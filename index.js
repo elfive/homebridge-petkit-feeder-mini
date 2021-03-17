@@ -223,7 +223,7 @@ class petkit_feeder_mini_plugin {
             // This event can also be used to start discovery of new accessories.
             this.api.on('didFinishLaunching', () => {
                 // check config usability
-                config.devices.forEach((device_config) => {
+                config.devices.forEach(device_config => {
                     // probably parse config or something here
                     const config = this.configCheck(device_config);
                     if (config) {
@@ -290,7 +290,7 @@ class petkit_feeder_mini_plugin {
 
         // convert header format
         let http_headers = {};
-        config_headers.forEach((header) => {
+        config_headers.forEach(header => {
             http_headers[header.key] = header.value;
         });
         conf.set('headers', http_headers)
@@ -363,7 +363,7 @@ class petkit_feeder_mini_plugin {
             }
 
             drop_meal_service.getCharacteristic(Characteristic.On)
-                .on('get', (callback) => callback(null, 0))
+                .on('get', callback => callback(null, 0))
                 .on('set', this.hb_dropMeal_set.bind(this, petkitDevice));
 
             petkitDevice.services.drop_meal_service = drop_meal_service;
@@ -383,9 +383,9 @@ class petkit_feeder_mini_plugin {
             }
 
             meal_amount_service.getCharacteristic(Characteristic.On)
-                .on('get', (callback) => callback(null, petkitDevice.savedData.mealAmount != 0));
+                .on('get', callback => callback(null, petkitDevice.savedData.mealAmount !== 0));
             meal_amount_service.getCharacteristic(Characteristic.RotationSpeed)
-                .on('get', (callback) => callback(null, petkitDevice.savedData.mealAmount))
+                .on('get', callback => callback(null, petkitDevice.savedData.mealAmount))
                 .on('set', this.hb_mealAmount_set.bind(this, petkitDevice))
                 .setProps({
                     minValue: globalVariables.config.min_amount,
@@ -576,7 +576,7 @@ class petkit_feeder_mini_plugin {
                     } else {
                         let match_device = owned_devices.find(device => user_deviceId && device.id === user_deviceId);
                         if (undefined === match_device) {
-                            const devicesIds = owned_devices.map((device) => {
+                            const devicesIds = owned_devices.map(device => {
                                 return { 'id': device.id, 'name': device.name };
                             });
                             this.log.error('seems that you ownd more than one feeder, but the device id you set is not here.');
@@ -599,7 +599,6 @@ class petkit_feeder_mini_plugin {
                     this.log.error('initialize Petkit Feeder failed: could not find supported device.');
                     return;
                 }
-
                 config.set('deviceId', validDevice.id);
                 config.set('name', validDevice.name);
                 config.set('model', validDevice.type);
@@ -634,7 +633,7 @@ class petkit_feeder_mini_plugin {
                 }
 
                 this.log.debug('request initial device status from Petkit server.');
-                this.http_getDeviceDetailStatus(petkitDevice, (deviceDetailInfo) => {
+                this.http_getDeviceDetailStatus(petkitDevice, deviceDetailInfo => {
                     petkitDevice.config.set('sn', deviceDetailInfo.sn);
                     petkitDevice.config.set('firmware', deviceDetailInfo.firmware);
                     petkitDevice.config.assign('headers', {key: 'X-TimezoneId', value: deviceDetailInfo.locale})
@@ -687,7 +686,7 @@ class petkit_feeder_mini_plugin {
         }
 
         var valid_devices = [];
-        jsonObj.result.devices.forEach((device) => {
+        jsonObj.result.devices.forEach(device => {
             const index = globalVariables.support_device_type.indexOf(device.type);
             if (index !== -1 && device.data) {
                 valid_devices.push(Object.assign(device.data, {'type': device.type}));
@@ -799,11 +798,11 @@ class petkit_feeder_mini_plugin {
     // success return data, failed return undefined
     async http_request(options) {
         // return.data and return.error are mutual exclusion
-        const request_once = async (options) => {
-            return new Promise((resolve) => {
+        const request_once = async options => {
+            return new Promise(resolve => {
                 let result = undefined;
                 axios.request(options)
-                    .then((response) => {
+                    .then(response => {
                         if (response.status != 200) {
                             result = {error: 'http request received a invalid response code: ' + response.status};
                         } else {
@@ -1002,10 +1001,13 @@ class petkit_feeder_mini_plugin {
         // manualLock
         if (petkitDevice.config.get('enable_manualLock')) {
             service = petkitDevice.services.manualLock_service;
-            service_status = petkitDevice.status.manualLock;
+            service_status = petkitDevice.status.manualLock === 0;
 
             this.log.info(format('manualLock status is {}.', service_status ? 'on' : 'off'));
-            service.setCharacteristic(Characteristic.On, service_status);
+            const current_status = service.getCharacteristic(Characteristic.On).value;
+            if (current_status != service_status) {
+                service.setCharacteristic(Characteristic.On, service_status);
+            }
         } else {
             this.log.info('manualLock function is disabled.');
         }
@@ -1016,7 +1018,10 @@ class petkit_feeder_mini_plugin {
             service_status = petkitDevice.status.lightMode;
 
             this.log.info(format('lightMode status is {}.', service_status ? 'on' : 'off'));
-            service.setCharacteristic(Characteristic.On, service_status);
+            const current_status = service.getCharacteristic(Characteristic.On).value;
+            if (current_status != service_status) {
+                service.setCharacteristic(Characteristic.On, service_status);
+            }
         } else {
             this.log.info('lightMode function is disabled.');
         }
@@ -1065,9 +1070,9 @@ class petkit_feeder_mini_plugin {
             };
     
             setTimeout(() => {
-                petkitDevice.events.polling_event = pollingtoevent((done) => {
+                petkitDevice.events.polling_event = pollingtoevent(done => {
                     this.log.info('polling start...');
-                    this.http_getDeviceDetailStatus(petkitDevice, (deviceDetailInfo) => {
+                    this.http_getDeviceDetailStatus(petkitDevice, deviceDetailInfo => {
                         this.uploadStatusToHomebridge(petkitDevice);
                         this.log.info('polling end...');
                         done();
@@ -1075,14 +1080,14 @@ class petkit_feeder_mini_plugin {
                 }, polling_options);
             }, polling_interval_ms)
         } else {
-            this.log.info('polling is disabled.');
+            this.log.warn('polling is disabled.');
         }
     }
 
     hb_handle_set_deviceSettings(petkitDevice, settingName, status, callback = null) {
         let result = false;
         this.http_updateDeviceSettings(petkitDevice, settingName, status)
-            .then((data) => {
+            .then(data => {
                 if (!data) {
                     this.log.error('failed to commuciate with server.');
                 } else if (this.praseUpdateDeviceSettingsResult(data)) {
@@ -1115,7 +1120,7 @@ class petkit_feeder_mini_plugin {
 
                 var result = false;
                 this.http_saveDailyFeed(petkitDevice, petkitDevice.savedData.mealAmount, -1)
-                    .then((data) => {
+                    .then(data => {
                         if (!data) {
                             this.log.error('failed to commuciate with server.');
                         } else {
@@ -1136,6 +1141,12 @@ class petkit_feeder_mini_plugin {
             setTimeout(() => {
                 petkitDevice.services.drop_meal_service.setCharacteristic(Characteristic.On, false);
             }, 200);
+
+            setTimeout(() => {
+                this.http_getDeviceDetailStatus(petkitDevice, deviceDetailInfo => {
+                    this.uploadStatusToHomebridge(petkitDevice);
+                })
+            }, 1000);
         }
         // this.updataDeviceDetail();
     }
@@ -1155,7 +1166,7 @@ class petkit_feeder_mini_plugin {
         const fast_response = petkitDevice.config.get('fast_response');
         if (fast_response && callback) {callback(null);}
         this.http_resetDesiccant(petkitDevice)
-            .then((data) => {
+            .then(data => {
                 if (data && data.result) {
                     petkitDevice.status.desiccantLeftDays = data.result;
                     this.log.info(format('reset desiccant left days success, reset to {} days', data.result));
@@ -1168,6 +1179,11 @@ class petkit_feeder_mini_plugin {
             })
             .then(() => {
                 if (!fast_response && callback) callback(null);
+                setTimeout(() => {
+                    this.http_getDeviceDetailStatus(petkitDevice, deviceDetailInfo => {
+                        this.uploadStatusToHomebridge(petkitDevice);
+                    })
+                }, 1000);
             });
     }
 
@@ -1182,18 +1198,23 @@ class petkit_feeder_mini_plugin {
     }
 
     hb_manualLockStatus_set(petkitDevice, value, callback) {
-        const fast_response = petkitDevice.config.get('fast_response');
-        if (fast_response) callback(null);
         const settingName = 'manualLock';
         const settingValue = (value ? 0 : 1);
+        const fast_response = petkitDevice.config.get('fast_response');
+        if (fast_response) callback(null);
         this.log.debug(format('set {} to: {}', settingName, settingValue));
-        this.hb_handle_set_deviceSettings(petkitDevice, settingName, settingValue, (result) => {
+        this.hb_handle_set_deviceSettings(petkitDevice, settingName, settingValue, result => {
             if (result) {
                 this.log.info(format('set {} to: {}, success', settingName, settingValue));
             } else {
                 this.log.warn(format('set {} to: {}, failed', settingName, settingValue));
             }
             if (!fast_response) callback(null);
+            setTimeout(() => {
+                this.http_getDeviceDetailStatus(petkitDevice, deviceDetailInfo => {
+                    this.uploadStatusToHomebridge(petkitDevice);
+                })
+            }, 1000);
         });
     }
 
@@ -1201,25 +1222,30 @@ class petkit_feeder_mini_plugin {
         const status = petkitDevice.status.lightMode;
         callback(null, status);
 
-        // this.hb_handle_get(petkitDevice, 'hb_lightModeStatus_get', (results) => {
+        // this.hb_handle_get(petkitDevice, 'hb_lightModeStatus_get', results => {
         //     const status = petkitDevice.status.lightMode;
         //     callback(null, status);
         // });
     }
 
     hb_lightModeStatus_set(petkitDevice, value, callback) {
-        const fast_response = petkitDevice.config.get('fast_response');
-        if (fast_response) callback(null);
         const settingName = 'lightMode';
         const settingValue = value;
+        const fast_response = petkitDevice.config.get('fast_response');
+        if (fast_response) callback(null);
         this.log.debug(format('set {} to: {}', settingName, settingValue));
-        this.hb_handle_set_deviceSettings(petkitDevice, settingName, settingValue, (result) => {
+        this.hb_handle_set_deviceSettings(petkitDevice, settingName, settingValue, result => {
             if (result) {
                 this.log.info(format('set {} to: {}, success', settingName, settingValue));
             } else {
                 this.log.warn(format('set {} to: {}, failed', settingName, settingValue));
             }
             if (!fast_response) callback(null);
+            setTimeout(() => {
+                this.http_getDeviceDetailStatus(petkitDevice, deviceDetailInfo => {
+                    this.uploadStatusToHomebridge(petkitDevice);
+                })
+            }, 1000);
         });
     }
 
