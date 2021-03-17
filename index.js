@@ -161,7 +161,7 @@ function getDataString() {
 class petkit_feeder_mini_plugin {
     constructor(log, config, api) {
         this.log = new logUtil(log, config.log_level || logUtil.LOGLV_INFO);
-        this.log.info('begin to initialize petkit feeder platform.');
+        this.log.info('begin to initialize Petkit Feeder Platform.');
 
         if (!api) {
             this.log.error("Homebridge's version is too old, please upgrade!");
@@ -191,7 +191,7 @@ class petkit_feeder_mini_plugin {
             });
         });
 
-        this.log.info('petkit feeder platform loaded.');
+        this.log.info('Petkit Feeder Platform loaded.');
     }
 
     // check and modify configure value
@@ -201,7 +201,7 @@ class petkit_feeder_mini_plugin {
         const fulfill_headerset = (headers, key, value) => {
             let header = headers.find(header => header.key == key);
             if (undefined === header) {
-                this.log.warn(format('missing header: {0}, using \'{1}\' instead.', key, value));
+                this.log.debug(format('missing header: {0}, using \'{1}\' instead.', key, value));
                 headers.push({'key': key, 'value': value});
             } else if ('' === header) {
                 this.log.warn(format('header \'{0}\' value is empty, using \'{1}\' instead.', key, value));
@@ -289,7 +289,6 @@ class petkit_feeder_mini_plugin {
     // This function is invoked when homebridge restores cached accessories from disk at startup.
     // It should be used to setup event handlers for characteristics and update respective values.
     configureAccessory(accessory) {
-        this.log.info(format('Configuring cached accessory({}) with udid {}', accessory.displayName, accessory.UUID));
         const petkitDevice = Object.assign(new PetkitFeederDevice(), {
             'accessory': accessory,
         });
@@ -506,6 +505,8 @@ class petkit_feeder_mini_plugin {
     // initialize one accessory
     // @param config: instance of configUtil
     initializeAccessory(config) {
+        this.log.info('initializing Petkit Feeder device');
+
         // get deviceId from server
         let validDevice = undefined;
         this.http_getOwnDevice(config)
@@ -546,55 +547,60 @@ class petkit_feeder_mini_plugin {
                 this.log.error('unable to determine whether the deviceId you set is valid: ' + error.track);
             })
             .then(() => {
-                if (validDevice) {
-                    config.set('deviceId', validDevice.id);
-                    config.set('name', validDevice.name);
-                    config.set('model', validDevice.type);
+                if (!validDevice) {
+                    this.log.error('initialize Petkit Feeder failed: could not find supported device.');
+                    return;
+                }
 
-                    // uuid must be generated from a unique but not changing data source,
-                    // name should not be used in the most cases. But works in this specific example.
-                    const uuid = UUIDGen.generate(validDevice.name);
-                    let petkitDevice = this.accessories.get(uuid);
-                    if (!petkitDevice) {
-                        // petkitDevice not exists, create petkitDevice and accessory
-                        let accessory = new this.api.platformAccessory(validDevice.name, uuid, validDevice.name);
-                        if (!accessory) {
-                            this.log.error('petkit device service create failed: accessory');
-                            return;
-                        }
+                config.set('deviceId', validDevice.id);
+                config.set('name', validDevice.name);
+                config.set('model', validDevice.type);
 
-                        petkitDevice = new PetkitFeederDevice();
-                        petkitDevice.accessory = accessory;
-                        petkitDevice.config = config;
-                    } else if (!petkitDevice.accessory) {
-                        // accessory not exists, create accessory
-                        let accessory = new this.api.platformAccessory(validDevice.name, uuid, validDevice.name);
-                        if (!accessory) {
-                            this.log.error('petkit device service create failed: accessory');
-                            return;
-                        }
-                        petkitDevice.accessory = accessory;
-                        petkitDevice.config = config;
-                    } else {
-                        // accessory exists
-                        petkitDevice.config = config;
+                // uuid must be generated from a unique but not changing data source,
+                // name should not be used in the most cases. But works in this specific example.
+                const uuid = UUIDGen.generate(validDevice.name);
+                let petkitDevice = this.accessories.get(uuid);
+                if (!petkitDevice) {
+                    // petkitDevice not exists, create petkitDevice and accessory
+                    let accessory = new this.api.platformAccessory(validDevice.name, uuid, validDevice.name);
+                    if (!accessory) {
+                        this.log.error('initialize Petkit Feeder failed: could not create accessory');
+                        return;
                     }
 
-                    this.http_getDeviceDetailStatus(petkitDevice, () => {
-                        if (this.setupAccessory(petkitDevice)) {
-                            // all service setup success, now update accessory
-                            if (!this.accessories.get(uuid)) {
-                                this.api.registerPlatformAccessories(pluginName, platformName, [petkitDevice.accessory]);
-                            }
-                            this.accessories.set(uuid, petkitDevice.accessory);
-
-                            this.log.info(format('Petkit Feeder({}) successfully initialized.', config.get('name')));
-
-                            // polling
-                            this.setupPolling(petkitDevice);
-                        }
-                    });
+                    petkitDevice = new PetkitFeederDevice();
+                    petkitDevice.accessory = accessory;
+                    petkitDevice.config = config;
+                } else if (!petkitDevice.accessory) {
+                    // accessory not exists, create accessory
+                    let accessory = new this.api.platformAccessory(validDevice.name, uuid, validDevice.name);
+                    if (!accessory) {
+                        this.log.error('initialize Petkit Feeder failed: could not create accessory');
+                        return;
+                    }
+                    petkitDevice.accessory = accessory;
+                    petkitDevice.config = config;
+                } else {
+                    // accessory exists
+                    petkitDevice.config = config;
                 }
+
+                this.http_getDeviceDetailStatus(petkitDevice, () => {
+                    if (this.setupAccessory(petkitDevice)) {
+                        // all service setup success, now update accessory
+                        if (!this.accessories.get(uuid)) {
+                            this.api.registerPlatformAccessories(pluginName, platformName, [petkitDevice.accessory]);
+                        }
+                        this.accessories.set(uuid, petkitDevice.accessory);
+
+                        this.log.info(format('initialize Petkit Feeder({}) success.', config.get('name')));
+
+                        // polling
+                        this.setupPolling(petkitDevice);
+                    } else {
+                        this.log.error(format('initialize Petkit Feeder({}) failed.', config.get('name')));
+                    }
+                });
             });
     }
     
