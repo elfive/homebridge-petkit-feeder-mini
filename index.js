@@ -737,7 +737,9 @@ class petkit_feeder_mini_plugin {
         return (jsonObj.result.isExecuted === 1);
     }
 
+    // success return data, failed return undefined
     async http_request(options) {
+        // return.data and return.error are mutual exclusion
         const request_once = async (options) => {
             return new Promise((resolve) => {
                 let result = undefined;
@@ -760,23 +762,27 @@ class petkit_feeder_mini_plugin {
         };
 
         let result = undefined;
-        if (options.retry.enabled && options.timeout > 0) {
-            let retry = 1;
+        result = await request_once(options);
+
+        // retry logic
+        if (result.error &&
+            options.retry.enabled &&
+            options.timeout > 0) {
             const max_retry = globalVariables.default_http_options.retry.max_retry;
-            do {
+            for (let retry = 1; retry <= max_retry; retry++) {
                 result = await request_once(options);
                 if (result.error) {
-                    this.log.error(result.error);
-                    this.log.error(format('retry http request: {}/{}', retry, max_retry));
+                    this.log.warn(result.error);
+                    this.log.warn(format('retry http request: {}/{}', retry, max_retry));
+                } else if (result.data) {
+                    break;
                 }
-                retry = retry + 1;
-            } while (!result.data || retry < max_retry);
-        } else {
-            result = await request_once(options);
-            if (result.error) {
-                this.log.error(result.error);
-                this.log.error(format('http request failed: ' + result.error));
             }
+        }
+
+        if (result.error) {
+            this.log.error(result.error);
+            this.log.error(format('http request failed: ' + result.error));
         }
 
         return result.data;
