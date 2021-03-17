@@ -38,8 +38,8 @@
             ]
           },
           "deviceId": {
-            "title": "Petkit feeder mini Device ID",
-            "description": "Buildin your device, will never change.If you just have one Petkit feeder mini, you can ignore this value.",
+            "title": "Petkit feeder Device ID",
+            "description": "Buildin your device, will never change.If you just have one Petkit Feeder device, you can ignore this value.",
             "required": false,
             "type": "string"
           },
