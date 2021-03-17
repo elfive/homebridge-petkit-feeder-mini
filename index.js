@@ -769,7 +769,7 @@ class petkit_feeder_mini_plugin {
             options.retry.enabled &&
             options.timeout > 0) {
             const max_retry = globalVariables.default_http_options.retry.max_retry;
-            for (let retry = 1; retry <= max_retry; retry++) {
+            for (let retry = 2; retry <= max_retry; retry++) {
                 result = await request_once(options);
                 if (result.error) {
                     this.log.warn(result.error);
