@@ -5,6 +5,7 @@ if you are aready a plugin user, and have trouble when upgrade to v2.x.x from v1
 you can find out how to update your config.json [here](https://github.com/elfive/homebridge-petkit-feeder-mini/wiki/How-to-convert-v1.x.x-config-to-v2.x.x).
 
 
+if you are a Petkit Feeder Element user and want to use this plugin, plseas install v2.x.x, v1.x.x is not compatible with Petkit Feeder Element.
 
 ## homebridge-petkit-feeder-mini
 
