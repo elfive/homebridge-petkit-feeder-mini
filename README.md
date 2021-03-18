@@ -1,8 +1,8 @@
 ## Important note!!!
 
-- if you are aready a plugin user, and have trouble when upgrade to v2.x.x from v1.x.x, please first consider update and double check your config.json
+- if you are aready a plugin user, and have trouble when upgrade to v2.x.x from v1.x.x, please first consider update and double check your config.json.
 
-you can find out how to update your config.json [here](https://github.com/elfive/homebridge-petkit-feeder-mini/wiki/How-to-convert-v1.x.x-config-to-v2.x.x).
+    you can find out how to update your config.json [here](https://github.com/elfive/homebridge-petkit-feeder-mini/wiki/How-to-convert-v1.x.x-config-to-v2.x.x).
 
 - if you are a Petkit Feeder Element user and want to use this plugin, plseas install v2.x.x or above, v1.x.x is not compatible with Petkit Feeder Element.
 
@@ -108,7 +108,7 @@ you can find X-Session data from the request header area and deviceId in respons
 | :----------: | :----: | :------: | :------------------: | :------------------: | :----------------------------------------------------------- |
 |   platform   | string |   yes    | 'petkit_feeder_mini' | 'petkit_feeder_mini' | Must be 'petkit_feeder_mini' in order to use this plugin.    |
 |  log_level   |  int   |    no    |          2           |      1,2,3,4,9       | one of these values:<br/>- 1: Debug<br/>- 2: Info<br/>- 3: Warn<br/>- 4: Error<br/>- 9: None |
-|   devices    | object |   yes    |         ---          |         ---          | Petkit Feeder device config.<br/>See more detail info at [decices field](#devices field) below. |
+|   devices    | object |   yes    |         ---          |         ---          | Petkit Feeder device config.<br/>See more detail info at <a href="#devices field">decices field</a> below. |
 
 
 
@@ -116,9 +116,10 @@ you can find X-Session data from the request header area and deviceId in respons
 
 |           field   name            |  type  | required |                  default                   |                range                | description                                                  |
 | :-------------------------------: | :----: | :------: | :----------------------------------------: | :---------------------------------: | ------------------------------------------------------------ |
-|             location              | string |   yes    |                    'cn'                    | 'cn',<br>'asia',<br>'north_america' | China users:'cn';<br>Asia users: 'asia';<br>North America users: 'north_america';<br>other location because lack of infomation, not sure it will work.<br/>You can find more info [here](https://github.com/elfive/homebridge-petkit-feeder-mini/wiki/How-to-choose-server-location). |
+|             location              | string |   yes    |                    'cn'                    | 'cn',<br>'asia',<br>'north_america' | China users:'cn';<br>Asia users: 'asia';<br>North America users: 'north_america';<br>other location because lack of infomation, not sure it will work.<br/>You can find more info <a href="https://github.com/elfive/homebridge-petkit-feeder-mini/wiki/How-to-choose-server-location">here</a>. |
+|               model               | string |    no    |                'FeederMini'                |      'FeederMini',<br>'Feeder'      | Petkit Feeder Mini: 'FeederMini'<br>Petkit Feeder Element: 'Feeder' |
 |             deviceId              | string |   tbd    |                    ---                     |                 ---                 | your Petkit feeder mini Id, which is buildin your device, will never change. <br/>If you just have one Petkit feeder device, you can ignore this value.<br/>If you just have more than one Petkit Feeder device, you must set this value. |
-|              headers              | array  |   yes    |                    ---                     |                 ---                 | http request headers.<br/>See more detail info at [headers field](#headers field) below. |
+|              headers              | array  |   yes    |                    ---                     |                 ---                 | http request headers.<br/>See more detail info at <a href="#headers field">headers field</a> below. |
 |         enable_http_retry         |        |    no    |                   false                    |             true/false              | Enable or disable HTTP retry function, useful when your device or homebridge has a bad internet connection. |
 |         http_retry_count          |  int   |    no    |                     3                      |               1 to 5                | max retry times when a http request failed.                  |
 |           DropMeal_name           | string |    no    |                 'DropMeal'                 |                 ---                 | name of DropMeal switch in HomeKit.                          |
@@ -163,6 +164,7 @@ we recomand you entered all the headers you captured. If you don't want to do so
           }
         ],
         "location": "cn",
+        "model": "FeederMini",
         "enable_http_retry": false,
         "http_retry_count": 3,
         "DropMeal_name": "DropMeal",
@@ -200,4 +202,5 @@ or you can send me an e-mail: elfive@elfive.cn
 
 ## 5) Buy me a coffee
 
-if you think my work helps you, and wanna thank me, please consider donate a coffee to me: https://paypal.me/iamelfive
+if you think my work helps you, and wanna thank me, please consider buy me a coffee: https://paypal.me/iamelfive
+
