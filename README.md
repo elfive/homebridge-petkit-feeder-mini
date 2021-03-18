@@ -26,11 +26,6 @@
   <strong><a href="#2-how-to-setup">Setup Guide</a> | <a href="#4-how-to-contribute">Contribute</a> </strong>
 </p>
 
-## 0) Announcement!
-
-**dear users, if you are using my plugin, please note that: this plugin is not support homebridge version 1.3.x, this is due to a known issue, I'm now working on it, but this is an major update, so it will take some days for me pushing the update to all you guys, please be patient and wait for the incoming update.**
-
-
 
 ## 1) Description
 
