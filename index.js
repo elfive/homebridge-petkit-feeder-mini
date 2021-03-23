@@ -727,25 +727,25 @@ class petkit_feeder_mini_plugin {
 
         deviceDetailInfo.status = {};
         // 1 for status ok, 0 for empty
-        if (deviceInfo.state.food) deviceDetailInfo.status.food = deviceInfo.state.food;
+        if (deviceInfo.state.food !== undefined) deviceDetailInfo.status.food = deviceInfo.state.food;
         // this.log.debug('device food storage status is: ' + (deviceDetailInfo.status.food ? 'Ok' : 'Empty'));
 
-        if (deviceInfo.state.batteryPower) deviceDetailInfo.status.batteryPower = deviceInfo.state.batteryPower;
+        if (deviceInfo.state.batteryPower !== undefined) deviceDetailInfo.status.batteryPower = deviceInfo.state.batteryPower;
         // this.log.debug('device battery level is: ' + deviceDetailInfo.status.batteryPower * globalVariables.config.batteryPersentPerLevel);
 
         // 0 for charging mode, 1 for battery mode
-        if (deviceInfo.state.batteryStatus) deviceDetailInfo.status.batteryStatus = deviceInfo.state.batteryStatus;
+        if (deviceInfo.state.batteryStatus !== undefined) deviceDetailInfo.status.batteryStatus = deviceInfo.state.batteryStatus;
         // this.log.debug('device battery status is: ' + (deviceDetailInfo.status.batteryStatus ? 'charging mode' : 'battery mode'));
 
-        if (deviceInfo.state.desiccantLeftDays) deviceDetailInfo.status.desiccantLeftDays = deviceInfo.state.desiccantLeftDays;
+        if (deviceInfo.state.desiccantLeftDays !== undefined) deviceDetailInfo.status.desiccantLeftDays = deviceInfo.state.desiccantLeftDays;
         // this.log.debug('device desiccant remain: ' + (deviceDetailInfo.status.desiccantLeftDays + ' day(s)'));
         
         // 0 for unlocked, 1 for locked
-        if (deviceInfo.settings.manualLock) deviceDetailInfo.status.manualLock = deviceInfo.settings.manualLock;
+        if (deviceInfo.settings.manualLock !== undefined) deviceDetailInfo.status.manualLock = deviceInfo.settings.manualLock;
         // this.log.debug('device manual lock status is: ' + (deviceDetailInfo.status.manualLock ? 'unlocked' : 'locked'));
 
         // 0 for light off, 1 for lignt on
-        if (deviceInfo.settings.lightMode) deviceDetailInfo.status.lightMode = deviceInfo.settings.lightMode;
+        if (deviceInfo.settings.lightMode !== undefined) deviceDetailInfo.status.lightMode = deviceInfo.settings.lightMode;
         // this.log.debug('device light status is: ' + (deviceDetailInfo.status.lightMode ? 'on' : 'off'));
 
         return deviceDetailInfo;
@@ -971,6 +971,8 @@ class petkit_feeder_mini_plugin {
         let service = undefined;
         let service_status = undefined;
 
+        this.log.debug(JSON.stringify(petkitDevice.status));
+
         // battery
         service = petkitDevice.services.battery_status_service;
         // battery level
@@ -979,7 +981,7 @@ class petkit_feeder_mini_plugin {
         service.setCharacteristic(Characteristic.BatteryLevel, service_status);
 
         // charging state
-        if (petkitDevice.status.batteryStatus == 0) {
+        if (petkitDevice.status.batteryStatus === 0) {
             service_status = Characteristic.ChargingState.CHARGING;
             this.log.info('battery is charging.');
         } else {
@@ -1028,10 +1030,10 @@ class petkit_feeder_mini_plugin {
 
         // food
         service = petkitDevice.services.food_storage_service;
-        if (petkitDevice.status.food) {    // have food
+        if (petkitDevice.status.food === 1) {    // enough food left
             service_status = (petkitDevice.config.get('reverse_foodStorage_indicator') ? 0 : 1);
-            this.log.debug('there is enough food left.');
-        } else { // no food left
+            this.log.info('there is enough food left.');
+        } else { // not enough food left
             service_status = (petkitDevice.config.get('reverse_foodStorage_indicator') ? 1 : 0);
             this.log.warn('there is not enough food left !!!');
         }
@@ -1043,20 +1045,20 @@ class petkit_feeder_mini_plugin {
             if (petkitDevice.status.desiccantLeftDays < petkitDevice.config.get('alert_desiccant_threshold')) {
                 if (petkitDevice.config.get('enable_autoreset_desiccant')) {
                     service_status = Characteristic.FilterChangeIndication.CHANGE_FILTER;
-                    this.log.debug(format('desiccant only {} day(s) left, reset it.', petkitDevice.status.desiccantLeftDays));
+                    this.log.info(format('desiccant only {} day(s) left, reset it.', petkitDevice.status.desiccantLeftDays));
                     this.hb_desiccantLeftDays_reset(petkitDevice, () => {
                         service.setCharacteristic(Characteristic.FilterChangeIndication, Characteristic.FilterChangeIndication.FILTER_OK);
                     });
                 } else {
-                    this.log.debug('desiccant auto reset function is disabled.');
+                    this.log.info('desiccant auto reset function is disabled.');
                 }
             } else {
-                this.log.debug(format('desiccant has {} days left, no need to reset.', petkitDevice.status.desiccantLeftDays));
+                this.log.info(format('desiccant has {} days left, no need to reset.', petkitDevice.status.desiccantLeftDays));
                 service_status = Characteristic.FilterChangeIndication.FILTER_OK;
             }
             service.setCharacteristic(Characteristic.FilterChangeIndication, service_status);
         } else {
-            this.log.debug('desiccant service is disabled');
+            this.log.info('desiccant service is disabled');
         }
     }
 
