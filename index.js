@@ -565,7 +565,7 @@ class petkit_feeder_mini_plugin {
                     if (owned_devices.length === 0) {
                         this.log.error(format('sorry that this plugin only works with these device type:{}.', JSON.stringify(globalVariables.support_device_type)));
                     } else if (owned_devices.length === 1) {
-                        if (!user_deviceId || owned_devices[0].id === user_deviceId) {
+                        if (!user_deviceId || owned_devices[0].id == user_deviceId) {
                             this.log.info(format('found you ownd one {} with deviceId: {}.', owned_devices[0].type, owned_devices[0].id));
                         } else {
                             this.log.warn(format('found you just ownd one {} with deviceId: ', owned_devices[0].type , owned_devices[0].id));
@@ -574,7 +574,7 @@ class petkit_feeder_mini_plugin {
                         }
                         validDevice = owned_devices[0];
                     } else {
-                        let match_device = owned_devices.find(device => user_deviceId && device.id === user_deviceId);
+                        let match_device = owned_devices.find(device => user_deviceId && device.id == user_deviceId);
                         if (undefined === match_device) {
                             const devicesIds = owned_devices.map(device => {
                                 return { 'id': device.id, 'name': device.name };
