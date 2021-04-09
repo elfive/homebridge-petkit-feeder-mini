@@ -47,7 +47,7 @@ control your petkit feeder mini from homekit, get full use of iOS automation.
 - uses a switch to control the Petkit feeder mini manual lock;
 - uses a occupancy to indicate food storage status;
 - uses a filter maintenance to indicate desiccant status(include auto reset desiccant left days, this may not show in homekit);
-- uses a battery service to indicate device power status(include power level, charging status and low battery alert in Homekit)
+- uses a battery service to indicate device power status(only for Petkit Feeder Mini, include power level, charging status and low battery alert in Homekit)
 - can fetch device info from Petkit server and shows in Homekit.
 
 
@@ -129,7 +129,7 @@ you can find X-Session data from the request header area and deviceId in respons
 |         enable_manualLock         |  bool  |    no    |                   false                    |             true/false              | if enabled, a switch will show in homekit to control the manual lock of the feeder. |
 |         enable_lightMode          |  bool  |    no    |                   false                    |             true/false              | if enabled, a switch will show in homekit to control the lighe mode of the feeder. |
 | reverse_foodStorage<br>_indicator |  bool  |    no    |                   false                    |             true/false              | normally, the occupancy will show an alert in homekit when there is enough food in the feeder, in which situation may not so recognizable, so you can reverse the status bu set this value to true, so when there is not much food, it can show an alert in homekit. |
-| ignore_battery_when<br/>_charging |  bool  |    no    |                   false                    |             true/false              | Ignore battery low level alerm when device connected to a power source. |
+| ignore_battery_when<br/>_charging |  bool  |    no    |                   false                    |             true/false              | Ignore battery low level alerm when device connected to a power source.<br>And battery function is disabled when using a Petkit Feeder Element device. |
 |           fast_response           |  bool  |    no    |                   false                    |             true/false              | if set to true, then when received a Homekit set request, return immediately, ignore the result.<br>this is useful when your homebridge or Petkit device has a bad internet connection. |
 
 
