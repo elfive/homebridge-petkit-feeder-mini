@@ -199,7 +199,25 @@ function getDataString() {
     return dayjs(new Date()).format('YYYYMMDD');
 }
 
-class petkit_feeder_mini_plugin {
+class petkit_feeder_plugin {
+    static getDeviceFoodStatus(petkitDevice) {
+        if (petkitDevice.config.get('model') === 'Feeder') {
+            if (petkitDevice.config.get('reverse_foodStorage_indicator')) {
+                return (petkitDevice.status.food < 250 ? 1 : 0);
+            } else {
+                return (petkitDevice.status.food < 250 ? 0 : 1);
+            }
+        } else if (petkitDevice.config.get('model') === 'FeederMini') {
+            if (petkitDevice.config.get('reverse_foodStorage_indicator')) {
+                return (petkitDevice.status.food != 1);
+            } else {
+                return (petkitDevice.status.food == 1);
+            }
+        } else {
+            return 0;
+        }
+    }
+    
     constructor(log, config, api) {
         this.log = new logUtil(log, config.log_level || logUtil.LOGLV_INFO);
         this.log.info('begin to initialize Petkit Feeder Platform.');
@@ -348,6 +366,7 @@ class petkit_feeder_mini_plugin {
         let accessory = petkitDevice.accessory;
         let config = petkitDevice.config;  // instance of configUtil
         let service_name = undefined;
+        let service_status = undefined;
 
         // setup meal drop service
         if (true) {
@@ -409,7 +428,8 @@ class petkit_feeder_mini_plugin {
                 }
             }
 
-            food_storage_service.setCharacteristic(Characteristic.OccupancyDetected, petkitDevice.status.food)
+            service_status = petkit_feeder_plugin.getDeviceFoodStatus(petkitDevice);
+            food_storage_service.setCharacteristic(Characteristic.OccupancyDetected, service_status)
             food_storage_service.getCharacteristic(Characteristic.OccupancyDetected)
                 .on('get', this.hb_foodStorageStatus_get.bind(this, petkitDevice));
 
@@ -655,7 +675,7 @@ class petkit_feeder_mini_plugin {
                 });
             });
     }
-    
+
     praseGetOwnedDevice(jsonObj) {
         if (!jsonObj) {
             this.log.error('praseGetOwnedDevice error: jsonObj is nothing.');
@@ -1192,7 +1212,7 @@ class petkit_feeder_mini_plugin {
     }
 
     hb_foodStorageStatus_get(petkitDevice, callback) {
-        const status = (petkitDevice.config.get('reverse_foodStorage_indicator') ? !petkitDevice.status.food : petkitDevice.status.food);
+        const status = petkit_feeder_plugin.getDeviceFoodStatus(petkitDevice);
         callback(null, status);
     }
 
@@ -1280,5 +1300,5 @@ module.exports = function (homebridge) {
     Characteristic = homebridge.hap.Characteristic;
     UUIDGen = homebridge.hap.uuid;
 
-    homebridge.registerPlatform(pluginName, platformName, petkit_feeder_mini_plugin, true);
+    homebridge.registerPlatform(pluginName, platformName, petkit_feeder_plugin, true);
 };
