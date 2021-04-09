@@ -193,9 +193,9 @@ class PetkitFeederDevice {
     getFoodStatusForHomebridge() {
         if (this.config.get('model') === 'Feeder') {
             if (this.config.get('reverse_foodStorage_indicator')) {
-                return (this.status.food < 250 ? 1 : 0);
+                return (this.status.food < 300 ? 1 : 0);
             } else {
-                return (this.status.food < 250 ? 0 : 1);
+                return (this.status.food < 300 ? 0 : 1);
             }
         } else if (this.config.get('model') === 'FeederMini') {
             if (this.config.get('reverse_foodStorage_indicator')) {
@@ -1063,7 +1063,7 @@ class petkit_feeder_plugin {
 
         // food
         service = petkitDevice.services.food_storage_service;
-        if (petkitDevice.status.food === 1) {    // enough food left
+        if (petkitDevice.getFoodStatusForHomebridge()) {    // enough food left
             service_status = (petkitDevice.config.get('reverse_foodStorage_indicator') ? 0 : 1);
             this.log.info('there is enough food left.');
         } else { // not enough food left
