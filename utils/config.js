@@ -17,7 +17,7 @@ class configUtil {
     }
     
     
-    static readStoragedConfigFromFile(filePath, log) {
+    static readStoragedConfigFromFile(filePath, errlog) {
         var result = undefined;
         try {
             // const filePath = api.user.storagePath() + '/raspberry-simplegpio.json';
@@ -29,13 +29,13 @@ class configUtil {
                 }
             }
         } catch (error) {
-            log.error('readstoragedConfigFromFile failed: ' + error);
+            errlog('readstoragedConfigFromFile failed: ' + error);
         } finally {
             return result;
         }
     }
 
-    static saveStoragedConfigToFile(filePath, data, log) {
+    static saveStoragedConfigToFile(filePath, data, errlog) {
         var result = undefined;
         // const filePath = api.user.storagePath() + '/raspberry-simplegpio.json';
         try {       // read
@@ -44,7 +44,7 @@ class configUtil {
                 result = JSON.parse(original_data);
             }
         } catch (error) {
-            log.error('readFileSync failed: ' + error);
+            errlog('readFileSync failed: ' + error);
         }
 
         try {       // write
@@ -57,7 +57,7 @@ class configUtil {
             const rawdata = JSON.stringify(result);
             fs.writeFileSync(filePath, rawdata);
         } catch (error) {
-            log.error('saveStoragedConfigToFile failed: ' + error);
+            errlog('saveStoragedConfigToFile failed: ' + error);
         } finally {
             return result;
         }
