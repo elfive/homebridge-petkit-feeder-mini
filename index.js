@@ -347,6 +347,9 @@ class petkit_feeder_plugin {
         conf.fulfill('LightMode_name', 'LightMode');
         conf.fulfill('Battery_name', 'Battery');
 
+        // print config log
+        conf.print(this.log.debug);
+
         return conf;
     }
 
@@ -654,23 +657,27 @@ class petkit_feeder_plugin {
 
                 this.log.debug('request initial device status from Petkit server.');
                 this.http_getDeviceDetailStatus(petkitDevice, deviceDetailInfo => {
-                    petkitDevice.config.set('sn', deviceDetailInfo.sn);
-                    petkitDevice.config.set('firmware', deviceDetailInfo.firmware);
-                    petkitDevice.config.assign('headers', {key: 'X-TimezoneId', value: deviceDetailInfo.locale})
-
-                    if (this.setupAccessory(petkitDevice)) {
-                        // all service setup success, now update accessory
-                        if (!this.accessories.get(uuid)) {
-                            this.api.registerPlatformAccessories(pluginName, platformName, [petkitDevice.accessory]);
+                    if (deviceDetailInfo) {
+                        petkitDevice.config.set('sn', deviceDetailInfo.sn);
+                        petkitDevice.config.set('firmware', deviceDetailInfo.firmware);
+                        petkitDevice.config.assign('headers', {key: 'X-TimezoneId', value: deviceDetailInfo.locale})
+    
+                        if (this.setupAccessory(petkitDevice)) {
+                            // all service setup success, now update accessory
+                            if (!this.accessories.get(uuid)) {
+                                this.api.registerPlatformAccessories(pluginName, platformName, [petkitDevice.accessory]);
+                            }
+                            this.accessories.set(uuid, petkitDevice.accessory);
+    
+                            this.log.info(format('initialize Petkit Feeder device({}) success.', config.get('name')));
+    
+                            // polling
+                            this.setupPolling(petkitDevice);
+                        } else {
+                            this.log.error(format('initialize Petkit Feeder device({}) failed.', config.get('name')));
                         }
-                        this.accessories.set(uuid, petkitDevice.accessory);
-
-                        this.log.info(format('initialize Petkit Feeder device({}) success.', config.get('name')));
-
-                        // polling
-                        this.setupPolling(petkitDevice);
                     } else {
-                        this.log.error(format('initialize Petkit Feeder device({}) failed.', config.get('name')));
+                        this.log.warn(format('bypass initialize Petkit Feeder device({}).', config.get('name')));
                     }
                 });
             });
