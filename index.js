@@ -514,8 +514,8 @@ class petkit_feeder_plugin {
             petkitDevice.services.lightMode_service = lightMode_service;
         }
 
-        // setup battery status service
-        if (true) {
+        // setup battery status service, only for Petkit Feeder Mini
+        if (petkitDevice.config.get('model') === 'FeederMini') {
             service_name = config.get('Battery_name');
             let battery_status_service = accessory.getService(service_name);
             if (!battery_status_service) {
@@ -999,35 +999,39 @@ class petkit_feeder_plugin {
         let service_status = undefined;
 
         this.log.debug(JSON.stringify(petkitDevice.status));
-        
-        // battery
-        service = petkitDevice.services.battery_status_service;
-        // battery level
-        service_status = petkitDevice.status.batteryPower * globalVariables.config.batteryPersentPerLevel;
-        this.log.info(format('battery level is {}%.', service_status));
-        service.setCharacteristic(Characteristic.BatteryLevel, service_status);
-        
-        // charging state
-        if (petkitDevice.status.batteryStatus === 0) {
-            service_status = Characteristic.ChargingState.CHARGING;
-            this.log.info('battery is charging.');
-        } else {
-            service_status = Characteristic.ChargingState.NOT_CHARGING;
-            this.log.info('battery is not charging.');
-        }
-        service.setCharacteristic(Characteristic.ChargingState, service_status);
 
-        // low battery status
-        if (petkitDevice.status.batteryStatus !== 0 &&
-            !petkitDevice.config.get('ignore_battery_when_charging') &&
-            petkitDevice.status.batteryPower * globalVariables.config.batteryPersentPerLevel <= 50) {
-            service_status = Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
-            this.log.info('battery level status is low');
-        } else {
-            service_status = Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
-            this.log.info('battery level status is normal');
+        // battery service only for Petkit Feeder Mini
+        if (petkitDevice.config.get('model') === 'FeederMini') {        
+            // battery
+            service = petkitDevice.services.battery_status_service;
+            // battery level
+            service_status = petkitDevice.status.batteryPower * globalVariables.config.batteryPersentPerLevel;
+            this.log.info(format('battery level is {}%.', service_status));
+            service.setCharacteristic(Characteristic.BatteryLevel, service_status);
+            
+            // charging state
+            if (petkitDevice.status.batteryStatus === 0) {
+                service_status = Characteristic.ChargingState.CHARGING;
+                this.log.info('battery is charging.');
+            } else {
+                service_status = Characteristic.ChargingState.NOT_CHARGING;
+                this.log.info('battery is not charging.');
+            }
+            service.setCharacteristic(Characteristic.ChargingState, service_status);
+
+            // low battery status
+            if (petkitDevice.status.batteryStatus !== 0 &&
+                !petkitDevice.config.get('ignore_battery_when_charging') &&
+                petkitDevice.status.batteryPower * globalVariables.config.batteryPersentPerLevel <= 50) {
+                service_status = Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
+                this.log.info('battery level status is low');
+            } else {
+                service_status = Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+                this.log.info('battery level status is normal');
+            }
+            service.setCharacteristic(Characteristic.StatusLowBattery, service_status);
         }
-        service.setCharacteristic(Characteristic.StatusLowBattery, service_status);
+
 
         // manualLock
         if (petkitDevice.config.get('enable_manualLock')) {
