@@ -189,6 +189,24 @@ class PetkitFeederDevice {
             this.savedData = Object.assign(this.savedData, this.accessory.context);
         }
     }
+
+    getFoodStatusForHomebridge() {
+        if (this.config.get('model') === 'Feeder') {
+            if (this.config.get('reverse_foodStorage_indicator')) {
+                return (this.status.food < 250 ? 1 : 0);
+            } else {
+                return (this.status.food < 250 ? 0 : 1);
+            }
+        } else if (this.config.get('model') === 'FeederMini') {
+            if (this.config.get('reverse_foodStorage_indicator')) {
+                return (this.status.food != 1);
+            } else {
+                return (this.status.food == 1);
+            }
+        } else {
+            return 0;
+        }
+    }
 };
 
 function getTimestamp() {
@@ -200,24 +218,6 @@ function getDataString() {
 }
 
 class petkit_feeder_plugin {
-    static getDeviceFoodStatus(petkitDevice) {
-        if (petkitDevice.config.get('model') === 'Feeder') {
-            if (petkitDevice.config.get('reverse_foodStorage_indicator')) {
-                return (petkitDevice.status.food < 250 ? 1 : 0);
-            } else {
-                return (petkitDevice.status.food < 250 ? 0 : 1);
-            }
-        } else if (petkitDevice.config.get('model') === 'FeederMini') {
-            if (petkitDevice.config.get('reverse_foodStorage_indicator')) {
-                return (petkitDevice.status.food != 1);
-            } else {
-                return (petkitDevice.status.food == 1);
-            }
-        } else {
-            return 0;
-        }
-    }
-    
     constructor(log, config, api) {
         this.log = new logUtil(log, config.log_level || logUtil.LOGLV_INFO);
         this.log.info('begin to initialize Petkit Feeder Platform.');
@@ -348,7 +348,7 @@ class petkit_feeder_plugin {
         conf.fulfill('Battery_name', 'Battery');
 
         // print config log
-        conf.print(this.log.debug);
+        conf.print(content => {this.log.debug(content)});
 
         return conf;
     }
@@ -431,7 +431,7 @@ class petkit_feeder_plugin {
                 }
             }
 
-            service_status = petkit_feeder_plugin.getDeviceFoodStatus(petkitDevice);
+            service_status = petkitDevice.getFoodStatusForHomebridge();
             food_storage_service.setCharacteristic(Characteristic.OccupancyDetected, service_status)
             food_storage_service.getCharacteristic(Characteristic.OccupancyDetected)
                 .on('get', this.hb_foodStorageStatus_get.bind(this, petkitDevice));
@@ -1219,7 +1219,7 @@ class petkit_feeder_plugin {
     }
 
     hb_foodStorageStatus_get(petkitDevice, callback) {
-        const status = petkit_feeder_plugin.getDeviceFoodStatus(petkitDevice);
+        const status = petkitDevice.getFoodStatusForHomebridge();
         callback(null, status);
     }
 
