@@ -956,7 +956,7 @@ class petkit_feeder_mini_plugin {
             deviceDetailInfo = this.praseGetDeviceDetailInfo(device_detail_raw);
         })
         .catch(error => {
-            this.log.error(format('unable to get device({}) status: {}', petkitDevice.config.get('deviceId'), error.track));
+            this.log.error(format('unable to get device({}) status: {}', petkitDevice.config.get('deviceId'), error));
         })
         .then(() => {
             if (deviceDetailInfo) {
@@ -972,14 +972,14 @@ class petkit_feeder_mini_plugin {
         let service_status = undefined;
 
         this.log.debug(JSON.stringify(petkitDevice.status));
-
+        
         // battery
         service = petkitDevice.services.battery_status_service;
         // battery level
         service_status = petkitDevice.status.batteryPower * globalVariables.config.batteryPersentPerLevel;
         this.log.info(format('battery level is {}%.', service_status));
         service.setCharacteristic(Characteristic.BatteryLevel, service_status);
-
+        
         // charging state
         if (petkitDevice.status.batteryStatus === 0) {
             service_status = Characteristic.ChargingState.CHARGING;
@@ -989,9 +989,11 @@ class petkit_feeder_mini_plugin {
             this.log.info('battery is not charging.');
         }
         service.setCharacteristic(Characteristic.ChargingState, service_status);
-        
-        // low battery
-        if (petkitDevice.status.batteryPower * globalVariables.config.batteryPersentPerLevel <= 50) {
+
+        // low battery status
+        if (petkitDevice.status.batteryStatus !== 0 &&
+            !petkitDevice.config.get('ignore_battery_when_charging') &&
+            petkitDevice.status.batteryPower * globalVariables.config.batteryPersentPerLevel <= 50) {
             service_status = Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
             this.log.info('battery level status is low');
         } else {
@@ -1097,7 +1099,7 @@ class petkit_feeder_mini_plugin {
                     petkitDevice.status[settingName] = status;
                 }
             }).catch(error => {
-                this.log.error(error.track);
+                this.log.error(error);
             }).then(() => {
                 if (callback) callback(result);
                 // this.updataDeviceDetail();
@@ -1131,7 +1133,7 @@ class petkit_feeder_mini_plugin {
                         }
                     })
                     .catch(error => {
-                        this.log.error('food drop failed: ' + error.track);
+                        this.log.error('food drop failed: ' + error);
                     })
                     .then(() => {
                         if (!fast_response) callback(null);
@@ -1177,7 +1179,7 @@ class petkit_feeder_mini_plugin {
                 }
             })
             .catch(error => {
-                this.log.error('reset desiccant left days failed: ' + error.track);
+                this.log.error('reset desiccant left days failed: ' + error);
             })
             .then(() => {
                 if (!fast_response && callback) callback(null);
