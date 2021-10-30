@@ -1,10 +1,10 @@
-## Important note!!!
+## Important announcement!!!
 
 - Due to a company named “寻猫记” (which is 100% holding by 小佩, aka petkit in China), involved into some sort of selling cats issue (maybe not illegal, but in a very disgusting way) and I'm not happy with it, if you know to read Chinese, you can find out more detailed info at [this web page](https://zhuanlan.zhihu.com/p/426790315).
 - so here is my announcement:
 
 ```
-1. permanently stop this plugin develop and no more further issue will be answerd.
+1. permanently stop this plugin develop ,unpublish from npmjs.com and no more further issue will be answerd.
 ```
 
 ```
