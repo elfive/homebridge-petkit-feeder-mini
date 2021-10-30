@@ -1,12 +1,23 @@
 ## Important note!!!
 
-- if you are aready a plugin user, and have trouble when upgrade to v2.x.x from v1.x.x, please first consider update and double check your config.json.
+- Due to a company named “寻猫记” (which is 100% holding by 小佩, aka petkit in China), involved into some sort of selling cats issue (maybe not illegal, but in a very disgusting way) and I'm not happy with it, if you know to read Chinese, you can find out more detailed info at [this web page](https://zhuanlan.zhihu.com/p/426790315).
+- so here is my announcement:
 
-    you can find out how to update your config.json [here](https://github.com/elfive/homebridge-petkit-feeder-mini/wiki/How-to-convert-v1.x.x-config-to-v2.x.x).
+```
+1. permanently stop this plugin develop and no more further issue will be answerd.
+```
 
-- if you are a Petkit Feeder Element user and want to use this plugin, plseas install v2.x.x or above, v1.x.x is not compatible with Petkit Feeder Element.
+```
+2. highly recommended you the pet owner and pet lovers stop buying any petkit products.
+```
 
+```
+3. it better feed your soul mate with natural food, like raw meat or dried meat.
+```
 
+```
+4. thank you for your support.
+```
 
 ## homebridge-petkit-feeder-mini
 
@@ -186,17 +197,4 @@ we recomand you entered all the headers you captured. If you don't want to do so
 }]
 ```
 
-
-
-## 4) How to contribute
-
-everyone is welcome to contribute to this plugin. PR/issue/debug all are welcome.
-
-or you can send me an e-mail: elfive@elfive.cn
-
-
-
-## 5) Buy me a coffee
-
-if you think my work helps you, and wanna thank me, please consider buy me a coffee: https://paypal.me/iamelfive
 
