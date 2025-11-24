@@ -19,6 +19,12 @@
 4. thank you for your support.
 ```
 
+## 電池模式
+
+原作者並沒有打算支援電池模式，所以
+- 當你使用電池模式的時候，延遲10分鐘出糧
+- 當你使用充電模式的時候就恢復原本立即出糧
+
 ## homebridge-petkit-feeder-mini
 
 <p align="center">

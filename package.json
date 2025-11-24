@@ -1,7 +1,7 @@
 {
-  "name": "homebridge-petkit-feeder-mini",
-  "version": "2.1.4",
-  "description": "control your petkit feeder mini to feed your lovely pet.",
+  "name": "homebridge-petkit-feeder-mini-battery",
+  "version": "2.1.7",
+  "description": "control your petkit feeder mini to feed your lovely pet. battery mode, it can be used but ten minutes later",
   "main": "index.js",
   "scripts": {
     "test-homebridge": "/usr/bin/homebridge -P ./ -I -U /var/lib/homebridge",
@@ -17,7 +17,7 @@
     "homebridge": ">=0.4.45 || ^2.0.0-beta.0 || ^2.0.0",
     "node": ">=12.0.0"
   },
-  "author": "elfive@elfive.cn",
+  "author": "info@league2eb.me",
   "license": "Apache-2.0",
   "dependencies": {
     "axios": "^0.21.1",
@@ -27,10 +27,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/elfive/homebridge-petkit-feeder-mini.git"
+    "url": "git+https://github.com/League2EB/homebridge-petkit-feeder-mini.git"
   },
   "bugs": {
     "url": "https://github.com/elfive/homebridge-petkit-feeder-mini/issues"
   },
-  "homepage": "https://github.com/elfive/homebridge-petkit-feeder-mini#readme"
+  "homepage": "https://github.com/League2EB/homebridge-petkit-feeder-mini",
+  "funding": {
+    "type": "paypal",
+    "url": "https://paypal.me/iamelfive"
+  }
 }
