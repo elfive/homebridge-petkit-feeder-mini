@@ -18,6 +18,13 @@
         { "title": "None", "enum": [9] }
       ]
     },
+    "group_id": {
+      "title": "group_id",
+      "description": "group id from PetKit server. you can find it at response body of request to '/6/group/family/list'.",
+      "required": true,
+      "type": "string",
+      "default": ""
+    },
     "devices": {
       "type": "array",
       "items": {
@@ -105,9 +112,9 @@
                   "required": false,
                   "typeahead": {
                     "source": [
-                      "gzip, deflate",
+                      "gzip, deflate, br",
                       "application/x-www-form-urlencoded",
-                      "PETKIT/7.18.1 (iPhone; iOS 14.0; Scale/3.00)",
+                      "Petkit/10.8.1 (iPhone; iOS 14.0; Scale/3.00)",
                       "Asia/Shanghai",
                       "en_US"
                     ]
@@ -254,7 +261,7 @@
       "expandable": true,
       "expanded": true,
       "title": "Platform settings",
-      "items": ["log_level"]
+      "items": ["log_level", "group_id"]
     },
     {
       "key": "devices",
@@ -297,7 +304,7 @@
                 },
                 {
                   "type": "help",
-                  "helpvalue": "<p>• The HTTP request headers is the key to make this plugin work.<br/>• At least, you must fufill the \"X-Session\" header set.<br/>• This plugin will fulfill the headers with default header value that you not provide:</p><code>X-Client: ios(14.0;iPhone12,3)<br>Accept: */*<br>X-Timezone: 8.0<br>F-Session: -----SAME AS X-Session-----<br>Accept-Language: en-US;q=1, zh-Hans-US;q=0.9<br>Accept-Encoding: gzip, deflate<br>X-Api-Version: 7.18.1<br>Content-Type: application/x-www-form-urlencoded<br>User-Agent: PETKIT/7.18.1 (iPhone; iOS 14.0; Scale/3.00)<br>X-TimezoneId: Asia/Shanghai<br>X-Locale: en_US</code>"
+                  "helpvalue": "<p>• The HTTP request headers is the key to make this plugin work.<br/>• At least, you must fufill the \"X-Session\" header set.<br/>• This plugin will fulfill the headers with default header value that you not provide:</p><code>Content-Type: application/x-www-form-urlencoded<br>Accept: */*<br>X-Timezone: 0.0<br>F-Session: -----SAME AS X-Session-----<br>Accept-Language: en-US;q=1, zh-Hans-US;q=0.9<br>Accept-Encoding: gzip, deflate, br<br>X-Api-Version: 10.8.1<br>X-Client: ios(18.5;iPhone13,4)<br>X-Hour: 24<br>User-Agent: PetKit/10.8.1 (iPhone; iOS 18.5; Scale/3.00)<br>X-TimezoneId: Asia/Shanghai<br>X-Img-Version: 1<br>X-Locale: en_US</code>"
                 },
                 "devices[].enable_http_retry",
                 "devices[].http_retry_count"

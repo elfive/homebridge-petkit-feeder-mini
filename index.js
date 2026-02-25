@@ -23,15 +23,17 @@ const globalVariables = Object.freeze({
         'lightMode' : 'settings.lightMode',
     },
     'default_headers': {
-        'X-Client': 'ios(14.0;iPhone12,3)',
+        'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': '*/*',
         'X-Timezone': '0.0',
         'Accept-Language': 'en-US;q=1, zh-Hans-US;q=0.9',
-        'Accept-Encoding': 'gzip, deflate',
-        'X-Api-Version': '7.18.1',
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'PETKIT/7.18.1 (iPhone; iOS 14.0; Scale/3.00)',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'X-Api-Version': '10.8.1',
+        'X-Client': 'ios(18.5;iPhone13,4)',
+        'X-Hour': '24',
+        'User-Agent': 'PetKit/10.8.1 (iPhone; iOS 18.5; Scale/3.00)',
         'X-TimezoneId': 'Asia/Shanghai',
+        'X-Img-Version': '1',
         'X-Locale': 'en_US'
     },
     'default_http_options': {
@@ -46,7 +48,7 @@ const globalVariables = Object.freeze({
     'global_urls': {
         'Feeder': {
             'cn': {
-                'owndevices': 'http://api.petkit.cn/6/discovery/device_roster',
+                'owndevices': 'http://api.petkit.cn/6/discovery/device_roster?day={}&groupId={}',
                 'deviceState': 'http://api.petkit.cn/6/feeder/devicestate?id={}',
                 'deviceDetailInfo': 'http://api.petkit.cn/6/feeder/device_detail?id={}',
                 'saveDailyFeed': 'http://api.petkit.cn/6/feeder/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
@@ -58,7 +60,7 @@ const globalVariables = Object.freeze({
                 'updateSettings': 'http://api.petkit.cn/6/feeder/update?id={}&kv={}',
             },
             'asia':{
-                'owndevices': 'http://api.petktasia.com/latest/discovery/device_roster',
+                'owndevices': 'http://api.petktasia.com/latest/discovery/device_roster?day={}&groupId={}',
                 'deviceState': 'http://api.petktasia.com/latest/feeder/devicestate?id={}',
                 'deviceDetailInfo': 'http://api.petktasia.com/latest/feeder/device_detail?id={}',
                 'saveDailyFeed': 'http://api.petktasia.com/latest/feeder/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
@@ -70,7 +72,7 @@ const globalVariables = Object.freeze({
                 'updateSettings': 'http://api.petktasia.com/latest/feeder/update?id={}&kv={}',
             },
             'north_america':{
-                'owndevices': 'http://api.petkt.com/latest/discovery/device_roster',
+                'owndevices': 'http://api.petkt.com/latest/discovery/device_roster?day={}&groupId={}',
                 'deviceState': 'http://api.petkt.com/latest/feeder/devicestate?id={}',
                 'deviceDetail': 'http://api.petkt.com/latest/feeder/device_detail?id={}',
                 'saveDailyFeed': 'http://api.petkt.com/latest/feeder/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
@@ -84,7 +86,7 @@ const globalVariables = Object.freeze({
         },
         'FeederMini': {
             'cn': {
-                'owndevices': 'http://api.petkit.cn/6/discovery/device_roster',
+                'owndevices': 'http://api.petkit.cn/6/discovery/device_roster?day={}&groupId={}',
                 'deviceState': 'http://api.petkit.cn/6/feedermini/devicestate?id={}',
                 'deviceDetailInfo': 'http://api.petkit.cn/6/feedermini/device_detail?id={}',
                 'saveDailyFeed': 'http://api.petkit.cn/6/feedermini/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
@@ -96,7 +98,7 @@ const globalVariables = Object.freeze({
                 'updateSettings': 'http://api.petkit.cn/6/feedermini/update?id={}&kv={}',
             },
             'asia':{
-                'owndevices': 'http://api.petktasia.com/latest/discovery/device_roster',
+                'owndevices': 'http://api.petktasia.com/latest/discovery/device_roster?day={}&groupId={}',
                 'deviceState': 'http://api.petktasia.com/latest/feedermini/devicestate?id={}',
                 'deviceDetailInfo': 'http://api.petktasia.com/latest/feedermini/device_detail?id={}',
                 'saveDailyFeed': 'http://api.petktasia.com/latest/feedermini/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
@@ -108,7 +110,7 @@ const globalVariables = Object.freeze({
                 'updateSettings': 'http://api.petktasia.com/latest/feedermini/update?id={}&kv={}',
             },
             'north_america':{
-                'owndevices': 'http://api.petkt.com/latest/discovery/device_roster',
+                'owndevices': 'http://api.petkt.com/latest/discovery/device_roster?day={}&groupId={}',
                 'deviceState': 'http://api.petkt.com/latest/feedermini/devicestate?id={}',
                 'deviceDetailInfo': 'http://api.petkt.com/latest/feedermini/device_detail?id={}',
                 'saveDailyFeed': 'http://api.petkt.com/latest/feedermini/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
@@ -222,6 +224,7 @@ class petkit_feeder_plugin {
     constructor(log, config, api) {
         this.log = new logUtil(log, config.log_level || logUtil.LOGLV_INFO);
         this.log.info('begin to initialize Petkit Feeder Platform.');
+        this.config = config;
 
         if (!api) {
             this.log.error("Homebridge's version is too old, please upgrade!");
@@ -244,9 +247,9 @@ class petkit_feeder_plugin {
                 // check config usability
                 config.devices.forEach(device_config => {
                     // probably parse config or something here
-                    const config = this.configCheck(device_config);
-                    if (config) {
-                        this.initializeAccessory(config);
+                    const accessory_config = this.configCheck(device_config);
+                    if (accessory_config) {
+                        this.initializeAccessory(accessory_config);
                     }
                 });
             });
@@ -384,7 +387,7 @@ class petkit_feeder_plugin {
                     return false;
                 }
             }
-            Service.setPrimaryService(drop_meal_service);
+            drop_meal_service.setPrimaryService(true);
             drop_meal_service.getCharacteristic(Characteristic.On)
                 .on('get', callback => callback(null, 0))
                 .on('set', this.hb_dropMeal_set.bind(this, petkitDevice));
@@ -624,6 +627,7 @@ class petkit_feeder_plugin {
                     return;
                 }
                 config.set('deviceId', validDevice.id);
+                // config.set('userId', validDevice.relation.userId);
                 config.set('name', validDevice.name);
                 config.set('model', validDevice.type);
 
@@ -875,7 +879,10 @@ class petkit_feeder_plugin {
     }
 
     async http_getOwnDevice(config) {
-        const url = config.get('urls').owndevices;
+        const date = getDataString();
+        const groupId = this.config.group_id;
+        const url_template = config.get('urls').owndevices;
+        const url = format(url_template, date, groupId);
         const options = Object.assign(globalVariables.default_http_options, {
             url: url,
             headers: config.get('headers'),
@@ -1315,7 +1322,7 @@ class petkit_feeder_plugin {
 
 module.exports = function (homebridge) {
     PlatformAccessory = homebridge.platformAccessory;
-    Categories = homebridge.hap.Accessory.Categories;
+    // Categories = homebridge.hap.Accessory.Categories;
     Accessory = homebridge.hap.Accessory;
     Service = homebridge.hap.Service;
     Characteristic = homebridge.hap.Characteristic;
