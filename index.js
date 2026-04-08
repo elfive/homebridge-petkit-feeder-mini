@@ -25,16 +25,16 @@ const globalVariables = Object.freeze({
     'default_headers': {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': '*/*',
-        'X-Timezone': '0.0',
-        'Accept-Language': 'en-US;q=1, zh-Hans-US;q=0.9',
+        'X-Timezone': '8.0',
+        'Accept-Language': 'zh-Hans-CN;q=1, en-CN;q=0.9, zh-Hant-CN;q=0.8',
         'Accept-Encoding': 'gzip, deflate, br',
         'X-Api-Version': '10.8.1',
-        'X-Client': 'ios(18.5;iPhone13,4)',
+        'X-Client': 'ios(18.7.7;iPhone13,4)',
         'X-Hour': '24',
-        'User-Agent': 'PetKit/10.8.1 (iPhone; iOS 18.5; Scale/3.00)',
+        'User-Agent': 'PetKit/10.8.1 (iPhone; iOS 18.7.7; Scale/3.00)',
         'X-TimezoneId': 'Asia/Shanghai',
         'X-Img-Version': '1',
-        'X-Locale': 'en_US'
+        'X-Locale': 'zh-CN'
     },
     'default_http_options': {
         'method': 'POST',
@@ -589,7 +589,9 @@ class petkit_feeder_plugin {
                 if (owned_device_raw) {
                     const user_deviceId = config.get('deviceId');
                     const owned_devices = this.praseGetOwnedDevice(owned_device_raw);
-                    if (owned_devices.length === 0) {
+                    if (owned_devices === false) {
+                        this.log.error('unable to fetch information from petkit server. skip adding this petkit device.');
+                    } else if (owned_devices.length === 0) {
                         this.log.error(format('sorry that this plugin only works with these device type:{}.', JSON.stringify(globalVariables.support_device_type)));
                     } else if (owned_devices.length === 1) {
                         if (!user_deviceId || owned_devices[0].id == user_deviceId) {
@@ -616,7 +618,6 @@ class petkit_feeder_plugin {
                 } else {
                     this.log.error('unable to fetch information from petkit server. skip adding this petkit device.');
                 }
-
             })
             .catch(error => {
                 this.log.error('unable to determine whether the deviceId you set is valid: ' + error.stack ? error.stack : error);

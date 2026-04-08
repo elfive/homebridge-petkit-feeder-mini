@@ -102,6 +102,7 @@
                       "Accept-Language",
                       "Accept-Encoding",
                       "Content-Type",
+                      "Connection",
                       "User-Agent"
                     ]
                   }
@@ -112,11 +113,18 @@
                   "required": false,
                   "typeahead": {
                     "source": [
-                      "gzip, deflate, br",
                       "application/x-www-form-urlencoded",
-                      "Petkit/10.8.1 (iPhone; iOS 14.0; Scale/3.00)",
+                      "*/*",
+                      "8.0",
+                      "zh-Hans-CN;q=1, en-CN;q=0.9, zh-Hant-CN;q=0.8",
+                      "gzip, deflate, br",
+                      "10.8.1",
+                      "ios(18.7.7;iPhone13,4)",
+                      "24",
+                      "Petkit/10.8.1 (iPhone; iOS 18.7.7; Scale/3.00)",
+                      "keep-alive",
                       "Asia/Shanghai",
-                      "en_US"
+                      "zh-CN"
                     ]
                   }
                 }
@@ -304,7 +312,7 @@
                 },
                 {
                   "type": "help",
-                  "helpvalue": "<p>• The HTTP request headers is the key to make this plugin work.<br/>• At least, you must fufill the \"X-Session\" header set.<br/>• This plugin will fulfill the headers with default header value that you not provide:</p><code>Content-Type: application/x-www-form-urlencoded<br>Accept: */*<br>X-Timezone: 0.0<br>F-Session: -----SAME AS X-Session-----<br>Accept-Language: en-US;q=1, zh-Hans-US;q=0.9<br>Accept-Encoding: gzip, deflate, br<br>X-Api-Version: 10.8.1<br>X-Client: ios(18.5;iPhone13,4)<br>X-Hour: 24<br>User-Agent: PetKit/10.8.1 (iPhone; iOS 18.5; Scale/3.00)<br>X-TimezoneId: Asia/Shanghai<br>X-Img-Version: 1<br>X-Locale: en_US</code>"
+                  "helpvalue": "<p>• The HTTP request headers is the key to make this plugin work.<br/>• At least, you must fufill the \"X-Session\" header set.<br/>• This plugin will fulfill the headers with default header value that you not provide:</p><code>Content-Type: application/x-www-form-urlencoded<br>Accept: */*<br>X-Timezone: 8.0<br>F-Session: -----SAME AS X-Session-----<br>Accept-Language: zh-Hans-CN;q=1, en-CN;q=0.9, zh-Hant-CN;q=0.8<br>Accept-Encoding: gzip, deflate, br<br>X-Api-Version: 10.8.1<br>X-Client: ios(18.7.7;iPhone13,4)<br>X-Hour: 24<br>User-Agent: PetKit/10.8.1 (iPhone; iOS 18.7.7; Scale/3.00)<br>X-TimezoneId: Asia/Shanghai<br>X-Img-Version: 1<br>X-Locale: zh-CN</code>"
                 },
                 "devices[].enable_http_retry",
                 "devices[].http_retry_count"
