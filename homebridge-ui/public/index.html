@@ -254,12 +254,13 @@
   // ---------- conditional settings visibility ----------
   function updateConditionalVisibility() {
     const rules = [
-      {'checkbox': 'enable_desiccant', 'rows': ['row-desiccant-name', 'row-desiccant-autoreset', 'row-desiccant-alert', 'row-desiccant-reset']},
-      {'checkbox': 'enable_manualLock', 'rows': ['row-manual-lock-name']},
-      {'checkbox': 'enable_lightMode', 'rows': ['row-light-mode-name']},
+      {'checkboxes': ['enable_desiccant'], 'rows': ['row-desiccant-name', 'row-desiccant-autoreset']},
+      {'checkboxes': ['enable_desiccant', 'enable_autoreset_desiccant'], 'rows': ['row-desiccant-alert', 'row-desiccant-reset']},
+      {'checkboxes': ['enable_manualLock'], 'rows': ['row-manual-lock-name']},
+      {'checkboxes': ['enable_lightMode'], 'rows': ['row-light-mode-name']},
     ];
     rules.forEach(rule => {
-      const show = $(rule.checkbox).checked;
+      const show = rule.checkboxes.every(id => $(id).checked);
       rule.rows.forEach(id => {
         $(id).style.display = show ? '' : 'none';
       });
@@ -508,7 +509,7 @@
   });
 
   // conditional visibility on the related switches
-  ['enable_desiccant', 'enable_manualLock', 'enable_lightMode'].forEach(id => {
+  ['enable_desiccant', 'enable_autoreset_desiccant', 'enable_manualLock', 'enable_lightMode'].forEach(id => {
     $(id).addEventListener('change', () => {
       updateConditionalVisibility();
       pushConfig();
