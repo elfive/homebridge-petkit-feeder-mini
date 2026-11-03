@@ -1,24 +1,3 @@
-## Important announcement!!!
-
-- Due to a company named “寻猫记” (which is 100% holding by 小佩, aka petkit in China), involved into some sort of selling cats issue (maybe not illegal, but in a very disgusting way) and I'm not happy with it, if you know to read Chinese, you can find out more detailed info at [this web page](https://zhuanlan.zhihu.com/p/426790315).
-- so here is my announcement:
-
-```
-1. permanently stop this plugin develop ,unpublish from npmjs.com and no more further issue will be answerd.
-```
-
-```
-2. highly recommended you the pet owner and pet lovers stop buying any petkit products.
-```
-
-```
-3. it better feed your soul mate with natural food, like raw meat or dried meat.
-```
-
-```
-4. thank you for your support.
-```
-
 ## homebridge-petkit-feeder-mini
 
 <p align="center">
@@ -38,6 +17,26 @@
 </p>
 
 
+## 0）Important Note！
+
+<strong>v3.0.0 is a breaking change, please read this section carefully before upgrading!</strong>
+
+- the configuration file format of v3.0.0 is <strong>NOT compatible</strong> with any previous version (the <code>devices</code> array, <code>model</code>, <code>deviceId</code>, <code>group_id</code> and the captured <code>headers</code> are all gone), please <strong>remove the old config and re-configure this plugin</strong> from the settings page after upgrading;
+- since v3.0.0, this plugin uses a brand new <strong>account + password login</strong> to talk to the Petkit server, the packet capture based <code>X-Session</code> login is no longer needed;
+- the account filled in this plugin <strong>must have the permission of all the devices you want to control</strong> (owned by the account, or shared to it);
+- Petkit only allows <strong>one active session per account</strong>, which means this plugin <strong>can NOT stay logged in at the same time as the Petkit App</strong> when using the same account, logging in on one side will kick the other side out;
+- therefore, it is highly recommended to <strong>create a dedicated Petkit account</strong>, let the device owner <strong>share the devices to that account</strong> from the main app, and then fill in the dedicated account's username and password in this plugin.
+
+<strong>v3.0.0 为破坏性更新，升级前请务必仔细阅读本节！</strong>
+
+- v3.0.0 的配置文件格式与之前所有版本<strong>不兼容</strong>（<code>devices</code> 数组、<code>model</code>、<code>deviceId</code>、<code>group_id</code> 以及抓包获得的 <code>headers</code> 配置均已移除），升级后请<strong>删除旧配置，并在设置页面中重新配置本插件</strong>；
+- 自 v3.0.0 起，本插件采用全新的<strong>账号 + 密码登录</strong>方式与 Petkit 服务器通信，不再需要抓包获取 <code>X-Session</code>；
+- 在本插件中填写的账号，<strong>必须拥有所有需要被控制的设备的权限</strong>（设备属于该账号，或已分享给该账号）；
+- Petkit 每个账号同时只允许<strong>一个活跃会话</strong>，因此使用同一账号时，本插件<strong>无法与 Petkit App 同时保持登录</strong>，一方登录会将另一方踢下线；
+- 因此强烈建议<strong>单独注册一个专用账号</strong>，由设备所有者在主账号 App 中将设备<strong>分享给该专用账号</strong>，再在本插件中填入该专用账号的用户名和密码进行控制。
+
+
+
 ## 1) Description
 
 control your petkit feeder mini from homekit, get full use of iOS automation.
@@ -52,6 +51,7 @@ control your petkit feeder mini from homekit, get full use of iOS automation.
 
 ### features
 
+- provides a custom settings page in the Homebridge UI: test login with your Petkit account, pick which devices to control, no packet capture needed(since v3.0.0);
 - uses a fan speed to control the meal amount;
 - uses a switch to commit the drop;
 - uses a switch to control the Petkit feeder mini light mode;
@@ -67,8 +67,8 @@ control your petkit feeder mini from homekit, get full use of iOS automation.
 
 - enable/disable meal plan for the day(may be in the next major version, currently no plan to do it).
 - currently this plugin for <a href="https://github.com/homebridge/homebridge">homebridge</a> just tested with <a href="https://petkit.co.uk/product/petkit-element-mini-auto-feeder/">Petkit-feeder-mini (official store link)</a>, and this plugin currently only tested and works in Asia(include China mainland) and North America, other area may need more work.
-- to continuously use this plugin you should login Petkit app and never logoff, this plugin uses session id from the app and it will change every time you logoff and relogin.
-- because version 2.x.x is developed on a dynamic platform plugin, and not implement auto remove deleted device(s), so you may need to delete cached accessories manually.
+- (since v3.0.0) with account login mode, this plugin logs into the Petkit server for you, discovers <strong>all the devices of your account</strong> automatically, fetches the X-Session and group id automatically, persists the session id to disk and re-login automatically when the session expires. Note that Petkit only allows one active session per account, so a dedicated Petkit account is recommended.
+- because version 3.x.x is developed on a dynamic platform plugin, and not implement auto remove deleted device(s), so you may need to delete cached accessories manually.
 - ......
 
 
@@ -86,18 +86,35 @@ Goto App Store, download Petkit mobile app, register, login, add device. before 
 
 
 
-### Secondly, prepare to capture Petkit app http request.
+### Secondly, configure the plugin in the Homebridge settings page.
 
-Please goto <a href="https://github.com/elfive/homebridge-petkit-feeder-mini/wiki#how-to-capture-http-netflow">this</a> wiki page to find more detail.
+Since v3.0.0, this plugin provides a <strong>custom settings page</strong> in the Homebridge UI. Open the plugin settings and you will see:
+
+1. <strong>账号登录 (Account login)</strong>: choose the account region (<code>location</code>), fill in the account (<code>username</code> / <code>password</code>), then click the <strong>测试登录 (Test Login)</strong> button. This plugin logs into the Petkit server exactly like the Petkit app does (the password is sent md5-hashed, same as the official app). Login errors are shown in the page with the reason returned by the server.
+2. <strong>选择要控制的设备 (Device selection)</strong>: only shown after a successful login, this plugin fetches <strong>all the devices of your account</strong> (owned and shared) from the server, and you can choose which devices to control. Unchecked devices are not added to HomeKit.
+3. <strong>其他设置 (Other settings)</strong>: polling, service names and other options, enabled only after a successful login.
+
+After saving the config, this plugin will:
+
+- fetch the <strong>X-Session</strong> and the <strong>group_id</strong> from the server automatically, no packet capture needed;
+- persist the session id to disk, so it is reused after homebridge restarts instead of logging in every time;
+- re-login automatically when the server replies that the session is expired.
+
+If login fails with an account/region error, set <code>region</code> to the country code of your Petkit account (e.g. CN / HK / JP / SG / US / CA / IT), and adjust <code>timezone</code> to your IANA timezone.
+
+> Petkit only allows one active session per account: use a dedicated account and share the device with it from the main app, otherwise every time you open the app this plugin will be logged out (and vice versa).
+
+#### Captured headers (legacy)
+
+If you don't want to provide your account password, you can still capture the http request headers of the Petkit app as before, and put them in the <code>headers</code> field of the config.json directly. Please goto <a href="https://github.com/elfive/homebridge-petkit-feeder-mini/wiki#how-to-capture-http-netflow">this</a> wiki page to find more detail.
 
 ### Finally, retrieve infomation.
 
-you should provide one critical infomation to this plugin: **X-Session**, if you have more than one Petkit feeder mini device, then you should alse provide **deviceId** in the header field of the config.json file.
+No information needs to be retrieved by hand any more: with account login, the plugin obtains X-Session and group_id by itself; with captured headers mode, you only need to provide the **X-Session** in the platform config headers.
 
 Be aware of that, to minimize the effect to the Petkit server with unnecessary http requests, the plugin just update device status more than 10s interval, which means the status will bufferd at lease 10s. 
 
 - X-Session: this value will change every time you login you Petkit app, so do not logoff your Petkit app unless necessary. 
-- deviceId: this value indicate which device you wanna to control. If you just have one Petkit feeder mini, you can ignore this value.
 
 here is a example of Quantumult X capture data page:
 
@@ -110,26 +127,21 @@ you can find X-Session data from the request header area and deviceId in respons
 
 ### config.json field
 
-| field   name |  type  | required |       default        |        range         | description                                                  |
-| :----------: | :----: | :------: | :------------------: | :------------------: | :----------------------------------------------------------- |
-|   platform   | string |   yes    | 'petkit_feeder_mini' | 'petkit_feeder_mini' | Must be 'petkit_feeder_mini' in order to use this plugin.    |
-|  log_level   |  int   |    no    |          2           |      1,2,3,4,9       | one of these values:<br/>- 1: Debug<br/>- 2: Info<br/>- 3: Warn<br/>- 4: Error<br/>- 9: None |
-|   devices    | object |   yes    |         ---          |         ---          | Petkit Feeder device config.<br/>See more detail info at <a href="#devices field">decices field</a> below. |
-
-
-
-### devices field
+All the settings below are <strong>platform level</strong> settings: this plugin reads every device of your account from the Petkit server and adds an accessory for each of the devices selected in the settings page, no <code>deviceId</code>, no <code>group_id</code> needed.
 
 |           field   name            |  type  | required |                  default                   |                range                | description                                                  |
 | :-------------------------------: | :----: | :------: | :----------------------------------------: | :---------------------------------: | ------------------------------------------------------------ |
+|             platform              | string |   yes    |            'petkit_feeder_mini'             |        'petkit_feeder_mini'         | Must be 'petkit_feeder_mini' in order to use this plugin.    |
+|             log_level             |  int   |    no    |                      2                      |            1,2,3,4,9                | one of these values:<br/>- 1: Debug<br/>- 2: Info<br/>- 3: Warn<br/>- 4: Error<br/>- 9: None |
 |             location              | string |   yes    |                    'cn'                    | 'cn',<br>'asia',<br>'north_america' | China users:'cn';<br>Asia users: 'asia';<br>North America users: 'north_america';<br>other location because lack of infomation, not sure it will work.<br/>You can find more info <a href="https://github.com/elfive/homebridge-petkit-feeder-mini/wiki/How-to-choose-server-location">here</a>. |
-|               model               | string |    no    |                'FeederMini'                |      'FeederMini',<br>'Feeder'      | Petkit Feeder Mini: 'FeederMini'<br>Petkit Feeder Element: 'Feeder' |
-|             deviceId              | string |   tbd    |                    ---                     |                 ---                 | your Petkit feeder mini Id, which is buildin your device, will never change. <br/>If you just have one Petkit feeder device, you can ignore this value.<br/>If you just have more than one Petkit Feeder device, you must set this value. |
-|              headers              | array  |   yes    |                    ---                     |                 ---                 | http request headers.<br/>See more detail info at <a href="#headers field">headers field</a> below. |
-|         enable_http_retry         |        |    no    |                   false                    |             true/false              | Enable or disable HTTP retry function, useful when your device or homebridge has a bad internet connection. |
-|         http_retry_count          |  int   |    no    |                     3                      |               1 to 5                | max retry times when a http request failed.                  |
-|           DropMeal_name           | string |    no    |                 'DropMeal'                 |                 ---                 | name of DropMeal switch in HomeKit.                          |
-|          MealAmount_name          | string |    no    |                'MealAmount'                |                 ---                 | name of MealAmount fan speed in HomeKit.                     |
+|              username             | string |    no    |                    ---                     |                 ---                 | your Petkit account username/email. Provide username and password together to enable account login mode, then the <strong>headers below are no longer needed</strong>. All the devices of this account will be added automatically. |
+|              password             | string |    no    |                    ---                     |                 ---                 | your Petkit account password. Only used to login the Petkit server, never persisted to disk. |
+|              region               | string |    no    |           CN / HK / US                     |                 ---                 | the country code of your Petkit account, sent to the login request. Defaults to CN for China mainland, HK for Asia, US for North America. If login fails, set it to your own country code, e.g. CN / HK / JP / SG / US / CA / IT ... |
+|              timezone             | string |    no    |            'Asia/Shanghai'                 |                 ---                 | the IANA timezone sent to the Petkit server, used to compute the X-Timezone and X-TimezoneId headers. |
+|              devices              | array  |    no    |                    ---                     |                 ---                 | the device ids this plugin should control, selected in the custom settings page after a successful login. An empty array means no device is controlled, omit this field to control all devices of the account. |
+|              headers              | array  |    no    |                    ---                     |                 ---                 | http request headers, only needed in captured headers(legacy) mode.<br/>See more detail info at <a href="#headers field">headers field</a> below. |
+|           DropMeal_name           | string |    no    |                 'DropMeal'                 |                 ---                 | name of DropMeal switch in HomeKit, shared by every device.  |
+|          MealAmount_name          | string |    no    |                'MealAmount'                |                 ---                 | name of MealAmount fan speed in HomeKit, shared by every device. |
 |         FoodStorage_name          | string |    no    | 'FoodStorage_Empty'<br>or<br>'FoodStorage' |                 ---                 | name of FoodStorage indicator in HomeKit.<br>Note: if reverse_foodStorage_indicator value is set to true, then the default name is 'FoodStorage_Empty', otherwise 'FoodStorage' |
 |        DesiccantLevel_name        | string |    no    |              'DesiccantLevel'              |                 ---                 | name of DesiccantLevel indicator in HomeKit.                 |
 |          ManualLock_name          | string |    no    |                'ManualLock'                |                 ---                 | name of ManualLock switch in HomeKit.                        |
@@ -145,11 +157,11 @@ you can find X-Session data from the request header area and deviceId in respons
 
 
 
-### headers field
+### headers field (only for captured headers mode)
 
 | field   name  |  type  | required | default  |   range   | description                                                                                                                                                                                                       |
 | :-----------: | :----: | :------: | :------: | :-------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|   X-Session   | string |   yes    |   ---    |    ---    | Tell server who you are. This changes everytime you login Petkit app.                                                                                                                                             |
+|   X-Session   | string |   yes    |   ---    |    ---    | Tell server who you are. This changes everytime you login Petkit app. In account login mode, this plugin fetches this value automatically, you don't need to provide it.                                          |
 | X-Api-Version | string |  prefer  | '7.18.1' |    ---    | For China mainland users, this field is not necessary, but for users outside China mainland, this field is optional, if not provided, then the default value will be used. but we recommand to fufill this field. |
 |  X-Timezone   |  int   |    no    |    8     | -12 to 12 | Your local timezone offset, UTC time. If autoDeviceInfo is set to true, it will overwrited with the timezone of your device, which is set in your Petkit app.                                                     |
 
@@ -157,44 +169,73 @@ we recomand you entered all the headers you captured. If you don't want to do so
 
 
 
-### example of config.json file
+### example of config.json file (account login mode, recommended)
 
 ```json
 "platforms": [{
   "log_level": 2,
-  "devices": [
-      {
-        "headers": [
-          {
-            "key": "X-Session",
-            "value": "xxxxxx"
-          }
-        ],
-        "location": "cn",
-        "model": "FeederMini",
-        "enable_http_retry": false,
-        "http_retry_count": 3,
-        "DropMeal_name": "DropMeal",
-        "MealAmount_name": "MealAmount",
-        "FoodStorage_name": "FoodStorage",
-        "DesiccantLevel_name": "DesiccantLevel",
-        "ManualLock_name": "ManualLock",
-        "LightMode_name": "LightMode",
-        "Battery_name": "Battery",
-        "enable_polling": true,
-        "polling_interval": 60,
-        "enable_desiccant": true,
-        "alert_desiccant_threshold": 7,
-        "enable_autoreset_desiccant": true,
-        "reset_desiccant_threshold": 5,
-        "enable_manualLock": true,
-        "enable_lightMode": true,
-        "reverse_foodStorage_indicator": true,
-        "fast_response": true
-      }
-  ],
+  "username": "your_petkit_account@example.com",
+  "password": "your_petkit_account_password",
+  "region": "CN",
+  "timezone": "Asia/Shanghai",
+  "location": "cn",
+  "devices": ["123456789", "987654321"],
+  "DropMeal_name": "DropMeal",
+  "MealAmount_name": "MealAmount",
+  "FoodStorage_name": "FoodStorage",
+  "DesiccantLevel_name": "DesiccantLevel",
+  "ManualLock_name": "ManualLock",
+  "LightMode_name": "LightMode",
+  "Battery_name": "Battery",
+  "enable_polling": true,
+  "polling_interval": 60,
+  "enable_desiccant": true,
+  "alert_desiccant_threshold": 7,
+  "enable_autoreset_desiccant": true,
+  "reset_desiccant_threshold": 5,
+  "enable_manualLock": true,
+  "enable_lightMode": true,
+  "reverse_foodStorage_indicator": true,
+  "fast_response": true,
   "platform": "petkit_feeder_mini"
 }]
 ```
+
+### example of config.json file (captured headers mode, legacy)
+
+```json
+"platforms": [{
+  "log_level": 2,
+  "location": "cn",
+  "headers": [
+    {
+      "key": "X-Session",
+      "value": "xxxxxx"
+    }
+  ],
+  "DropMeal_name": "DropMeal",
+  "MealAmount_name": "MealAmount",
+  "FoodStorage_name": "FoodStorage",
+  "DesiccantLevel_name": "DesiccantLevel",
+  "ManualLock_name": "ManualLock",
+  "LightMode_name": "LightMode",
+  "Battery_name": "Battery",
+  "enable_polling": true,
+  "polling_interval": 60,
+  "enable_desiccant": true,
+  "alert_desiccant_threshold": 7,
+  "enable_autoreset_desiccant": true,
+  "reset_desiccant_threshold": 5,
+  "enable_manualLock": true,
+  "enable_lightMode": true,
+  "reverse_foodStorage_indicator": true,
+  "fast_response": true,
+  "platform": "petkit_feeder_mini"
+}]
+```
+
+### session persistence
+
+In account login mode, the session id is cached in `<homebridge_storage_path>/homebridge-petkit-feeder-mini/petkit-session.json` and reused across homebridge restarts. Only the session id and its login time are stored, <strong>your password is never persisted</strong>. If the cached session is expired or invalid, this plugin re-login with your account automatically.
 
 

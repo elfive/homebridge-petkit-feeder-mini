@@ -1,6 +1,7 @@
 {
   "pluginAlias": "petkit_feeder_mini",
   "pluginType": "platform",
+  "customUi": true,
   "headerDisplay": "For documentation please see https://github.com/elfive/homebridge-petkit-feeder-mini",
   "footerDisplay": "",
   "schema": {
@@ -18,246 +19,237 @@
         { "title": "None", "enum": [9] }
       ]
     },
-    "group_id": {
-      "title": "group_id",
-      "description": "group id from PetKit server. you can find it at response body of request to '/6/group/family/list'.",
+    "username": {
+      "title": "Petkit account username",
+      "description": "Fill username and password to let this plugin login the Petkit server for you. All devices of this account are discovered automatically, the X-Session and group id are fetched automatically, no packet capture needed any more.<br/>• Leave both empty to use the captured headers instead.<br/>• Petkit only allows one active session per account, it is recommended to use a dedicated account and share your device with it.",
+      "required": false,
+      "type": "string",
+      "placeholder": "you@example.com"
+    },
+    "password": {
+      "title": "Petkit account password",
+      "description": "Only used to login the Petkit server. It is never persisted to disk, only the session id is cached.",
+      "required": false,
+      "type": "string",
+      "x-schema-form": {
+        "type": "password"
+      }
+    },
+    "region": {
+      "title": "Account region (country code)",
+      "description": "The country code of your Petkit account, sent to the login request. Defaults to CN for China mainland, HK for Asia, US for North America. If login fails, set it to your own country code, e.g. CN / HK / JP / SG / US / CA / IT ...",
+      "required": false,
+      "type": "string",
+      "placeholder": "CN"
+    },
+    "timezone": {
+      "title": "Timezone",
+      "description": "The IANA timezone sent to the Petkit server, used to compute the X-Timezone and X-TimezoneId headers.",
+      "required": false,
+      "type": "string",
+      "default": "Asia/Shanghai",
+      "placeholder": "Asia/Shanghai"
+    },
+    "location": {
+      "title": "Server location, set this value corrent is very important becaus user data are not shared between servers.!",
+      "description": "• for China mainland users, select 'China mainland'.<br/>• for Asia users select 'Asia'.<br/>• for North America users select 'North America'",
       "required": true,
       "type": "string",
-      "default": ""
+      "default": "cn",
+      "placeholder": "China mainland",
+      "oneOf": [
+        { "title": "China mainland", "enum": ["cn"] },
+        { "title": "Asia", "enum": ["asia"] },
+        { "title": "North America", "enum": ["north_america"] }
+      ]
     },
     "devices": {
+      "title": "Devices to control",
+      "description": "The device ids this plugin should control, selected in the custom settings page after a successful login. An empty array means no device is controlled, omit this field to control all devices of the account.",
+      "required": false,
       "type": "array",
       "items": {
-        "title": "Petkit Feeder Device",
+        "type": "string"
+      }
+    },
+    "headers": {
+      "title": "Headers",
+      "description": "Optional now. Only needed when you do NOT provide the account username/password above.",
+      "type": "array",
+      "required": false,
+      "items": {
         "type": "object",
         "properties": {
-          "location": {
-            "title": "Server location, set this value corrent is very important becaus user data are not shared between servers.!",
-            "description": "• for China mainland users, select 'China mainland'.<br/>• for Asia users select 'Asia'.<br/>• for North America users select 'North America'",
-            "required": true,
+          "key": {
+            "title": "Key Name",
             "type": "string",
-            "default": "cn",
-            "placeholder": "China mainland",
-            "oneOf": [
-              { "title": "China mainland", "enum": ["cn"] },
-              { "title": "Asia", "enum": ["asia"] },
-              { "title": "North America", "enum": ["north_america"] }
-            ]
-          },
-          "model": {
-            "title": "Petkit feeder model",
-            "description": "• for Petkit Feeder Element users, select 'Petkit Feeder Element'.<br/>• for Petkit Feeder Mini users select 'Petkit Feeder Mini'",
+            "placeholder": "X-Session",
             "required": true,
-            "type": "string",
-            "default": "FeederMini",
-            "placeholder": "Petkit Feeder Mini",
-            "oneOf": [
-                { "title": "Petkit Feeder Element", "enum": ["Feeder"] },
-                { "title": "Petkit Feeder Mini", "enum": ["FeederMini"] }
-            ]
-          },
-          "deviceId": {
-            "title": "Petkit feeder Device ID",
-            "description": "Buildin your device, will never change.If you just have one Petkit Feeder device, you can ignore this value.",
-            "required": false,
-            "type": "string"
-          },
-          "enable_http_retry": {
-            "title": "Enable HTTP retry.",
-            "description": "Enable or disable HTTP retry function, useful when your device or homebridge has a bad internet connection.",
-            "required": false,
-            "type": "boolean",
-            "default": false
-          },
-          "http_retry_count": {
-            "title": "HTTP retry count",
-            "description": "max retry times when a http request failed.",
-            "required": false,
-            "type": "integer",
-            "default": 3,
-            "minimum": 1,
-            "maximum": 5
-          },
-          "headers": {
-            "title": "Headers",
-            "type": "array",
-            "required": true,
-            "items": {
-              "type": "object",
-              "properties": {
-                "key": {
-                  "title": "Key Name",
-                  "type": "string",
-                  "placeholder": "X-Session",
-                  "required": true,
-                  "typeahead": {
-                    "source": [
-                      "X-Session",
-                      "X-Api-Version",
-                      "X-Timezone",
-                      "X-Client",
-                      "X-TimezoneId",
-                      "X-Locale",
-                      "Accept",
-                      "Accept-Language",
-                      "Accept-Encoding",
-                      "Content-Type",
-                      "Connection",
-                      "User-Agent"
-                    ]
-                  }
-                },
-                "value": {
-                  "title": "Value",
-                  "type": "string",
-                  "required": false,
-                  "typeahead": {
-                    "source": [
-                      "application/x-www-form-urlencoded",
-                      "*/*",
-                      "8.0",
-                      "zh-Hans-CN;q=1, en-CN;q=0.9, zh-Hant-CN;q=0.8",
-                      "gzip, deflate, br",
-                      "10.8.1",
-                      "ios(18.7.7;iPhone13,4)",
-                      "24",
-                      "Petkit/10.8.1 (iPhone; iOS 18.7.7; Scale/3.00)",
-                      "keep-alive",
-                      "Asia/Shanghai",
-                      "zh-CN"
-                    ]
-                  }
-                }
-              }
+            "typeahead": {
+              "source": [
+                "X-Session",
+                "X-Api-Version",
+                "X-Timezone",
+                "X-Client",
+                "X-TimezoneId",
+                "X-Locale",
+                "Accept",
+                "Accept-Language",
+                "Accept-Encoding",
+                "Content-Type",
+                "Connection",
+                "User-Agent"
+              ]
             }
           },
-          "DropMeal_name": {
-            "title": "Name of DropMeal Switch shows in HomeKit",
-            "required": false,
+          "value": {
+            "title": "Value",
             "type": "string",
-            "default": "DropMeal",
-            "placeholder": "DropMeal"
-          },
-          "MealAmount_name": {
-            "title": "Name of MealAmount Service shows in HomeKit",
             "required": false,
-            "type": "string",
-            "default": "MealAmount",
-            "placeholder": "MealAmount"
-          },
-          "FoodStorage_name": {
-            "title": "Name of FoodStorage Service shows in HomeKit",
-            "required": false,
-            "type": "string",
-            "default": "FoodStorage",
-            "placeholder": "FoodStorage"
-          },
-          "DesiccantLevel_name": {
-            "title": "Name of DesiccantLevel Service shows in HomeKit",
-            "required": false,
-            "type": "string",
-            "default": "DesiccantLevel",
-            "placeholder": "DesiccantLevel"
-          },
-          "ManualLock_name": {
-            "title": "Name of ManualLock Service shows in HomeKit",
-            "required": false,
-            "type": "string",
-            "default": "ManualLock",
-            "placeholder": "ManualLock"
-          },
-          "LightMode_name": {
-            "title": "Name of LightMode Service shows in HomeKit",
-            "required": false,
-            "type": "string",
-            "default": "LightMode",
-            "placeholder": "LightMode"
-          },
-          "Battery_name": {
-            "title": "Name of Battery Service shows in HomeKit",
-            "required": false,
-            "type": "string",
-            "default": "Battery",
-            "placeholder": "Battery"
-          },
-          "enable_polling": {
-            "title": "Automatically update device status from Petkit server",
-            "required": false,
-            "type": "boolean",
-            "default": true
-          },
-          "polling_interval": {
-            "title": "Update device status interval from Petkit server.",
-            "required": false,
-            "type": "integer",
-            "default": 60,
-            "minimum": 60,
-            "maximum": 3600
-          },
-          "enable_desiccant": {
-            "title": "enable desiccant monitor function in homekit",
-            "required": false,
-            "type": "boolean",
-            "default": false
-          },
-          "alert_desiccant_threshold": {
-            "title": "shows an alert in homekit when desiccant left days less than this value(days).",
-            "required": false,
-            "type": "integer",
-            "default": 7,
-            "minimum": 1,
-            "maximum": 29
-          },
-          "enable_autoreset_desiccant": {
-            "title": "enable auto reset desiccant left days.",
-            "required": false,
-            "type": "boolean",
-            "default": false
-          },
-          "reset_desiccant_threshold": {
-            "title": "auto reset desiccant if desiccant left days reaches this value(days).",
-            "required": false,
-            "type": "integer",
-            "default": 5,
-            "minimum": 1,
-            "maximum": 29
-          },
-          "enable_manualLock": {
-            "title": "enable manual lock service in Homekit.",
-            "required": false,
-            "type": "boolean",
-            "default": false,
-            "placeholder": "false"
-          },
-          "enable_lightMode": {
-            "title": "enable light mode service in Homekit.",
-            "required": false,
-            "type": "boolean",
-            "default": false,
-            "placeholder": "false"
-          },
-          "reverse_foodStorage_indicator": {
-            "title": "Reverse food storage indicator status in Homekit.",
-            "required": false,
-            "type": "boolean",
-            "default": false,
-            "placeholder": "false"
-          },
-          "ignore_battery_when_charging": {
-            "title": "Ignore battery status when charging.",
-            "required": false,
-            "type": "boolean",
-            "default": false
-          },
-          "fast_response": {
-            "title": "When received a Homekit set request, return immediately, ignore the result.<br/>this is useful when your device or homebridge has a bad internet connection.",
-            "required": false,
-            "type": "boolean",
-            "default": false,
-            "placeholder": "false"
+            "typeahead": {
+              "source": [
+                "application/x-www-form-urlencoded",
+                "*/*",
+                "8.0",
+                "zh-Hans-CN;q=1, en-CN;q=0.9, zh-Hant-CN;q=0.8",
+                "gzip, deflate, br",
+                "10.8.1",
+                "ios(18.7.7;iPhone13,4)",
+                "24",
+                "Petkit/10.8.1 (iPhone; iOS 18.7.7; Scale/3.00)",
+                "keep-alive",
+                "Asia/Shanghai",
+                "zh-CN"
+              ]
+            }
           }
         }
       }
+    },
+    "DropMeal_name": {
+      "title": "Name of DropMeal Switch shows in HomeKit",
+      "required": false,
+      "type": "string",
+      "default": "DropMeal",
+      "placeholder": "DropMeal"
+    },
+    "MealAmount_name": {
+      "title": "Name of MealAmount Service shows in HomeKit",
+      "required": false,
+      "type": "string",
+      "default": "MealAmount",
+      "placeholder": "MealAmount"
+    },
+    "FoodStorage_name": {
+      "title": "Name of FoodStorage Service shows in HomeKit",
+      "required": false,
+      "type": "string",
+      "default": "FoodStorage",
+      "placeholder": "FoodStorage"
+    },
+    "DesiccantLevel_name": {
+      "title": "Name of DesiccantLevel Service shows in HomeKit",
+      "required": false,
+      "type": "string",
+      "default": "DesiccantLevel",
+      "placeholder": "DesiccantLevel"
+    },
+    "ManualLock_name": {
+      "title": "Name of ManualLock Service shows in HomeKit",
+      "required": false,
+      "type": "string",
+      "default": "ManualLock",
+      "placeholder": "ManualLock"
+    },
+    "LightMode_name": {
+      "title": "Name of LightMode Service shows in HomeKit",
+      "required": false,
+      "type": "string",
+      "default": "LightMode",
+      "placeholder": "LightMode"
+    },
+    "Battery_name": {
+      "title": "Name of Battery Service shows in HomeKit",
+      "required": false,
+      "type": "string",
+      "default": "Battery",
+      "placeholder": "Battery"
+    },
+    "enable_polling": {
+      "title": "Automatically update device status from Petkit server",
+      "required": false,
+      "type": "boolean",
+      "default": true
+    },
+    "polling_interval": {
+      "title": "Update device status interval from Petkit server.",
+      "required": false,
+      "type": "integer",
+      "default": 60,
+      "minimum": 60,
+      "maximum": 3600
+    },
+    "enable_desiccant": {
+      "title": "enable desiccant monitor function in homekit",
+      "required": false,
+      "type": "boolean",
+      "default": false
+    },
+    "alert_desiccant_threshold": {
+      "title": "shows an alert in homekit when desiccant left days less than this value(days).",
+      "required": false,
+      "type": "integer",
+      "default": 7,
+      "minimum": 1,
+      "maximum": 29
+    },
+    "enable_autoreset_desiccant": {
+      "title": "enable auto reset desiccant left days.",
+      "required": false,
+      "type": "boolean",
+      "default": false
+    },
+    "reset_desiccant_threshold": {
+      "title": "auto reset desiccant if desiccant left days reaches this value(days).",
+      "required": false,
+      "type": "integer",
+      "default": 5,
+      "minimum": 1,
+      "maximum": 29
+    },
+    "enable_manualLock": {
+      "title": "enable manual lock service in Homekit.",
+      "required": false,
+      "type": "boolean",
+      "default": false,
+      "placeholder": "false"
+    },
+    "enable_lightMode": {
+      "title": "enable light mode service in Homekit.",
+      "required": false,
+      "type": "boolean",
+      "default": false,
+      "placeholder": "false"
+    },
+    "reverse_foodStorage_indicator": {
+      "title": "Reverse food storage indicator status in Homekit.",
+      "required": false,
+      "type": "boolean",
+      "default": false,
+      "placeholder": "false"
+    },
+    "ignore_battery_when_charging": {
+      "title": "Ignore battery status when charging.",
+      "required": false,
+      "type": "boolean",
+      "default": false
+    },
+    "fast_response": {
+      "title": "When received a Homekit set request, return immediately, ignore the result.<br/>this is useful when your device or homebridge has a bad internet connection.",
+      "required": false,
+      "type": "boolean",
+      "default": false,
+      "placeholder": "false"
     }
   },
   "form": null,
@@ -269,111 +261,111 @@
       "expandable": true,
       "expanded": true,
       "title": "Platform settings",
-      "items": ["log_level", "group_id"]
+      "items": ["log_level"]
     },
     {
-      "key": "devices",
-      "type": "array",
-      "orderable": false,
+      "ref": "account",
+      "type": "section",
+      "expandable": true,
+      "expanded": true,
+      "title": "Account login (recommended)",
+      "items": [
+        "username",
+        "password",
+        "region",
+        "timezone",
+        "location",
+        {
+          "type": "help",
+          "helpvalue": "<p>• Recommended way to use this plugin: fill username/password, this plugin logs into the Petkit server exactly like the Petkit app does, discovers <b>all the devices of this account</b> automatically, and fetches the <b>X-Session</b> and <b>group id</b> automatically. The session id is persisted to disk so it is reused after homebridge restarts, and this plugin re-login automatically when the session expires.<br/>• Petkit only allows one active session per account, it is recommended to use a dedicated account and share the device with it from the main app.<br/>• The captured headers mode below is only kept for backward compatibility.</p>"
+        }
+      ]
+    },
+    {
+      "ref": "headers",
+      "type": "section",
       "expandable": true,
       "expanded": false,
-      "buttonText": "Add Device",
+      "title": "Captured headers (legacy)",
       "items": [
         {
-          "key": "devices[]",
-          "type": "section",
-          "expandable": true,
-          "expanded": false,
+          "key": "headers",
+          "type": "array",
+          "orderable": false,
+          "buttonText": "Add Header Set",
           "items": [
-            "devices[].location",
-            "devices[].deviceId",
-            "devices[].model",
             {
-              "type": "section",
-              "expandable": true,
-              "expanded": false,
-              "title": "HTTP request settings",
+              "type": "flex",
+              "flex-flow": "row wrap",
               "items": [
-                {
-                  "key": "devices[].headers",
-                  "type": "array",
-                  "orderable": false,
-                  "buttonText": "Add Header Set",
-                  "items": [
-                    {
-                      "type": "flex",
-                      "flex-flow": "row wrap",
-                      "items": [
-                        "devices[].headers[].key",
-                        "devices[].headers[].value"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "help",
-                  "helpvalue": "<p>• The HTTP request headers is the key to make this plugin work.<br/>• At least, you must fufill the \"X-Session\" header set.<br/>• This plugin will fulfill the headers with default header value that you not provide:</p><code>Content-Type: application/x-www-form-urlencoded<br>Accept: */*<br>X-Timezone: 8.0<br>F-Session: -----SAME AS X-Session-----<br>Accept-Language: zh-Hans-CN;q=1, en-CN;q=0.9, zh-Hant-CN;q=0.8<br>Accept-Encoding: gzip, deflate, br<br>X-Api-Version: 10.8.1<br>X-Client: ios(18.7.7;iPhone13,4)<br>X-Hour: 24<br>User-Agent: PetKit/10.8.1 (iPhone; iOS 18.7.7; Scale/3.00)<br>X-TimezoneId: Asia/Shanghai<br>X-Img-Version: 1<br>X-Locale: zh-CN</code>"
-                },
-                "devices[].enable_http_retry",
-                "devices[].http_retry_count"
-              ]
-            },
-            {
-              "type": "section",
-              "expandable": true,
-              "expanded": false,
-              "title": "Service name settings",
-              "items": [
-                {
-                  "type": "help",
-                  "helpvalue": "Some of these name setting may not showing in Home app, you'd better leave these names blank."
-                },
-                "devices[].DropMeal_name",
-                "devices[].MealAmount_name",
-                "devices[].FoodStorage_name",
-                "devices[].DesiccantLevel_name",
-                "devices[].ManualLock_name",
-                "devices[].LightMode_name",
-                "devices[].Battery_name"
-              ]
-            },
-            {
-              "type": "section",
-              "expandable": true,
-              "expanded": false,
-              "title": "Device desiccant settings",
-              "items": [
-                "devices[].enable_desiccant",
-                "devices[].alert_desiccant_threshold",
-                "devices[].enable_autoreset_desiccant",
-                "devices[].reset_desiccant_threshold"
-              ]
-            },
-            {
-              "type": "section",
-              "expandable": true,
-              "expanded": false,
-              "title": "Polling settings",
-              "items": [
-                "devices[].enable_polling",
-                "devices[].polling_interval"
-              ]
-            },
-            {
-              "type": "section",
-              "expandable": true,
-              "expanded": false,
-              "title": "Other settings",
-              "items": [
-                "devices[].enable_manualLock",
-                "devices[].enable_lightMode",
-                "devices[].reverse_foodStorage_indicator",
-                "devices[].ignore_battery_when_charging",
-                "devices[].fast_response"
+                "headers[].key",
+                "headers[].value"
               ]
             }
           ]
+        },
+        {
+          "type": "help",
+          "helpvalue": "<p>• Only needed when the account login above is not used.<br/>• At least, you must fufill the \"X-Session\" header set.<br/>• This plugin will fulfill the headers with default header value that you not provide:</p><code>Content-Type: application/x-www-form-urlencoded<br>Accept: */*<br>X-Timezone: 8.0<br>Accept-Language: zh-Hans-CN;q=1, en-CN;q=0.9, zh-Hant-CN;q=0.8<br>Accept-Encoding: gzip, deflate, br<br>X-Api-Version: 10.8.1<br>X-Client: ios(18.7.7;iPhone13,4)<br>X-Hour: 24<br>User-Agent: PetKit/10.8.1 (iPhone; iOS 18.7.7; Scale/3.00)<br>X-TimezoneId: Asia/Shanghai<br>X-Img-Version: 1<br>X-Locale: zh-CN</code>"
         }
+      ]
+    },
+    {
+      "ref": "services",
+      "type": "section",
+      "expandable": true,
+      "expanded": false,
+      "title": "Service name settings",
+      "items": [
+        {
+          "type": "help",
+          "helpvalue": "These names are shared by every device discovered from the server. Some of these name setting may not showing in Home app, you'd better leave these names blank."
+        },
+        "DropMeal_name",
+        "MealAmount_name",
+        "FoodStorage_name",
+        "DesiccantLevel_name",
+        "ManualLock_name",
+        "LightMode_name",
+        "Battery_name"
+      ]
+    },
+    {
+      "ref": "desiccant",
+      "type": "section",
+      "expandable": true,
+      "expanded": false,
+      "title": "Device desiccant settings",
+      "items": [
+        "enable_desiccant",
+        "alert_desiccant_threshold",
+        "enable_autoreset_desiccant",
+        "reset_desiccant_threshold"
+      ]
+    },
+    {
+      "ref": "polling",
+      "type": "section",
+      "expandable": true,
+      "expanded": false,
+      "title": "Polling settings",
+      "items": [
+        "enable_polling",
+        "polling_interval"
+      ]
+    },
+    {
+      "ref": "other",
+      "type": "section",
+      "expandable": true,
+      "expanded": false,
+      "title": "Other settings",
+      "items": [
+        "enable_manualLock",
+        "enable_lightMode",
+        "reverse_foodStorage_indicator",
+        "ignore_battery_when_charging",
+        "fast_response"
       ]
     }
   ]
