@@ -6,16 +6,15 @@
   "footerDisplay": "",
   "schema": {
     "type": "object",
+    "required": ["log_level", "region", "username", "password"],
     "properties": {
       "name": {
         "type": "string",
-        "required": true,
         "default": "Petkit Feeder"
       },
       "log_level": {
         "title": "log_level",
         "description": "Only logs level higher than the level selected",
-        "required": true,
         "type": "integer",
         "default": 2,
         "oneOf": [
@@ -29,14 +28,12 @@
       "username": {
         "title": "Petkit account username",
         "description": "Fill username and password to let this plugin login the Petkit server for you. All devices of this account are discovered automatically, the X-Session and group id are fetched automatically, no packet capture needed any more.<br/>• Leave both empty to use the captured headers instead.<br/>• Petkit only allows one active session per account, it is recommended to use a dedicated account and share your device with it.",
-        "required": false,
         "type": "string",
         "placeholder": "you@example.com"
       },
       "password": {
         "title": "Petkit account password",
         "description": "Only used to login the Petkit server. It is never persisted to disk, only the session id is cached.",
-        "required": false,
         "type": "string",
         "x-schema-form": {
           "type": "password"
@@ -45,7 +42,6 @@
       "region": {
         "title": "Account region (country code)",
         "description": "The country code of your Petkit account, chosen from a dropdown in the settings page, sent to the login request. The Petkit server address is taken from the official server of this country code automatically. If login fails, change it to your account's country code.",
-        "required": false,
         "type": "string",
         "default": "CN",
         "placeholder": "CN"
@@ -53,7 +49,6 @@
       "devices": {
         "title": "Devices to control",
         "description": "The devices this plugin should control, selected in the custom settings page after a successful login. Each entry is either a device id string, or an object with the device id and the custom display name to show in HomeKit. An empty array means no device is controlled, omit this field to control all devices of the account.",
-        "required": false,
         "type": "array",
         "items": {
           "oneOf": [
@@ -76,112 +71,50 @@
           ]
         }
       },
-      "headers": {
-        "title": "Headers",
-        "description": "Optional now. Only needed when you do NOT provide the account username/password above.",
-        "type": "array",
-        "required": false,
-        "items": {
-          "type": "object",
-          "properties": {
-            "key": {
-              "title": "Key Name",
-              "type": "string",
-              "placeholder": "X-Session",
-              "required": true,
-              "typeahead": {
-                "source": [
-                  "X-Session",
-                  "X-Api-Version",
-                  "X-Timezone",
-                  "X-Client",
-                  "X-TimezoneId",
-                  "X-Locale",
-                  "Accept",
-                  "Accept-Language",
-                  "Accept-Encoding",
-                  "Content-Type",
-                  "Connection",
-                  "User-Agent"
-                ]
-              }
-            },
-            "value": {
-              "title": "Value",
-              "type": "string",
-              "required": false,
-              "typeahead": {
-                "source": [
-                  "application/x-www-form-urlencoded",
-                  "*/*",
-                  "8.0",
-                  "zh-Hans-CN;q=1, en-CN;q=0.9, zh-Hant-CN;q=0.8",
-                  "gzip, deflate, br",
-                  "10.8.1",
-                  "ios(18.7.7;iPhone13,4)",
-                  "24",
-                  "Petkit/10.8.1 (iPhone; iOS 18.7.7; Scale/3.00)",
-                  "keep-alive",
-                  "Asia/Shanghai",
-                  "zh-CN"
-                ]
-              }
-            }
-          }
-        }
-      },
       "DropMeal_name": {
         "title": "Name of DropMeal Switch shows in HomeKit",
-        "required": false,
         "type": "string",
         "default": "DropMeal",
         "placeholder": "DropMeal"
       },
       "MealAmount_name": {
         "title": "Name of MealAmount Service shows in HomeKit",
-        "required": false,
         "type": "string",
         "default": "MealAmount",
         "placeholder": "MealAmount"
       },
       "FoodStorage_name": {
         "title": "Name of FoodStorage Service shows in HomeKit",
-        "required": false,
         "type": "string",
         "default": "FoodStorage",
         "placeholder": "FoodStorage"
       },
       "DesiccantLevel_name": {
         "title": "Name of DesiccantLevel Service shows in HomeKit",
-        "required": false,
         "type": "string",
         "default": "DesiccantLevel",
         "placeholder": "DesiccantLevel"
       },
       "ManualLock_name": {
         "title": "Name of ManualLock Service shows in HomeKit",
-        "required": false,
         "type": "string",
         "default": "ManualLock",
         "placeholder": "ManualLock"
       },
       "LightMode_name": {
         "title": "Name of LightMode Service shows in HomeKit",
-        "required": false,
         "type": "string",
         "default": "LightMode",
         "placeholder": "LightMode"
       },
       "Battery_name": {
         "title": "Name of Battery Service shows in HomeKit",
-        "required": false,
         "type": "string",
         "default": "Battery",
         "placeholder": "Battery"
       },
       "polling_interval": {
         "title": "Update device status interval from Petkit server.",
-        "required": false,
         "type": "integer",
         "default": 60,
         "minimum": 60,
@@ -189,13 +122,11 @@
       },
       "enable_desiccant": {
         "title": "enable desiccant monitor function in homekit",
-        "required": false,
         "type": "boolean",
         "default": false
       },
       "alert_desiccant_threshold": {
         "title": "shows an alert in homekit when desiccant left days less than this value(days).",
-        "required": false,
         "type": "integer",
         "default": 7,
         "minimum": 1,
@@ -203,13 +134,11 @@
       },
       "enable_autoreset_desiccant": {
         "title": "enable auto reset desiccant left days.",
-        "required": false,
         "type": "boolean",
         "default": false
       },
       "reset_desiccant_threshold": {
         "title": "auto reset desiccant if desiccant left days reaches this value(days).",
-        "required": false,
         "type": "integer",
         "default": 5,
         "minimum": 1,
@@ -217,34 +146,29 @@
       },
       "enable_manualLock": {
         "title": "enable manual lock service in Homekit.",
-        "required": false,
         "type": "boolean",
         "default": false,
         "placeholder": "false"
       },
       "enable_lightMode": {
         "title": "enable light mode service in Homekit.",
-        "required": false,
         "type": "boolean",
         "default": false,
         "placeholder": "false"
       },
       "reverse_foodStorage_indicator": {
         "title": "Reverse food storage indicator status in Homekit.",
-        "required": false,
         "type": "boolean",
         "default": false,
         "placeholder": "false"
       },
       "ignore_battery_when_charging": {
         "title": "Ignore battery status when charging.",
-        "required": false,
         "type": "boolean",
         "default": false
       },
       "fast_response": {
         "title": "When received a Homekit set request, return immediately, ignore the result.<br/>this is useful when your device or homebridge has a bad internet connection.",
-        "required": false,
         "type": "boolean",
         "default": false,
         "placeholder": "false"
