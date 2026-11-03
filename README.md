@@ -21,7 +21,7 @@
 
 <strong>v3.0.0 is a breaking change, please read this section carefully before upgrading!</strong>
 
-- the configuration file format of v3.0.0 is <strong>NOT compatible</strong> with any previous version (the <code>devices</code> array, <code>model</code>, <code>deviceId</code>, <code>group_id</code> and the captured <code>headers</code> are all gone), please <strong>remove the old config and re-configure this plugin</strong> from the settings page after upgrading;
+- the configuration file format of v3.0.0 is <strong>NOT compatible</strong> with any previous version (the <code>devices</code> array, <code>model</code>, <code>deviceId</code>, <code>group_id</code> and the captured <code>headers</code> are all gone, and <code>location</code> is replaced by the <code>region</code> country code, the server address is derived from the region automatically), please <strong>remove the old config and re-configure this plugin</strong> from the settings page after upgrading;
 - since v3.0.0, this plugin uses a brand new <strong>account + password login</strong> to talk to the Petkit server, the packet capture based <code>X-Session</code> login is no longer needed;
 - the account filled in this plugin <strong>must have the permission of all the devices you want to control</strong> (owned by the account, or shared to it);
 - Petkit only allows <strong>one active session per account</strong>, which means this plugin <strong>can NOT stay logged in at the same time as the Petkit App</strong> when using the same account, logging in on one side will kick the other side out;
@@ -29,7 +29,7 @@
 
 <strong>v3.0.0 为破坏性更新，升级前请务必仔细阅读本节！</strong>
 
-- v3.0.0 的配置文件格式与之前所有版本<strong>不兼容</strong>（<code>devices</code> 数组、<code>model</code>、<code>deviceId</code>、<code>group_id</code> 以及抓包获得的 <code>headers</code> 配置均已移除），升级后请<strong>删除旧配置，并在设置页面中重新配置本插件</strong>；
+- v3.0.0 的配置文件格式与之前所有版本<strong>不兼容</strong>（<code>devices</code> 数组、<code>model</code>、<code>deviceId</code>、<code>group_id</code> 以及抓包获得的 <code>headers</code> 配置均已移除，<code>location</code> 已替换为 <code>region</code> 国家代码，服务器地址由国家代码自动确定），升级后请<strong>删除旧配置，并在设置页面中重新配置本插件</strong>；
 - 自 v3.0.0 起，本插件采用全新的<strong>账号 + 密码登录</strong>方式与 Petkit 服务器通信，不再需要抓包获取 <code>X-Session</code>；
 - 在本插件中填写的账号，<strong>必须拥有所有需要被控制的设备的权限</strong>（设备属于该账号，或已分享给该账号）；
 - Petkit 每个账号同时只允许<strong>一个活跃会话</strong>，因此使用同一账号时，本插件<strong>无法与 Petkit App 同时保持登录</strong>，一方登录会将另一方踢下线；
@@ -90,8 +90,8 @@ Goto App Store, download Petkit mobile app, register, login, add device. before 
 
 Since v3.0.0, this plugin provides a <strong>custom settings page</strong> in the Homebridge UI. Open the plugin settings and you will see:
 
-1. <strong>账号登录 (Account login)</strong>: choose the account region (<code>location</code>), fill in the account (<code>username</code> / <code>password</code>), then click the <strong>测试登录 (Test Login)</strong> button. This plugin logs into the Petkit server exactly like the Petkit app does (the password is sent md5-hashed, same as the official app). Login errors are shown in the page with the reason returned by the server.
-2. <strong>选择要控制的设备 (Device selection)</strong>: only shown after a successful login, this plugin fetches <strong>all the devices of your account</strong> (owned and shared) from the server, and you can choose which devices to control. Unchecked devices are not added to HomeKit.
+1. <strong>账号登录 (Account login)</strong>: choose the <strong>country / region</strong> (<code>region</code>, a dropdown of all the country codes, the <strong>server address</strong> of this country code is used automatically), then fill in the account (<code>username</code> / <code>password</code>) and click the <strong>测试登录 (Test Login)</strong> button. This plugin logs into the Petkit server exactly like the Petkit app does (the password is sent md5-hashed, same as the official app). Login errors are shown in the page with the reason returned by the server. The timezone is taken from the server reply automatically, no timezone setting is needed.
+2. <strong>选择要控制的设备 (Device selection)</strong>: only shown after a successful login, this plugin fetches <strong>all the devices of your account</strong> (owned and shared) from the server, and you can choose which devices to control. Unchecked devices are not added to HomeKit. You can also give each selected device a custom display name, so you can easily tell which device is which in HomeKit.
 3. <strong>其他设置 (Other settings)</strong>: polling, service names and other options, enabled only after a successful login.
 
 After saving the config, this plugin will:
@@ -100,7 +100,7 @@ After saving the config, this plugin will:
 - persist the session id to disk, so it is reused after homebridge restarts instead of logging in every time;
 - re-login automatically when the server replies that the session is expired.
 
-If login fails with an account/region error, set <code>region</code> to the country code of your Petkit account (e.g. CN / HK / JP / SG / US / CA / IT), and adjust <code>timezone</code> to your IANA timezone.
+If login fails with an account/region error, set <code>region</code> to the country code of your Petkit account (e.g. CN / HK / JP / SG / US / CA / IT). The timezone is taken from the server reply automatically, no timezone setting is needed.
 
 > Petkit only allows one active session per account: use a dedicated account and share the device with it from the main app, otherwise every time you open the app this plugin will be logged out (and vice versa).
 
@@ -133,12 +133,10 @@ All the settings below are <strong>platform level</strong> settings: this plugin
 | :-------------------------------: | :----: | :------: | :----------------------------------------: | :---------------------------------: | ------------------------------------------------------------ |
 |             platform              | string |   yes    |            'petkit_feeder_mini'             |        'petkit_feeder_mini'         | Must be 'petkit_feeder_mini' in order to use this plugin.    |
 |             log_level             |  int   |    no    |                      2                      |            1,2,3,4,9                | one of these values:<br/>- 1: Debug<br/>- 2: Info<br/>- 3: Warn<br/>- 4: Error<br/>- 9: None |
-|             location              | string |   yes    |                    'cn'                    | 'cn',<br>'asia',<br>'north_america' | China users:'cn';<br>Asia users: 'asia';<br>North America users: 'north_america';<br>other location because lack of infomation, not sure it will work.<br/>You can find more info <a href="https://github.com/elfive/homebridge-petkit-feeder-mini/wiki/How-to-choose-server-location">here</a>. |
+|              region               | string |    no    |                     'CN'                    |                 ---                 | the country code of your Petkit account, sent to the login request. The Petkit server address is taken from the official server of this country code automatically. If login fails, set it to your own country code, e.g. CN / HK / JP / SG / US / CA / IT ... |
 |              username             | string |    no    |                    ---                     |                 ---                 | your Petkit account username/email. Provide username and password together to enable account login mode, then the <strong>headers below are no longer needed</strong>. All the devices of this account will be added automatically. |
 |              password             | string |    no    |                    ---                     |                 ---                 | your Petkit account password. Only used to login the Petkit server, never persisted to disk. |
-|              region               | string |    no    |           CN / HK / US                     |                 ---                 | the country code of your Petkit account, sent to the login request. Defaults to CN for China mainland, HK for Asia, US for North America. If login fails, set it to your own country code, e.g. CN / HK / JP / SG / US / CA / IT ... |
-|              timezone             | string |    no    |            'Asia/Shanghai'                 |                 ---                 | the IANA timezone sent to the Petkit server, used to compute the X-Timezone and X-TimezoneId headers. |
-|              devices              | array  |    no    |                    ---                     |                 ---                 | the device ids this plugin should control, selected in the custom settings page after a successful login. An empty array means no device is controlled, omit this field to control all devices of the account. |
+|              devices              | array  |    no    |                    ---                     |                 ---                 | the devices this plugin should control, selected in the custom settings page after a successful login. Each entry is either a device id string, or an object like <code>{"id": "123", "name": "Living Room Feeder"}</code> to give the device a custom display name in HomeKit. An empty array means no device is controlled, omit this field to control all devices of the account. |
 |              headers              | array  |    no    |                    ---                     |                 ---                 | http request headers, only needed in captured headers(legacy) mode.<br/>See more detail info at <a href="#headers field">headers field</a> below. |
 |           DropMeal_name           | string |    no    |                 'DropMeal'                 |                 ---                 | name of DropMeal switch in HomeKit, shared by every device.  |
 |          MealAmount_name          | string |    no    |                'MealAmount'                |                 ---                 | name of MealAmount fan speed in HomeKit, shared by every device. |
@@ -147,8 +145,7 @@ All the settings below are <strong>platform level</strong> settings: this plugin
 |          ManualLock_name          | string |    no    |                'ManualLock'                |                 ---                 | name of ManualLock switch in HomeKit.                        |
 |          LightMode_name           | string |    no    |                'LightMode'                 |                 ---                 | name of LightMode switch in HomeKit.                         |
 |           Battery_name            | string |    no    |                 'Battery'                  |                 ---                 | name of Battery indicator in HomeKit.                        |
-|          enable_polling           |  bool  |    no    |                    true                    |             true/false              | Automatically update device info from Petkit server.         |
-|         polling_interval          |  int   |    no    |                     60                     |             60 to 3600              | update device info interval from Petkit server(s).           |
+|         polling_interval          |  int   |    no    |                     60                     |             60 to 3600              | update device info interval from Petkit server(s). device status polling is always enabled. |
 |         enable_manualLock         |  bool  |    no    |                   false                    |             true/false              | if enabled, a switch will show in homekit to control the manual lock of the feeder. |
 |         enable_lightMode          |  bool  |    no    |                   false                    |             true/false              | if enabled, a switch will show in homekit to control the lighe mode of the feeder. |
 | reverse_foodStorage<br>_indicator |  bool  |    no    |                   false                    |             true/false              | normally, the occupancy will show an alert in homekit when there is enough food in the feeder, in which situation may not so recognizable, so you can reverse the status bu set this value to true, so when there is not much food, it can show an alert in homekit. |
@@ -174,12 +171,10 @@ we recomand you entered all the headers you captured. If you don't want to do so
 ```json
 "platforms": [{
   "log_level": 2,
+  "region": "CN",
   "username": "your_petkit_account@example.com",
   "password": "your_petkit_account_password",
-  "region": "CN",
-  "timezone": "Asia/Shanghai",
-  "location": "cn",
-  "devices": ["123456789", "987654321"],
+  "devices": [{"id": "123456789", "name": "Living Room Feeder"}, "987654321"],
   "DropMeal_name": "DropMeal",
   "MealAmount_name": "MealAmount",
   "FoodStorage_name": "FoodStorage",
@@ -187,7 +182,6 @@ we recomand you entered all the headers you captured. If you don't want to do so
   "ManualLock_name": "ManualLock",
   "LightMode_name": "LightMode",
   "Battery_name": "Battery",
-  "enable_polling": true,
   "polling_interval": 60,
   "enable_desiccant": true,
   "alert_desiccant_threshold": 7,
@@ -206,7 +200,7 @@ we recomand you entered all the headers you captured. If you don't want to do so
 ```json
 "platforms": [{
   "log_level": 2,
-  "location": "cn",
+  "region": "CN",
   "headers": [
     {
       "key": "X-Session",
@@ -220,7 +214,6 @@ we recomand you entered all the headers you captured. If you don't want to do so
   "ManualLock_name": "ManualLock",
   "LightMode_name": "LightMode",
   "Battery_name": "Battery",
-  "enable_polling": true,
   "polling_interval": 60,
   "enable_desiccant": true,
   "alert_desiccant_threshold": 7,

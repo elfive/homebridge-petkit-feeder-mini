@@ -1,0 +1,542 @@
+<div class="container-fluid">
+
+  <div class="alert alert-info py-2" role="alert">
+    <b>This plugin logs into the Petkit server with your account, fetches the session and discovers the devices automatically. Test the login first, then choose the devices to control and save the config.<br>
+    此插件通过 Petkit 账号登录服务器，自动获取会话并发现设备。请先测试登录，登录成功后选择要控制的设备并保存配置。</b><br>
+    <small>Note / 提示：Petkit only allows one active session per account, a dedicated account with shared devices is recommended, otherwise the App and this plugin will kick each other out.<br>
+    Petkit 每个账号只允许一个活跃会话，建议使用专用账号并在主账号中共享设备，否则手机 App 与本插件会互相踢下线。</small>
+  </div>
+
+  <!-- Account Login 账号登录 -->
+  <div class="card mb-3">
+    <div class="card-header">① Account Login / 账号登录</div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-12">
+          <label class="form-label" for="region">Region (Country Code) / 国家代码 *</label>
+          <select class="form-select" id="region"></select>
+          <small class="form-text text-muted">Choose the country / region of your account from the dropdown, this plugin connects to the official Petkit server of this country code automatically.<br>
+          从下拉框中选择你账号所属的国家/地区，本插件会自动使用该国家代码对应的官方服务器地址。</small>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="username">Username / 账号 *</label>
+          <input type="text" class="form-control" id="username" placeholder="you@example.com" autocomplete="username">
+          <small class="form-text text-muted">Your Petkit account (email / phone number).<br>你的 Petkit 账号(邮箱/手机号)。</small>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="password">Password / 密码 *</label>
+          <input type="password" class="form-control" id="password" placeholder="your password" autocomplete="current-password">
+          <small class="form-text text-muted">Only used to login the server.<br>仅用于登录服务器。</small>
+        </div>
+      </div>
+      <div class="mt-3 d-flex align-items-center">
+        <button type="button" class="btn btn-primary" id="test-login-btn">Test Login / 测试登录</button>
+        <span class="ms-3 text-muted" id="login-progress" style="display: none;">Logging into the Petkit server... / 正在登录 Petkit 服务器...</span>
+      </div>
+      <div class="mt-3" id="login-status"></div>
+    </div>
+  </div>
+
+  <!-- Device Selection 设备选择 -->
+  <div class="card mb-3" id="devices-card" style="display: none;">
+    <div class="card-header">② Device Selection / 选择要控制的设备</div>
+    <div class="card-body">
+      <p class="mb-2 text-muted">Check the devices this plugin should control, and give each one a friendly name to identify it in HomeKit. Unchecked devices are not added to HomeKit.<br>
+        勾选要由本插件控制的设备，并可以为每个设备设置一个便于识别的名称(将显示在 HomeKit 中)，未勾选的设备不会被添加到 HomeKit。</p>
+      <div id="devices-list"></div>
+      <div class="mt-3">
+        <button type="button" class="btn btn-outline-secondary btn-sm me-2" id="select-all-btn">Select All / 全选</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="select-none-btn">Select None / 全不选</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Other Settings 其他设置 -->
+  <div class="card mb-3" id="settings-card">
+    <div class="card-header">③ Other Settings / 其他设置</div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-12">
+          <label class="form-label" for="log_level">Log Level / 日志级别</label>
+          <select class="form-select" id="log_level">
+            <option value="1">Debug 调试</option>
+            <option value="2" selected>Info 信息</option>
+            <option value="3">Warn 警告</option>
+            <option value="4">Error 错误</option>
+            <option value="9">None 关闭</option>
+          </select>
+          <small class="form-text text-muted">Only logs level higher than the level selected will be output.<br>仅输出高于所选级别的日志。</small>
+        </div>
+        <div class="col-md-12">
+          <label class="form-label" for="polling_interval">Polling Interval (seconds) / 轮询间隔(秒)</label>
+          <input type="number" class="form-control" id="polling_interval" min="60" max="3600" value="60">
+          <small class="form-text text-muted">Device status update interval from the Petkit server, 60 to 3600 seconds.<br>设备状态更新间隔，范围 60 到 3600 秒。</small>
+        </div>
+        <div class="col-md-12">
+          <label class="form-label" for="DropMeal_name">DropMeal Switch Name / 投喂开关名称</label>
+          <input type="text" class="form-control" id="DropMeal_name" value="DropMeal">
+          <small class="form-text text-muted">Name of the DropMeal switch shown in HomeKit.<br>HomeKit 中投喂开关的名称。</small>
+        </div>
+        <div class="col-md-12">
+          <label class="form-label" for="MealAmount_name">MealAmount Name / 投喂份量名称</label>
+          <input type="text" class="form-control" id="MealAmount_name" value="MealAmount">
+          <small class="form-text text-muted">Name of the MealAmount fan speed shown in HomeKit.<br>HomeKit 中投喂份量(风扇转速)的名称。</small>
+        </div>
+        <div class="col-md-12">
+          <label class="form-label" for="FoodStorage_name">FoodStorage Name / 余粮指示名称</label>
+          <input type="text" class="form-control" id="FoodStorage_name" value="FoodStorage">
+          <small class="form-text text-muted">Name of the FoodStorage indicator shown in HomeKit.<br>HomeKit 中余粮指示的名称。</small>
+        </div>
+        <div class="col-md-12">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="reverse_foodStorage_indicator">
+            <label class="form-check-label" for="reverse_foodStorage_indicator">Reverse Food Storage Indicator / 反转余粮指示状态</label>
+          </div>
+          <small class="form-text text-muted">Reverse the food storage indicator status shown in HomeKit, easier to notice when food is low.<br>反转 HomeKit 中余粮指示的状态，余粮不足时更容易识别。</small>
+        </div>
+        <div class="col-md-12">
+          <label class="form-label" for="Battery_name">Battery Name / 电池服务名称</label>
+          <input type="text" class="form-control" id="Battery_name" value="Battery">
+          <small class="form-text text-muted">Name of the Battery service shown in HomeKit.<br>HomeKit 中电池服务的名称。</small>
+        </div>
+        <div class="col-md-12">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="ignore_battery_when_charging">
+            <label class="form-check-label" for="ignore_battery_when_charging">Ignore Battery Warning When Charging / 充电时忽略低电量告警</label>
+          </div>
+          <small class="form-text text-muted">Ignore the battery low level warning when the device is charging.<br>设备充电时忽略低电量告警。</small>
+        </div>
+        <div class="col-md-12">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="enable_desiccant">
+            <label class="form-check-label" for="enable_desiccant">Desiccant Monitor / 启用干燥剂监控</label>
+          </div>
+          <small class="form-text text-muted">Show the desiccant left days in HomeKit.<br>在 HomeKit 中显示干燥剂剩余天数。</small>
+        </div>
+        <div class="col-md-12" id="row-desiccant-name">
+          <label class="form-label" for="DesiccantLevel_name">Desiccant Name / 干燥剂服务名称</label>
+          <input type="text" class="form-control" id="DesiccantLevel_name" value="DesiccantLevel">
+          <small class="form-text text-muted">Name of the Desiccant service shown in HomeKit.<br>HomeKit 中干燥剂服务的名称。</small>
+        </div>
+        <div class="col-md-12" id="row-desiccant-autoreset">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="enable_autoreset_desiccant">
+            <label class="form-check-label" for="enable_autoreset_desiccant">Auto Reset Desiccant / 干燥剂到期自动重置</label>
+          </div>
+          <small class="form-text text-muted">Automatically reset the desiccant left days when it reaches the reset threshold.<br>剩余天数达到重置阈值时自动重置干燥剂。</small>
+        </div>
+        <div class="col-md-12" id="row-desiccant-alert">
+          <label class="form-label" for="alert_desiccant_threshold">Desiccant Alert Threshold (days) / 干燥剂告警阈值(天)</label>
+          <input type="number" class="form-control" id="alert_desiccant_threshold" min="1" max="29" value="7">
+          <small class="form-text text-muted">Alert in HomeKit when desiccant left days is less than this value (1 to 29).<br>剩余天数低于该值(1-29)时在 HomeKit 中告警。</small>
+        </div>
+        <div class="col-md-12" id="row-desiccant-reset">
+          <label class="form-label" for="reset_desiccant_threshold">Auto Reset Threshold (days) / 自动重置阈值(天)</label>
+          <input type="number" class="form-control" id="reset_desiccant_threshold" min="1" max="29" value="5">
+          <small class="form-text text-muted">Automatically reset the desiccant when the left days reaches this value.<br>剩余天数达到该值时自动重置干燥剂。</small>
+        </div>
+        <div class="col-md-12">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="enable_manualLock">
+            <label class="form-check-label" for="enable_manualLock">Manual Lock Switch / 启用手动锁开关</label>
+          </div>
+          <small class="form-text text-muted">Show a switch in HomeKit to control the manual lock of the feeder.<br>在 HomeKit 中显示控制喂食器手动锁的开关。</small>
+        </div>
+        <div class="col-md-12" id="row-manual-lock-name">
+          <label class="form-label" for="ManualLock_name">Manual Lock Name / 手动锁名称</label>
+          <input type="text" class="form-control" id="ManualLock_name" value="ManualLock">
+          <small class="form-text text-muted">Name of the Manual Lock switch shown in HomeKit.<br>HomeKit 中手动锁开关的名称。</small>
+        </div>
+        <div class="col-md-12">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="enable_lightMode">
+            <label class="form-check-label" for="enable_lightMode">Light Mode Switch / 启用指示灯开关</label>
+          </div>
+          <small class="form-text text-muted">Show a switch in HomeKit to control the light mode of the feeder.<br>在 HomeKit 中显示控制喂食器指示灯的开关。</small>
+        </div>
+        <div class="col-md-12" id="row-light-mode-name">
+          <label class="form-label" for="LightMode_name">Light Mode Name / 指示灯名称</label>
+          <input type="text" class="form-control" id="LightMode_name" value="LightMode">
+          <small class="form-text text-muted">Name of the Light Mode switch shown in HomeKit.<br>HomeKit 中指示灯开关的名称。</small>
+        </div>
+        <div class="col-md-12">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="fast_response">
+            <label class="form-check-label" for="fast_response">Fast Response / 快速响应</label>
+          </div>
+          <small class="form-text text-muted">Return immediately when receiving a HomeKit set request and ignore the result, useful when the network is bad.<br>收到 HomeKit 设置请求时立即返回并忽略结果，网络不佳时有用。</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="region-servers.js"></script>
+<script>
+(async () => {
+  const PLATFORM = 'petkit_feeder_mini';
+  // petkit country code -> default server address / country name mapping,
+  // loaded from region-servers.js, generated from the official petkit
+  // region servers endpoint.
+  const REGION_SERVERS = window.PETKIT_REGION_SERVERS || {};
+  const REGION_NAMES = window.PETKIT_REGION_NAMES || {};
+  const REGION_NAMES_EN = window.PETKIT_REGION_NAMES_EN || {};
+
+  let savedBlocks = [];          // all config blocks of this plugin
+  let savedIndex = -1;           // index of our platform block in savedBlocks
+  let savedConfig = {};          // our platform config object
+  let loginOk = false;           // whether the last test login succeeded
+  let lastDevices = [];          // devices returned by the last test login
+
+  // ---------- dom helpers ----------
+  const $ = id => document.getElementById(id);
+
+  // the default server address of the given country code
+  function defaultServerForRegion(region) {
+    const code = String(region || '').trim().toUpperCase();
+    return REGION_SERVERS[code] || '';
+  }
+
+  // populate the country code dropdown with all the known country codes,
+  // sorted by code, each option shows the code, the English country name
+  // and the Chinese country name.
+  function populateRegionOptions(ensureCode) {
+    const select = $('region');
+    const codes = Object.keys(REGION_SERVERS)
+      .filter(code => code !== 'CHINA')
+      .sort();
+    let html = '';
+    codes.forEach(code => {
+      const nameEn = REGION_NAMES_EN[code] || '';
+      const nameZh = REGION_NAMES[code] || '';
+      let label = code;
+      if (nameEn) {
+        label += ' · ' + nameEn;
+      }
+      if (nameZh && nameZh !== nameEn) {
+        label += ' · ' + nameZh;
+      }
+      html += '<option value="' + escapeHtml(code) + '">' + escapeHtml(label) + '</option>';
+    });
+    // keep the saved code selectable even when it is not in the known list
+    const ensure = String(ensureCode || '').trim().toUpperCase();
+    if (ensure && codes.indexOf(ensure) === -1 && REGION_SERVERS[ensure]) {
+      html += '<option value="' + escapeHtml(ensure) + '">' + escapeHtml(ensure) + '</option>';
+    }
+    select.innerHTML = html;
+  }
+
+  function settingsDisabled(disabled) {
+    $('settings-card').querySelectorAll('input, select').forEach(el => { el.disabled = disabled; });
+    if (disabled) {
+      $('settings-card').classList.add('opacity-50');
+    } else {
+      $('settings-card').classList.remove('opacity-50');
+    }
+  }
+
+  function showLoginStatus(type, html) {
+    const el = $('login-status');
+    if (!html) {
+      el.innerHTML = '';
+      return;
+    }
+    el.innerHTML = '<div class="alert alert-' + type + ' py-2 mb-0">' + html + '</div>';
+  }
+
+  function escapeHtml(str) {
+    return String(str == null ? '' : str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  // ---------- conditional settings visibility ----------
+  function updateConditionalVisibility() {
+    const rules = [
+      {'checkbox': 'enable_desiccant', 'rows': ['row-desiccant-name', 'row-desiccant-autoreset', 'row-desiccant-alert', 'row-desiccant-reset']},
+      {'checkbox': 'enable_manualLock', 'rows': ['row-manual-lock-name']},
+      {'checkbox': 'enable_lightMode', 'rows': ['row-light-mode-name']},
+    ];
+    rules.forEach(rule => {
+      const show = $(rule.checkbox).checked;
+      rule.rows.forEach(id => {
+        $(id).style.display = show ? '' : 'none';
+      });
+    });
+  }
+
+  // ---------- config ----------
+  function currentLoginInput() {
+    return {
+      region: $('region').value.trim(),
+      username: $('username').value.trim(),
+      password: $('password').value,
+    };
+  }
+
+  // selected devices: [{id, name}] for every checked device
+  function selectedDeviceEntries() {
+    const entries = [];
+    $('devices-list').querySelectorAll('.device-checkbox:checked').forEach(checkbox => {
+      const row = checkbox.closest('.device-item');
+      const nameInput = row.querySelector('.device-name');
+      const name = (nameInput ? nameInput.value.trim() : '');
+      entries.push({'id': checkbox.value, 'name': name});
+    });
+    return entries;
+  }
+
+  function buildConfig() {
+    const input = currentLoginInput();
+    const config = {
+      platform: PLATFORM,
+      log_level: Number($('log_level').value),
+      region: input.region,
+      username: input.username,
+      password: input.password,
+      devices: selectedDeviceEntries(),
+      enable_polling: true,
+      polling_interval: Number($('polling_interval').value),
+      DropMeal_name: $('DropMeal_name').value,
+      MealAmount_name: $('MealAmount_name').value,
+      FoodStorage_name: $('FoodStorage_name').value,
+      DesiccantLevel_name: $('DesiccantLevel_name').value,
+      ManualLock_name: $('ManualLock_name').value,
+      LightMode_name: $('LightMode_name').value,
+      Battery_name: $('Battery_name').value,
+      enable_desiccant: $('enable_desiccant').checked,
+      alert_desiccant_threshold: Number($('alert_desiccant_threshold').value),
+      enable_autoreset_desiccant: $('enable_autoreset_desiccant').checked,
+      reset_desiccant_threshold: Number($('reset_desiccant_threshold').value),
+      enable_manualLock: $('enable_manualLock').checked,
+      enable_lightMode: $('enable_lightMode').checked,
+      reverse_foodStorage_indicator: $('reverse_foodStorage_indicator').checked,
+      ignore_battery_when_charging: $('ignore_battery_when_charging').checked,
+      fast_response: $('fast_response').checked,
+    };
+    return config;
+  }
+
+  // push the current config to the homebridge config ui
+  async function pushConfig() {
+    const blocks = savedBlocks.slice();
+    const config = buildConfig();
+    if (savedIndex !== -1) {
+      blocks[savedIndex] = config;
+    } else {
+      blocks.push(config);
+    }
+    await homebridge.updatePluginConfig(blocks);
+  }
+
+  // ---------- device list ----------
+  function renderDevices() {
+    const list = $('devices-list');
+    if (!lastDevices.length) {
+      list.innerHTML = '<div class="alert alert-warning py-2 mb-0">No supported device (Feeder / FeederMini) found under this account.<br>该账号下没有发现支持的设备(Feeder / FeederMini)。</div>';
+      return;
+    }
+
+    // saved selection: array of device id strings, or objects {id, name}
+    let savedSelection = null;
+    if (savedConfig && Array.isArray(savedConfig.devices)) {
+      savedSelection = {};
+      savedConfig.devices.forEach(entry => {
+        if (typeof entry === 'string') {
+          savedSelection[String(entry)] = '';
+        } else if (entry && typeof entry === 'object') {
+          savedSelection[String(entry.id)] = String(entry.name || '');
+        }
+      });
+    }
+
+    let html = '';
+    lastDevices.forEach(device => {
+      const deviceId = String(device.id);
+      const checked = (savedSelection === null || savedSelection[deviceId] !== undefined) ? 'checked' : '';
+      // the custom name saved by the user, empty when not set yet: the input
+      // shows the device name returned by the server as its placeholder, so
+      // leaving the input empty means "use the default server-returned name",
+      // e.g. the name set by the user in the Petkit app(智能喂食器).
+      const savedName = (savedSelection && savedSelection[deviceId]) ? savedSelection[deviceId] : '';
+      html += '<div class="device-item border rounded p-2 mb-2">' +
+        '<div class="form-check">' +
+        '<input class="form-check-input device-checkbox" type="checkbox" value="' + escapeHtml(deviceId) + '" id="device-' + escapeHtml(deviceId) + '" ' + checked + '>' +
+        '<label class="form-check-label" for="device-' + escapeHtml(deviceId) + '">' +
+        escapeHtml(device.name) + ' <span class="text-muted">(' + escapeHtml(device.type) + ', id: ' + escapeHtml(deviceId) + ')</span>' +
+        '</label>' +
+        '</div>' +
+        '<div class="mt-1 ms-4">' +
+        '<label class="form-label mb-1 small" for="device-name-' + escapeHtml(deviceId) + '">Device Name / 设备名称</label>' +
+        '<input type="text" class="form-control form-control-sm device-name" id="device-name-' + escapeHtml(deviceId) + '" placeholder="' + escapeHtml(device.name) + '" value="' + escapeHtml(savedName) + '">' +
+        '<small class="form-text text-muted">Leave it empty to use the device name returned by the server (shown in the placeholder, the name you set in the Petkit app), you can change it to a friendly name, a restart of Homebridge is required for the change to take effect.<br>留空时使用服务器返回的设备名称(即占位符中显示的名称，即你在 App 中设置的名称)，可改成便于识别的名称，修改名称重启 Homebridge 后生效。</small>' +
+        '</div>' +
+        '</div>';
+    });
+    list.innerHTML = html;
+
+    list.querySelectorAll('.device-item').forEach(row => {
+      const checkbox = row.querySelector('.device-checkbox');
+      const nameInput = row.querySelector('.device-name');
+      const syncState = () => {
+        nameInput.disabled = !checkbox.checked;
+        pushConfig();
+      };
+      checkbox.addEventListener('change', syncState);
+      nameInput.addEventListener('input', () => pushConfig());
+      nameInput.disabled = !checkbox.checked;
+    });
+  }
+
+  // ---------- login state ----------
+  function setLoginOk(ok) {
+    loginOk = ok;
+    settingsDisabled(!ok);
+    $('devices-card').style.display = ok ? '' : 'none';
+    if (ok) {
+      homebridge.enableSaveButton();
+    } else {
+      homebridge.disableSaveButton();
+    }
+  }
+
+  function invalidateLogin(message) {
+    if (!loginOk) {
+      return;
+    }
+    setLoginOk(false);
+    showLoginStatus('warning', (message || 'Login info changed, please test the login again. 登录信息已变更，请重新测试登录。'));
+  }
+
+  // ---------- test login ----------
+  async function doTestLogin() {
+    const input = currentLoginInput();
+    if (!input.username || !input.password) {
+      showLoginStatus('danger', 'Please enter your account username and password before testing the login. 请输入 Petkit 账号和密码后再测试登录。');
+      return;
+    }
+    // the server address always comes from the selected country code
+    const server = defaultServerForRegion(input.region);
+    if (!/^https?:\/\/.+/i.test(server)) {
+      showLoginStatus('danger', 'Please select a valid country code. 请选择有效的国家代码。');
+      return;
+    }
+    input.server = server;
+
+    $('test-login-btn').disabled = true;
+    $('login-progress').style.display = '';
+    showLoginStatus('', null);
+    homebridge.showSpinner();
+    try {
+      const result = await homebridge.request('/test-login', input);
+      lastDevices = result.devices || [];
+      setLoginOk(true);
+      showLoginStatus('success', 'Login succeeded! Found <b>' + lastDevices.length + '</b> supported device(s), please choose the devices to control and name them below.<br>登录成功！共发现 <b>' + lastDevices.length + '</b> 台支持的设备，请在下方选择要控制的设备并为它们命名。');
+      homebridge.toast.success('Petkit account login succeeded. Petkit 账号登录成功。', 'Login Succeeded / 登录成功');
+      renderDevices();
+      await pushConfig();
+    } catch (error) {
+      setLoginOk(false);
+      const message = (error && error.message) ? error.message : String(error);
+      showLoginStatus('danger', 'Login failed / 登录失败：' + escapeHtml(message));
+      homebridge.toast.error(message, 'Login Failed / 登录失败');
+    } finally {
+      homebridge.hideSpinner();
+      $('login-progress').style.display = 'none';
+      $('test-login-btn').disabled = false;
+    }
+  }
+
+  // ---------- field prefilling ----------
+  function applySavedConfig() {
+    if (!savedConfig) {
+      savedConfig = {};
+    }
+    const valueOrDefault = (value, def) => (value !== undefined && value !== null ? value : def);
+
+    const savedRegion = valueOrDefault(savedConfig.region, 'CN');
+    populateRegionOptions(savedRegion);
+    $('region').value = String(savedRegion).trim().toUpperCase();
+    $('username').value = valueOrDefault(savedConfig.username, '');
+    $('password').value = valueOrDefault(savedConfig.password, '');
+    $('log_level').value = String(valueOrDefault(savedConfig.log_level, 2));
+    $('polling_interval').value = valueOrDefault(savedConfig.polling_interval, 60);
+    $('DropMeal_name').value = valueOrDefault(savedConfig.DropMeal_name, 'DropMeal');
+    $('MealAmount_name').value = valueOrDefault(savedConfig.MealAmount_name, 'MealAmount');
+    $('FoodStorage_name').value = valueOrDefault(savedConfig.FoodStorage_name, 'FoodStorage');
+    $('DesiccantLevel_name').value = valueOrDefault(savedConfig.DesiccantLevel_name, 'DesiccantLevel');
+    $('ManualLock_name').value = valueOrDefault(savedConfig.ManualLock_name, 'ManualLock');
+    $('LightMode_name').value = valueOrDefault(savedConfig.LightMode_name, 'LightMode');
+    $('Battery_name').value = valueOrDefault(savedConfig.Battery_name, 'Battery');
+    $('enable_desiccant').checked = valueOrDefault(savedConfig.enable_desiccant, false);
+    $('alert_desiccant_threshold').value = valueOrDefault(savedConfig.alert_desiccant_threshold, 7);
+    $('enable_autoreset_desiccant').checked = valueOrDefault(savedConfig.enable_autoreset_desiccant, false);
+    $('reset_desiccant_threshold').value = valueOrDefault(savedConfig.reset_desiccant_threshold, 5);
+    $('enable_manualLock').checked = valueOrDefault(savedConfig.enable_manualLock, false);
+    $('enable_lightMode').checked = valueOrDefault(savedConfig.enable_lightMode, false);
+    $('reverse_foodStorage_indicator').checked = valueOrDefault(savedConfig.reverse_foodStorage_indicator, false);
+    $('ignore_battery_when_charging').checked = valueOrDefault(savedConfig.ignore_battery_when_charging, false);
+    $('fast_response').checked = valueOrDefault(savedConfig.fast_response, false);
+    updateConditionalVisibility();
+  }
+
+  // ---------- init ----------
+  $('test-login-btn').addEventListener('click', doTestLogin);
+
+  // a country code change always requires a new login test
+  $('region').addEventListener('change', () => {
+    invalidateLogin();
+  });
+  ['username', 'password'].forEach(id => {
+    $(id).addEventListener('input', () => invalidateLogin());
+  });
+
+  $('select-all-btn').addEventListener('click', () => {
+    $('devices-list').querySelectorAll('.device-checkbox').forEach(el => {
+      el.checked = true;
+      el.closest('.device-item').querySelector('.device-name').disabled = false;
+    });
+    pushConfig();
+  });
+  $('select-none-btn').addEventListener('click', () => {
+    $('devices-list').querySelectorAll('.device-checkbox').forEach(el => {
+      el.checked = false;
+      el.closest('.device-item').querySelector('.device-name').disabled = true;
+    });
+    pushConfig();
+  });
+
+  // conditional visibility on the related switches
+  ['enable_desiccant', 'enable_manualLock', 'enable_lightMode'].forEach(id => {
+    $(id).addEventListener('change', () => {
+      updateConditionalVisibility();
+      pushConfig();
+    });
+  });
+
+  // push config on every settings change
+  $('settings-card').querySelectorAll('input, select').forEach(el => {
+    const eventName = (el.type === 'checkbox' || el.tagName === 'SELECT') ? 'change' : 'input';
+    el.addEventListener(eventName, () => pushConfig());
+  });
+
+  // load the saved config
+  try {
+    savedBlocks = await homebridge.getPluginConfig() || [];
+  } catch (error) {
+    savedBlocks = [];
+  }
+  savedIndex = savedBlocks.findIndex(block => block && block.platform === PLATFORM);
+  if (savedIndex !== -1) {
+    savedConfig = savedBlocks[savedIndex] || {};
+  }
+  applySavedConfig();
+  setLoginOk(false);
+
+  // auto test login when the saved config already contains an account
+  if ($('username').value && $('password').value) {
+    doTestLogin();
+  }
+})();
+</script>

@@ -13,6 +13,9 @@ const pollingtoevent = require('polling-to-event');
 
 const logUtil = require('./utils/log');
 const configUtil = require('./utils/config');
+// petkit country code -> default server address mapping, generated from the
+// official petkit region servers endpoint, shared with the settings page.
+const regionServers = require('./homebridge-ui/public/region-servers.js').servers;
 
 const pluginName = 'homebridge-petkit-feeder-mini';
 const platformName = 'petkit_feeder_mini';
@@ -49,30 +52,6 @@ const globalVariables = Object.freeze({
             'max_retry': 3,                 // http request retry count
         }
     },
-    'account_urls': {                       // used by account login mode
-        'cn': {
-            'login': 'https://api.petkit.cn/6/user/login',
-            'familyList': 'https://api.petkit.cn/6/group/family/list',
-            'deviceRosterV2': 'https://api.petkit.cn/6/discovery/device_roster_v2',
-        },
-        'asia': {
-            'login': 'https://api.petktasia.com/latest/user/login',
-            'familyList': 'https://api.petktasia.com/latest/group/family/list',
-            'deviceRosterV2': 'https://api.petktasia.com/latest/discovery/device_roster_v2',
-        },
-        'north_america': {
-            'login': 'https://api.petkt.com/latest/user/login',
-            'familyList': 'https://api.petkt.com/latest/group/family/list',
-            'deviceRosterV2': 'https://api.petkt.com/latest/discovery/device_roster_v2',
-        },
-    },
-    // default region(country code) sent to the Petkit login request, users
-    // can override it with the `region` config item of the device.
-    'account_regions': {
-        'cn': 'CN',
-        'asia': 'HK',
-        'north_america': 'US',
-    },
     // default http headers used by account login mode, these are the exact
     // headers the current official Petkit app(android) sends, which has been
     // verified working with the login and device endpoints on all servers.
@@ -99,76 +78,31 @@ const globalVariables = Object.freeze({
         'source': 'app.petkit-android',
         'version': '13.2.1',
     },
-    'global_urls': {
+    // device endpoint templates relative to the server address, the server
+    // address is configurable in the settings page(see the `server` config
+    // item) and the full url is `server` + template.
+    'device_urls': {
         'Feeder': {
-            'cn': {
-                'deviceState': 'http://api.petkit.cn/6/feeder/devicestate?id={}',
-                'deviceDetailInfo': 'http://api.petkit.cn/6/feeder/device_detail?id={}',
-                'saveDailyFeed': 'http://api.petkit.cn/6/feeder/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
-                'removeDailyFeed': 'http://api.petkit.cn/6/feeder/remove_dailyfeed?deviceId={}&day={}&id=d{}',
-                'dailyfeeds': 'http://api.petkit.cn/6/feeder/dailyfeeds?deviceId={}&days={}',
-                'restoreDailyFeeds': 'http://api.petkit.cn/6/feeder/restore_dailyfeed?deviceId={}&day={}&id=s{}',
-                'disableDailyFeeds': 'http://api.petkit.cn/6/feeder/remove_dailyfeed?deviceId={}&day={}&id=s{}',
-                'resetDesiccant': 'http://api.petkit.cn/6/feeder/desiccant_reset?deviceId={}',
-                'updateSettings': 'http://api.petkit.cn/6/feeder/update?id={}&kv={}',
-            },
-            'asia':{
-                'deviceState': 'http://api.petktasia.com/latest/feeder/devicestate?id={}',
-                'deviceDetailInfo': 'http://api.petktasia.com/latest/feeder/device_detail?id={}',
-                'saveDailyFeed': 'http://api.petktasia.com/latest/feeder/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
-                'removeDailyFeed': 'http://api.petktasia.com/latest/feeder/remove_dailyfeed?deviceId={}&day={}&id=d{}',
-                'dailyfeeds': 'http://api.petktasia.com/latest/feeder/dailyfeeds?deviceId={}&days={}',
-                'restoreDailyFeeds': 'http://api.petktasia.com/latest/feeder/restore_dailyfeed?deviceId={}&day={}&id=s{}',
-                'disableDailyFeeds': 'http://api.petktasia.com/latest/feeder/remove_dailyfeed?deviceId={}&day={}&id=s{}',
-                'resetDesiccant': 'http://api.petktasia.com/latest/feeder/desiccant_reset?deviceId={}',
-                'updateSettings': 'http://api.petktasia.com/latest/feeder/update?id={}&kv={}',
-            },
-            'north_america':{
-                'deviceState': 'http://api.petkt.com/latest/feeder/devicestate?id={}',
-                'deviceDetailInfo': 'http://api.petkt.com/latest/feeder/device_detail?id={}',
-                'saveDailyFeed': 'http://api.petkt.com/latest/feeder/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
-                'removeDailyFeed': 'http://api.petkt.com/latest/feeder/remove_dailyfeed?deviceId={}&day={}&id=d{}',
-                'dailyfeeds': 'http://api.petkt.com/latest/feeder/dailyfeeds?deviceId={}&days={}',
-                'restoreDailyFeeds': 'http://api.petkt.com/latest/feeder/restore_dailyfeed?deviceId={}&day={}&id=s{}',
-                'disableDailyFeeds': 'http://api.petkt.com/latest/feeder/remove_dailyfeed?deviceId={}&day={}&id=s{}',
-                'resetDesiccant': 'http://api.petkt.com/latest/feeder/desiccant_reset?deviceId={}',
-                'updateSettings': 'http://api.petkt.com/latest/feeder/update?id={}&kv={}',
-            }
+            'deviceState': 'feeder/devicestate?id={}',
+            'deviceDetailInfo': 'feeder/device_detail?id={}',
+            'saveDailyFeed': 'feeder/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
+            'removeDailyFeed': 'feeder/remove_dailyfeed?deviceId={}&day={}&id=d{}',
+            'dailyfeeds': 'feeder/dailyfeeds?deviceId={}&days={}',
+            'restoreDailyFeeds': 'feeder/restore_dailyfeed?deviceId={}&day={}&id=s{}',
+            'disableDailyFeeds': 'feeder/remove_dailyfeed?deviceId={}&day={}&id=s{}',
+            'resetDesiccant': 'feeder/desiccant_reset?deviceId={}',
+            'updateSettings': 'feeder/update?id={}&kv={}',
         },
         'FeederMini': {
-            'cn': {
-                'deviceState': 'http://api.petkit.cn/6/feedermini/devicestate?id={}',
-                'deviceDetailInfo': 'http://api.petkit.cn/6/feedermini/device_detail?id={}',
-                'saveDailyFeed': 'http://api.petkit.cn/6/feedermini/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
-                'removeDailyFeed': 'http://api.petkit.cn/6/feedermini/remove_dailyfeed?deviceId={}&day={}&id=d{}',
-                'dailyfeeds': 'http://api.petkit.cn/6/feedermini/dailyfeeds?deviceId={}&days={}',
-                'restoreDailyFeeds': 'http://api.petkit.cn/6/feedermini/restore_dailyfeed?deviceId={}&day={}&id=s{}',
-                'disableDailyFeeds': 'http://api.petkit.cn/6/feedermini/remove_dailyfeed?deviceId={}&day={}&id=s{}',
-                'resetDesiccant': 'http://api.petkit.cn/6/feedermini/desiccant_reset?deviceId={}',
-                'updateSettings': 'http://api.petkit.cn/6/feedermini/update?id={}&kv={}',
-            },
-            'asia':{
-                'deviceState': 'http://api.petktasia.com/latest/feedermini/devicestate?id={}',
-                'deviceDetailInfo': 'http://api.petktasia.com/latest/feedermini/device_detail?id={}',
-                'saveDailyFeed': 'http://api.petktasia.com/latest/feedermini/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
-                'removeDailyFeed': 'http://api.petktasia.com/latest/feedermini/remove_dailyfeed?deviceId={}&day={}&id=d{}',
-                'dailyfeeds': 'http://api.petktasia.com/latest/feedermini/dailyfeeds?deviceId={}&days={}',
-                'restoreDailyFeeds': 'http://api.petktasia.com/latest/feedermini/restore_dailyfeed?deviceId={}&day={}&id=s{}',
-                'disableDailyFeeds': 'http://api.petktasia.com/latest/feedermini/remove_dailyfeed?deviceId={}&day={}&id=s{}',
-                'resetDesiccant': 'http://api.petktasia.com/latest/feedermini/desiccant_reset?deviceId={}',
-                'updateSettings': 'http://api.petktasia.com/latest/feedermini/update?id={}&kv={}',
-            },
-            'north_america':{
-                'deviceState': 'http://api.petkt.com/latest/feedermini/devicestate?id={}',
-                'deviceDetailInfo': 'http://api.petkt.com/latest/feedermini/device_detail?id={}',
-                'saveDailyFeed': 'http://api.petkt.com/latest/feedermini/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
-                'removeDailyFeed': 'http://api.petkt.com/latest/feedermini/remove_dailyfeed?deviceId={}&day={}&id=d{}',
-                'dailyfeeds': 'http://api.petkt.com/latest/feedermini/dailyfeeds?deviceId={}&days={}',
-                'restoreDailyFeeds': 'http://api.petkt.com/latest/feedermini/restore_dailyfeed?deviceId={}&day={}&id=s{}',
-                'disableDailyFeeds': 'http://api.petkt.com/latest/feedermini/remove_dailyfeed?deviceId={}&day={}&id=s{}',
-                'resetDesiccant': 'http://api.petkt.com/latest/feedermini/desiccant_reset?deviceId={}',
-                'updateSettings': 'http://api.petkt.com/latest/feedermini/update?id={}&kv={}',
-            }
+            'deviceState': 'feedermini/devicestate?id={}',
+            'deviceDetailInfo': 'feedermini/device_detail?id={}',
+            'saveDailyFeed': 'feedermini/save_dailyfeed?deviceId={}&day={}&time={}&amount={}',
+            'removeDailyFeed': 'feedermini/remove_dailyfeed?deviceId={}&day={}&id=d{}',
+            'dailyfeeds': 'feedermini/dailyfeeds?deviceId={}&days={}',
+            'restoreDailyFeeds': 'feedermini/restore_dailyfeed?deviceId={}&day={}&id=s{}',
+            'disableDailyFeeds': 'feedermini/remove_dailyfeed?deviceId={}&day={}&id=s{}',
+            'resetDesiccant': 'feedermini/desiccant_reset?deviceId={}',
+            'updateSettings': 'feedermini/update?id={}&kv={}',
         }
     },
     'config': {
@@ -280,7 +214,7 @@ class petkit_feeder_plugin {
         }
         this.api = api;
         this.accessories = new Map();
-        this.accounts = new Map();      // petkit account session cache, key: location|username
+        this.accounts = new Map();      // petkit account session cache, key: server|username
 
         if (!config) {
             this.log.error("no configure found for Petkit Feeder Platform.");
@@ -323,18 +257,41 @@ class petkit_feeder_plugin {
         // by homebridge is never mutated by this plugin.
         const conf = new configUtil(Object.assign({}, config));
 
-        // location
-        let location = conf.get('location');
-        if (!location) {
-            this.log.error('missing dataset: location in your config.');
-            return undefined;
-        } else {
-            const validLocations = Object.keys(globalVariables.account_urls);
-            if (!conf.checkValueValid('location', validLocations)) {
-                this.log.error(format('value of location({0}) should be one of {1}', location, JSON.stringify(validLocations)));
+        // region(country code) is the primary setting now, the server address
+        // defaults to the official server of the country code automatically.
+        let region = String(conf.fulfill('region', 'CN') || '').trim().toUpperCase();
+        conf.set('region', region);
+
+        // server address, the base url of the Petkit api. when it is not
+        // configured, the default server of the region is used instead, users
+        // can also choose one of the known servers or input a custom one in
+        // the settings page.
+        let server = conf.get('server');
+        if (!server || !String(server).trim()) {
+            server = regionServers[region];
+            if (!server) {
+                this.log.error(format('unable to find the default server address of region({}), and no server address found in your config.', region));
+                this.log.error('you may provide the server address of your Petkit account, e.g. https://api.petkit.cn/6/');
                 return undefined;
             }
+            this.log.debug(format('server address not configured, using the default server({0}) of region({1}).', server, region));
         }
+        server = String(server).trim();
+        if (!/^https?:\/\/.+/i.test(server)) {
+            this.log.error(format('value of server({0}) should be a valid http(s) address.', server));
+            return undefined;
+        }
+        if (!server.endsWith('/')) {
+            server += '/';
+        }
+        conf.set('server', server);
+
+        // the account urls are derived from the server address
+        conf.set('account_urls', {
+            'login': server + 'user/login',
+            'familyList': server + 'group/family/list',
+            'deviceRosterV2': server + 'discovery/device_roster_v2',
+        });
 
         // login mode:
         //   - 'account': login Petkit server with username/password, and fetch
@@ -386,9 +343,10 @@ class petkit_feeder_plugin {
         });
 
         if (login_mode === 'account') {
-            // timezone and region are needed by the Petkit login request
+            // the timezone defaults to Asia/Shanghai for the login request,
+            // it will be replaced by the timezone returned from the server
+            // when the device detail is fetched.
             const timezone = conf.fulfill('timezone', 'Asia/Shanghai');
-            conf.fulfill('region', globalVariables.account_regions[location]);
             http_headers['X-TimezoneId'] = timezone;
             http_headers['X-Timezone'] = this.getTimezoneOffsetHours(timezone);
         }
@@ -397,8 +355,10 @@ class petkit_feeder_plugin {
         // optional configure items, these are platform level settings shared
         // by every device found from the Petkit server.
         conf.fulfill('manufacturer', 'Petkit');
-        conf.fulfill('enable_polling', true);
+        // polling is always enabled
+        conf.set('enable_polling', true);
 
+        conf.fulfill('polling_interval', 60);
         const polling_interval = conf.get('polling_interval');
         const min_polling_interval = globalVariables.config.min_pollint_interval;
         const max_polling_interval = globalVariables.config.max_pollint_interval;
@@ -740,10 +700,14 @@ class petkit_feeder_plugin {
                 // only initialize the devices selected by user in the
                 // settings page. when the `devices` config item is absent,
                 // every device of this account is initialized.
+                // each `devices` entry is either a device id string, or an
+                // object like {id: 'xxx', name: 'display name in homekit'}.
                 const total_found = owned_devices.length;
-                const selected_device_ids = this.platformConf.get('devices');
-                if (selected_device_ids !== undefined) {
-                    const selected = selected_device_ids.map(id => String(id));
+                const selected_devices = this.platformConf.get('devices');
+                if (selected_devices !== undefined) {
+                    const selected = selected_devices.map(entry => {
+                        return String((entry && typeof entry === 'object') ? entry.id : entry);
+                    });
                     owned_devices.forEach(device => {
                         if (selected.indexOf(String(device.id)) === -1) {
                             this.log.info(format('device({}) is not enabled in config, skip it.', device.name));
@@ -766,11 +730,29 @@ class petkit_feeder_plugin {
             });
     }
 
+    // get the device name configured by user in the settings page for the
+    // given device id, return undefined when not configured, in which case
+    // the device name from the Petkit server is used instead.
+    getSelectedDeviceName(deviceId) {
+        const selected_devices = this.platformConf.get('devices');
+        if (!Array.isArray(selected_devices)) {
+            return undefined;
+        }
+        const id = String(deviceId);
+        for (const entry of selected_devices) {
+            if (entry && typeof entry === 'object' && String(entry.id) === id) {
+                return (entry.name ? String(entry.name).trim() : undefined);
+            }
+        }
+        return undefined;
+    }
+
     // initialize one accessory for one device found from the server
     // @param validDevice: {id, name, type} from praseGetOwnedDevice
     initializeDevice(validDevice) {
-        const config = this.buildDeviceConf(validDevice);
-        this.log.info(format('initializing Petkit Feeder device({}) with deviceId: {}.', validDevice.name, validDevice.id));
+        const deviceName = this.getSelectedDeviceName(validDevice.id) || validDevice.name;
+        const config = this.buildDeviceConf(validDevice, deviceName);
+        this.log.info(format('initializing Petkit Feeder device({}) with deviceId: {}.', deviceName, validDevice.id));
 
         // uuid must be generated from a unique but not changing data source,
         // device id is buildin the device and will never change.
@@ -778,7 +760,7 @@ class petkit_feeder_plugin {
         let petkitDevice = this.accessories.get(uuid);
         if (!petkitDevice) {
             // petkitDevice not exists, create petkitDevice and accessory
-            let accessory = new this.api.platformAccessory(validDevice.name, uuid, validDevice.name);
+            let accessory = new this.api.platformAccessory(deviceName, uuid, deviceName);
             if (!accessory) {
                 this.log.error('initialize Petkit Feeder failed: could not create accessory');
                 return;
@@ -789,7 +771,7 @@ class petkit_feeder_plugin {
             petkitDevice.config = config;
         } else if (!petkitDevice.accessory) {
             // accessory not exists, create accessory
-            let accessory = new this.api.platformAccessory(validDevice.name, uuid, validDevice.name);
+            let accessory = new this.api.platformAccessory(deviceName, uuid, deviceName);
             if (!accessory) {
                 this.log.error('initialize Petkit Feeder failed: could not create accessory');
                 return;
@@ -797,8 +779,9 @@ class petkit_feeder_plugin {
             petkitDevice.accessory = accessory;
             petkitDevice.config = config;
         } else {
-            // accessory exists
+            // accessory exists, update config and display name
             petkitDevice.config = config;
+            petkitDevice.accessory.displayName = deviceName;
         }
 
         this.log.debug('request initial device status from Petkit server.');
@@ -806,7 +789,18 @@ class petkit_feeder_plugin {
             if (deviceDetailInfo) {
                 petkitDevice.config.set('sn', deviceDetailInfo.sn);
                 petkitDevice.config.set('firmware', deviceDetailInfo.firmware);
-                petkitDevice.config.assign('headers', {'X-TimezoneId': deviceDetailInfo.locale})
+                // use the timezone returned by the server instead of the
+                // configured one, so no timezone setting is needed any more.
+                if (deviceDetailInfo.timezone) {
+                    petkitDevice.config.set('timezone', deviceDetailInfo.timezone);
+                    this.platformConf.set('timezone', deviceDetailInfo.timezone);
+                    petkitDevice.config.assign('headers', {
+                        'X-TimezoneId': deviceDetailInfo.timezone,
+                        'X-Timezone': this.getTimezoneOffsetHours(deviceDetailInfo.timezone),
+                    });
+                } else if (deviceDetailInfo.locale) {
+                    petkitDevice.config.assign('headers', {'X-TimezoneId': deviceDetailInfo.locale})
+                }
 
                 if (this.setupAccessory(petkitDevice)) {
                     // all service setup success, now update accessory
@@ -829,13 +823,20 @@ class petkit_feeder_plugin {
     }
 
     // build a per device config from the platform config, the device specific
-    // value(deviceId, name, model, urls) comes from the server reply.
-    buildDeviceConf(validDevice) {
+    // value(deviceId, name, model, urls) comes from the server reply, and the
+    // name can be overridden by the display name configured by user in the
+    // settings page.
+    buildDeviceConf(validDevice, name) {
         const conf = new configUtil(Object.assign({}, this.platformConf.config));
+        const server = conf.get('server');
+        const urls = {};
+        for (const [key, template] of Object.entries(globalVariables.device_urls[validDevice.type])) {
+            urls[key] = server + template;
+        }
         conf.set('deviceId', validDevice.id);
-        conf.set('name', validDevice.name);
+        conf.set('name', (name || validDevice.name));
         conf.set('model', validDevice.type);
-        conf.set('urls', globalVariables.global_urls[validDevice.type][conf.get('location')]);
+        conf.set('urls', urls);
         return conf;
     }
 
@@ -986,16 +987,16 @@ class petkit_feeder_plugin {
     // the session so that it can be reused after homebridge restarts.
     // ------------------------------------------------
 
-    getAccountKey(location, username) {
-        return format('{}|{}', location, username);
+    getAccountKey(server, username) {
+        return format('{}|{}', server, username);
     }
 
     registerAccount(conf) {
-        const key = this.getAccountKey(conf.get('location'), conf.get('username'));
+        const key = this.getAccountKey(conf.get('server'), conf.get('username'));
         let account = this.accounts.get(key);
         if (!account) {
             account = {
-                'location': conf.get('location'),
+                'server': conf.get('server'),
                 'username': conf.get('username'),
                 'confs': new Set(),
                 'sessionId': undefined,
@@ -1089,12 +1090,11 @@ class petkit_feeder_plugin {
     // this is the exact login request the official Petkit app sends, see
     // https://github.com/Jezza34000/py-petkit-api for more detail.
     async petkitLogin(conf) {
-        const location = conf.get('location');
         const username = conf.get('username');
         const password = conf.get('password');
         const region = conf.get('region');
         const timezone = conf.get('timezone');
-        const url = globalVariables.account_urls[location].login;
+        const url = conf.get('account_urls').login;
         const headers = Object.assign({}, conf.get('headers'));
         delete headers['X-Session'];
         delete headers['F-Session'];
@@ -1146,8 +1146,7 @@ class petkit_feeder_plugin {
     // contains the group id and the device list formerly captured by user.
     // if success return the normalized family list or failed return undefined.
     async petkitGetFamilyList(conf) {
-        const location = conf.get('location');
-        const url = globalVariables.account_urls[location].familyList;
+        const url = conf.get('account_urls').familyList;
         const options = Object.assign({}, globalVariables.default_http_options, {
             'url': url,
             'method': 'GET',
@@ -1196,7 +1195,7 @@ class petkit_feeder_plugin {
 
         // each family in the reply looks like:
         // {groupId: 'xxx', name: 'xxx', deviceList: [{deviceId, deviceType, deviceName, ...}]}
-        return jsonObj.result.map(family => ({
+        return families.map(family => ({
             'id': (family.groupId !== undefined ? family.groupId : family.group_id),
             'name': family.name,
             'devices': (family.deviceList || family.device_list || []).map(device => ({
@@ -1223,8 +1222,7 @@ class petkit_feeder_plugin {
     // fetch devices shared with this account from the device roster v2
     // endpoint. if success return the normalized device list or failed return undefined.
     async petkitGetSharedDevices(conf, groupId) {
-        const location = conf.get('location');
-        const url = globalVariables.account_urls[location].deviceRosterV2;
+        const url = conf.get('account_urls').deviceRosterV2;
         const options = Object.assign({}, globalVariables.default_http_options, {
             'url': url,
             'headers': conf.get('headers'),
@@ -1296,7 +1294,7 @@ class petkit_feeder_plugin {
         } catch (error) {
             this.log.error('load persisted Petkit session failed: ' + error);
         }
-        const key = this.getAccountKey(account.location, account.username);
+        const key = this.getAccountKey(account.server, account.username);
         return (data && data.sessions && data.sessions[key]) ? data.sessions[key] : undefined;
     }
 
@@ -1312,7 +1310,7 @@ class petkit_feeder_plugin {
                 data = JSON.parse(fs.readFileSync(filePath));
                 if (!data.sessions) data.sessions = {};
             }
-            data.sessions[this.getAccountKey(account.location, account.username)] = {
+            data.sessions[this.getAccountKey(account.server, account.username)] = {
                 'sessionId': sessionId,
                 'loginAt': getTimestamp(),
             };
@@ -1358,7 +1356,7 @@ class petkit_feeder_plugin {
             options.petkitConf.get('login_mode') === 'account' &&
             this.praseSessionExpiredResult(result.data)) {
             const conf = options.petkitConf;
-            const account = this.accounts.get(this.getAccountKey(conf.get('location'), conf.get('username')));
+            const account = this.accounts.get(this.getAccountKey(conf.get('server'), conf.get('username')));
             if (account) {
                 this.log.warn('Petkit session expired, re-login Petkit server with account.');
                 if (await this.ensureAccountSession(account, true)) {

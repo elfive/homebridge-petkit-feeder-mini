@@ -37,39 +37,36 @@
     },
     "region": {
       "title": "Account region (country code)",
-      "description": "The country code of your Petkit account, sent to the login request. Defaults to CN for China mainland, HK for Asia, US for North America. If login fails, set it to your own country code, e.g. CN / HK / JP / SG / US / CA / IT ...",
+      "description": "The country code of your Petkit account, chosen from a dropdown in the settings page, sent to the login request. The Petkit server address is taken from the official server of this country code automatically. If login fails, change it to your account's country code.",
       "required": false,
       "type": "string",
+      "default": "CN",
       "placeholder": "CN"
-    },
-    "timezone": {
-      "title": "Timezone",
-      "description": "The IANA timezone sent to the Petkit server, used to compute the X-Timezone and X-TimezoneId headers.",
-      "required": false,
-      "type": "string",
-      "default": "Asia/Shanghai",
-      "placeholder": "Asia/Shanghai"
-    },
-    "location": {
-      "title": "Server location, set this value corrent is very important becaus user data are not shared between servers.!",
-      "description": "• for China mainland users, select 'China mainland'.<br/>• for Asia users select 'Asia'.<br/>• for North America users select 'North America'",
-      "required": true,
-      "type": "string",
-      "default": "cn",
-      "placeholder": "China mainland",
-      "oneOf": [
-        { "title": "China mainland", "enum": ["cn"] },
-        { "title": "Asia", "enum": ["asia"] },
-        { "title": "North America", "enum": ["north_america"] }
-      ]
     },
     "devices": {
       "title": "Devices to control",
-      "description": "The device ids this plugin should control, selected in the custom settings page after a successful login. An empty array means no device is controlled, omit this field to control all devices of the account.",
+      "description": "The devices this plugin should control, selected in the custom settings page after a successful login. Each entry is either a device id string, or an object with the device id and the custom display name to show in HomeKit. An empty array means no device is controlled, omit this field to control all devices of the account.",
       "required": false,
       "type": "array",
       "items": {
-        "type": "string"
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "title": "Device id",
+                "type": "string"
+              },
+              "name": {
+                "title": "Display name in HomeKit",
+                "type": "string"
+              }
+            }
+          }
+        ]
       }
     },
     "headers": {
@@ -175,12 +172,6 @@
       "default": "Battery",
       "placeholder": "Battery"
     },
-    "enable_polling": {
-      "title": "Automatically update device status from Petkit server",
-      "required": false,
-      "type": "boolean",
-      "default": true
-    },
     "polling_interval": {
       "title": "Update device status interval from Petkit server.",
       "required": false,
@@ -273,8 +264,6 @@
         "username",
         "password",
         "region",
-        "timezone",
-        "location",
         {
           "type": "help",
           "helpvalue": "<p>• Recommended way to use this plugin: fill username/password, this plugin logs into the Petkit server exactly like the Petkit app does, discovers <b>all the devices of this account</b> automatically, and fetches the <b>X-Session</b> and <b>group id</b> automatically. The session id is persisted to disk so it is reused after homebridge restarts, and this plugin re-login automatically when the session expires.<br/>• Petkit only allows one active session per account, it is recommended to use a dedicated account and share the device with it from the main app.<br/>• The captured headers mode below is only kept for backward compatibility.</p>"
@@ -350,7 +339,6 @@
       "expanded": false,
       "title": "Polling settings",
       "items": [
-        "enable_polling",
         "polling_interval"
       ]
     },
