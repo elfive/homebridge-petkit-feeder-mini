@@ -377,6 +377,7 @@ class petkit_feeder_plugin {
 
         // service name field
         conf.fulfill('DropMeal_name', 'DropMeal');
+        conf.fulfill('MealAmount_name', 'MealAmount');
         conf.fulfill('FoodStorage_name', (conf.get('reverse_foodStorage_indicator') ? 'FoodStorage_Empty' : 'FoodStorage'));
         conf.fulfill('DesiccantLevel_name', 'DesiccantLevel');
         conf.fulfill('ManualLock_name', 'ManualLock');
@@ -472,17 +473,96 @@ class petkit_feeder_plugin {
         let service_name = undefined;
         let service_status = undefined;
 
+        // each service below is identified by its stable role subtype, not by
+        // its display name: display names are user editable(and shared by
+        // every device), so a service renamed in the settings page or created
+        // by an older plugin version is found again after a homebridge
+        // restart and renamed in place, instead of keeping the old name or
+        // being added twice.
+        //
+        // after the service is found or created, its display name, subtype
+        // and the Name characteristic are always applied explicitly, because
+        // how `addService` passes its constructor arguments differs between
+        // hap-nodejs versions: older versions force the accessory display
+        // name on every new service, which made every service show the
+        // accessory name(智能喂食器) in HomeKit no matter what name was
+        // configured in the settings page.
+        const role_subtypes = ['DropMeal', 'MealAmount', 'FoodStorage', 'DesiccantLevel', 'ManualLock', 'LightMode', 'Battery'];
+        const claimed_services = new Set();
+        const findOrCreateRoleService = (service_type, role_subtype, name) => {
+            const services = (accessory.services || []);
+            // 1. a service of this role created by this plugin version or
+            // newer, matched by its stable role subtype
+            let service = services.find(item =>
+                item && (item.UUID === service_type.UUID) && (item.subtype === role_subtype) &&
+                !claimed_services.has(item));
+            if (!service) {
+                // 2. a service created by an older plugin version has no role
+                // subtype, adopt the first unclaimed service of the same type
+                // instead(the services keep their creation order, which
+                // matches the order of the roles below). a service whose
+                // subtype already belongs to another role is left alone: it
+                // belongs to a role disabled in the config.
+                service = services.find(item =>
+                    item && (item.UUID === service_type.UUID) && !claimed_services.has(item) &&
+                    (item.subtype === undefined || role_subtypes.indexOf(item.subtype) === -1));
+            }
+            if (!service) {
+                // 3. no service of this role exists, create one. the display
+                // name is applied explicitly below, so it never falls back to
+                // the accessory display name.
+                service = accessory.addService(service_type, (name || role_subtype), role_subtype);
+                if (!service) {
+                    this.log.error('petkit device service create failed: ' + (name || role_subtype));
+                    return undefined;
+                }
+            }
+            claimed_services.add(service);
+
+            // always re-apply the configured name on the found or created
+            // service, so a config change(or a cached service created by an
+            // older plugin version) is picked up after a homebridge restart.
+            const display_name = (name || role_subtype);
+            service.displayName = display_name;
+            // restore the stable role subtype as well, since some hap-nodejs
+            // versions pass the display name as the subtype argument.
+            service.subtype = role_subtype;
+            let name_characteristic = undefined;
+            try {
+                name_characteristic = service.getCharacteristic(Characteristic.Name);
+            } catch (error) {
+                // some hap-nodejs versions throw instead of returning
+                // undefined when the characteristic is not on the service.
+            }
+            if (!name_characteristic) {
+                name_characteristic = service.addCharacteristic(Characteristic.Name);
+            }
+            name_characteristic.updateValue(display_name);
+            // also expose the configured name through the ConfiguredName
+            // characteristic: the Home app uses it as the name assigned to
+            // each service when the accessory is paired. without it, every
+            // sub-accessory of this accessory is initially named after the
+            // accessory itself(智能喂食器) instead of the configured name,
+            // even though the Name characteristic holds the right value(the
+            // configured name then only shows up as the rename placeholder
+            // in the Home app).
+            try {
+                if (!service.testCharacteristic(Characteristic.ConfiguredName)) {
+                    service.addOptionalCharacteristic(Characteristic.ConfiguredName);
+                }
+                service.getCharacteristic(Characteristic.ConfiguredName).updateValue(display_name);
+            } catch (error) {
+                // older hap-nodejs versions may not expose ConfiguredName
+            }
+            return service;
+        };
+
         // setup meal drop service
         if (true) {
             service_name = config.get('DropMeal_name');
-            let drop_meal_service = accessory.getService(service_name);
+            let drop_meal_service = findOrCreateRoleService(Service.Switch, 'DropMeal', service_name);
             if (!drop_meal_service) {
-                // service not exist, create service
-                drop_meal_service = accessory.addService(Service.Switch, service_name, service_name);
-                if (!drop_meal_service) {
-                    this.log.error('petkit device service create failed: ' + service_name);
-                    return false;
-                }
+                return false;
             }
             drop_meal_service.setPrimaryService(true);
             drop_meal_service.getCharacteristic(Characteristic.On)
@@ -495,14 +575,9 @@ class petkit_feeder_plugin {
         // setup meal amount service
         if (true) {
             service_name = config.get('MealAmount_name');
-            let meal_amount_service = accessory.getService(service_name);
+            let meal_amount_service = findOrCreateRoleService(Service.Fan, 'MealAmount', service_name);
             if (!meal_amount_service) {
-                // service not exist, create service
-                meal_amount_service = accessory.addService(Service.Fan, service_name, service_name);
-                if (!meal_amount_service) {
-                    this.log.error('petkit device service create failed: ' + service_name);
-                    return false;
-                }
+                return false;
             }
 
             meal_amount_service.getCharacteristic(Characteristic.On)
@@ -522,14 +597,9 @@ class petkit_feeder_plugin {
         // setup food storage indicator service
         if (true) {
             service_name = config.get('FoodStorage_name');
-            let food_storage_service = accessory.getService(service_name);
+            let food_storage_service = findOrCreateRoleService(Service.OccupancySensor, 'FoodStorage', service_name);
             if (!food_storage_service) {
-                // service not exist, create service
-                food_storage_service = accessory.addService(Service.OccupancySensor, service_name, service_name);
-                if (!food_storage_service) {
-                    this.log.error('petkit device service create failed: ' + service_name);
-                    return false;
-                }
+                return false;
             }
 
             service_status = petkitDevice.getFoodStatusForHomebridge();
@@ -543,18 +613,13 @@ class petkit_feeder_plugin {
         // setup desiccant left days service
         if (config.get('enable_desiccant')) {
             service_name = config.get('DesiccantLevel_name');
-            let desiccant_level_service = accessory.getService(service_name);
+            let desiccant_level_service = findOrCreateRoleService(Service.FilterMaintenance, 'DesiccantLevel', service_name);
             if (!desiccant_level_service) {
-                // service not exist, create service
-                desiccant_level_service = accessory.addService(Service.FilterMaintenance, service_name, service_name);
-                if (!desiccant_level_service) {
-                    this.log.error('petkit device service create failed: ' + service_name);
-                    return false;
-                }
+                return false;
             }
 
             desiccant_level_service.setCharacteristic(Characteristic.FilterChangeIndication,
-                (petkitDevice.status.desiccantLeftDays < this.alert_desiccant_threshold ? 1 : 0));
+                (petkitDevice.status.desiccantLeftDays < config.get('alert_desiccant_threshold') ? 1 : 0));
             desiccant_level_service.getCharacteristic(Characteristic.FilterChangeIndication)
                 .on('get', this.hb_desiccantIndicator_get.bind(this, petkitDevice));
 
@@ -576,14 +641,9 @@ class petkit_feeder_plugin {
         // setup manualLock setting service
         if (config.get('enable_manualLock')) {
             service_name = config.get('ManualLock_name');
-            let manualLock_service = accessory.getService(service_name);
+            let manualLock_service = findOrCreateRoleService(Service.Switch, 'ManualLock', service_name);
             if (!manualLock_service) {
-                // service not exist, create service
-                manualLock_service = accessory.addService(Service.Switch, service_name, service_name);
-                if (!manualLock_service) {
-                    this.log.error('petkit device service create failed: ' + service_name);
-                    return false;
-                }
+                return false;
             }
 
             manualLock_service.setCharacteristic(Characteristic.On, petkitDevice.status.manualLock);
@@ -597,14 +657,9 @@ class petkit_feeder_plugin {
         // setup lightMode setting service
         if (config.get('enable_lightMode')) {
             service_name = config.get('LightMode_name');
-            let lightMode_service = accessory.getService(service_name);
+            let lightMode_service = findOrCreateRoleService(Service.Switch, 'LightMode', service_name);
             if (!lightMode_service) {
-                // service not exist, create service
-                lightMode_service = accessory.addService(Service.Switch, service_name, service_name);
-                if (!lightMode_service) {
-                    this.log.error('petkit device service create failed: ' + service_name);
-                    return false;
-                }
+                return false;
             }
 
             lightMode_service.setCharacteristic(Characteristic.On, petkitDevice.status.lightMode);
@@ -618,14 +673,9 @@ class petkit_feeder_plugin {
         // setup battery status service, only for Petkit Feeder Mini
         if (petkitDevice.config.get('model') === 'FeederMini') {
             service_name = config.get('Battery_name');
-            let battery_status_service = accessory.getService(service_name);
+            let battery_status_service = findOrCreateRoleService(Service.Battery, 'Battery', service_name);
             if (!battery_status_service) {
-                // service not exist, create service
-                battery_status_service = accessory.addService(Service.Battery, service_name, service_name);
-                if (!battery_status_service) {
-                    this.log.error('petkit device service create failed: ' + service_name);
-                    return false;
-                }
+                return false;
             }
 
             battery_status_service.setCharacteristic(Characteristic.BatteryLevel, petkitDevice.status.batteryPower);
@@ -760,7 +810,9 @@ class petkit_feeder_plugin {
         let petkitDevice = this.accessories.get(uuid);
         if (!petkitDevice) {
             // petkitDevice not exists, create petkitDevice and accessory
-            let accessory = new this.api.platformAccessory(deviceName, uuid, deviceName);
+            // (the third constructor argument is the accessory category, not
+            // a name; leave it out to use the default category)
+            let accessory = new this.api.platformAccessory(deviceName, uuid);
             if (!accessory) {
                 this.log.error('initialize Petkit Feeder failed: could not create accessory');
                 return;
@@ -771,7 +823,7 @@ class petkit_feeder_plugin {
             petkitDevice.config = config;
         } else if (!petkitDevice.accessory) {
             // accessory not exists, create accessory
-            let accessory = new this.api.platformAccessory(deviceName, uuid, deviceName);
+            let accessory = new this.api.platformAccessory(deviceName, uuid);
             if (!accessory) {
                 this.log.error('initialize Petkit Feeder failed: could not create accessory');
                 return;
@@ -779,9 +831,17 @@ class petkit_feeder_plugin {
             petkitDevice.accessory = accessory;
             petkitDevice.config = config;
         } else {
-            // accessory exists, update config and display name
+            // accessory exists, update config and display name. homebridge 2.x
+            // wraps the HAP accessory in its own PlatformAccessory class,
+            // whose displayName must be updated through `updateDisplayName` so
+            // the wrapped HAP accessory is kept in sync as well.
             petkitDevice.config = config;
-            petkitDevice.accessory.displayName = deviceName;
+            const cached_accessory = petkitDevice.accessory;
+            if (typeof cached_accessory.updateDisplayName === 'function') {
+                cached_accessory.updateDisplayName(deviceName);
+            } else {
+                cached_accessory.displayName = deviceName;
+            }
         }
 
         this.log.debug('request initial device status from Petkit server.');
@@ -807,7 +867,10 @@ class petkit_feeder_plugin {
                     if (!this.accessories.get(uuid)) {
                         this.api.registerPlatformAccessories(pluginName, platformName, [petkitDevice.accessory]);
                     }
-                    this.accessories.set(uuid, petkitDevice.accessory);
+                    // keep the whole petkitDevice(the config and services
+                    // are needed by later status polling), not the bare
+                    // accessory object.
+                    this.accessories.set(uuid, petkitDevice);
 
                     this.log.info(format('initialize Petkit Feeder device({}) success.', config.get('name')));
 
