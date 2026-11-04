@@ -1,3 +1,15 @@
+<!-- Dark-mode fix: Config UI X mirrors its theme into this iframe only as
+     body classes (dark themes add `dark-mode`), while the injected Bootstrap
+     sheet keeps :root in light theme — so .text-muted resolves to a near
+     black color, unreadable on the dark card background. Derive the muted
+     helper texts from the card's own text color instead. -->
+<style>
+  body.dark-mode .text-muted {
+    color: inherit !important;
+    opacity: 0.7;
+  }
+</style>
+
 <div class="container-fluid">
 
   <div class="alert alert-info py-2" role="alert">
