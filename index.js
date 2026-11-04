@@ -1409,7 +1409,18 @@ class petkit_feeder_plugin {
             let familyDevices = family.devices || [];
             if (familyDevices.length === 0) {
                 // no owned device in this family, fetch the shared devices
-                familyDevices = await this.petkitGetSharedDevices(config, family.id) || [];
+                const sharedDevices = await this.petkitGetSharedDevices(config, family.id) || [];
+                for (const device of sharedDevices) {
+                    // the device roster v2 reply does not include device
+                    // names, fetch the real name from the device detail
+                    // endpoint and fall back to the type + id string when it
+                    // is unavailable.
+                    const detailName = await this.http_getSharedDeviceName(config, device.type, device.id);
+                    if (detailName) {
+                        device.name = detailName;
+                    }
+                }
+                familyDevices = sharedDevices;
             }
             devices = devices.concat(familyDevices);
         }
@@ -1422,6 +1433,33 @@ class petkit_feeder_plugin {
                 })),
             },
         };
+    }
+
+    // fetch the name of a device from its device detail endpoint, the device
+    // roster v2 reply does not include device names. returns undefined when
+    // the name is unavailable, in which case the fallback name is kept.
+    async http_getSharedDeviceName(config, type, deviceId) {
+        if (!globalVariables.device_urls[type]) {
+            return undefined;
+        }
+        const url_template = globalVariables.device_urls[type].deviceDetailInfo;
+        const url = config.get('server') + format(url_template, deviceId);
+        const options = Object.assign({}, globalVariables.default_http_options, {
+            url: url,
+            method: 'GET',
+            headers: config.get('headers'),
+            responseType: 'json',
+            petkitConf: config,
+        });
+        try {
+            const detail = await this.http_request(options);
+            if (detail && detail.result && detail.result.name) {
+                return String(detail.result.name);
+            }
+        } catch (error) {
+            this.log.debug(format('unable to fetch device({}) name from server, keep the fallback name: {}', deviceId, (error.message || error)));
+        }
+        return undefined;
     }
 
     async http_getDeviceInfo(petkitDevice) {

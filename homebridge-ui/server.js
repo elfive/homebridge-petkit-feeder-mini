@@ -255,6 +255,35 @@ async function petkitGetSharedDevices(server, sessionId, groupId) {
     return reply.result.devices;
 }
 
+// fetch the name of a device from its device detail endpoint, the device
+// roster v2 reply does not include device names. returns undefined when the
+// name is unavailable.
+async function petkitGetDeviceName(server, sessionId, type, deviceId) {
+    const headers = Object.assign({}, ACCOUNT_HEADERS, {
+        'X-TimezoneId': 'Asia/Shanghai',
+        'X-Timezone': '8.0',
+        'X-Session': sessionId,
+        'F-Session': sessionId,
+    });
+    try {
+        const reply = await httpRequest({
+            'url': server + type.toLowerCase() + '/device_detail?id=' + deviceId,
+            'method': 'GET',
+            'headers': headers,
+            'responseType': 'json',
+            'timeout': 10000,
+        });
+
+        const errorInfo = parseErrorEnvelope(reply);
+        if (errorInfo || !reply || !reply.result || !reply.result.name) {
+            return undefined;
+        }
+        return String(reply.result.name);
+    } catch (error) {
+        return undefined;
+    }
+}
+
 // fetch all the devices(owned and shared) of this account, return the
 // supported feeder devices only: [{id, name, type}]
 async function petkitGetAllDevices(server, sessionId) {
@@ -283,9 +312,14 @@ async function petkitGetAllDevices(server, sessionId) {
                 if (SUPPORT_DEVICE_TYPE.indexOf(type) === -1) {
                     continue;
                 }
+                const id = String(device.id);
+                // the device roster v2 reply does not include device names,
+                // fetch the real name from the device detail endpoint and
+                // fall back to the type + id string when it is unavailable.
+                const detailName = await petkitGetDeviceName(server, sessionId, type, id);
                 devices.push({
-                    'id': String(device.id),
-                    'name': device.deviceTypeAndId || type,
+                    'id': id,
+                    'name': detailName || device.deviceTypeAndId || type,
                     'type': type,
                 });
             }
